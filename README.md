@@ -1,1 +1,1 @@
-# necstlab-image-segmentation
+# necstlab-damage-segmentation
