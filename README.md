@@ -11,6 +11,14 @@ This repository contains the instructions and code to train and use a model for 
 
 ### Setting up your local machine
 
+#### Clone this repository
+
+In a terminal window, enter `git clone git@github.com:mit-quest/necstlab-damage-segmentation.git`.
+
+Change into the main directory: `cd necstlab-damage-segmentation`
+
+If you do not have `git` installed, see [here]() for installation instructions. TODO: add link/link content
+
 #### Terraform
 
 To programmatically set up and destroy cloud resources (virtual machines, buckets, etc.), we will use a tool called Terraform. For instructions on how to install Terraform, see [here](). TODO: add link/link content
