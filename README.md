@@ -1,7 +1,7 @@
 # necstlab's Damage Segmentation
 
 This repository contains the instructions and code to train and use a model for damage segmentation of carbon-fiber-laminate scans (which are often referred to as "image stacks"). To accomplish this, there are five workflows that this repository supports: 
-* copying the raw data into the cloud for storage and usage
+* copying the raw data into the cloud and processing it for usage in a dataset
 * segmenting the damage of an image stack (often called inference)
 * preparing a dataset for training and testing of a damage segmentation model
 * testing the performance of a pretrained damage segmentation model on a dataset
@@ -10,10 +10,6 @@ This repository contains the instructions and code to train and use a model for 
 ## Prerequisites for all workflows
 
 ### Setting up your local machine
-
-#### 7za
-
-To unzip the raw data files, we'll use 7za. To install 7za see instructions [here](https://linuxhint.com/install-7zip-compression-tool-on-ubuntu/)
 
 #### Terraform
 
@@ -25,11 +21,7 @@ All of the workflows use Google Cloud Platform (GCP) for storage (buckets) and c
 
 To set up and destroy virtual machines, Terraform requires access to GCP. For instructions on how to download GCP credentials for Terraform, see [here](). TODO: add link/link content
 
-#### Pipenv
-
-For locally run python code we will use a tool called `pipenv` to set up and manage python virtual environments and packages. See the instructions [here]() for on how to install `pipenv`. TODO: add link/link content
-
-Run the command `pipenv install` to set up the virtual environment and download the required python packages for the workflows.
+Edit the `terraform.tfvars` file with your `username`, `gcp_key_file_location`, `public_ssh_key_location`, `private_ssh_key_location`. For more information on how to generate a public and private SSH key pair, see [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
 #### Set up this repository
 
@@ -44,21 +36,23 @@ To store all of the artifacts (data, models, results, etc.) that are required fo
 As you run the workflows you'll see the following directory structure be automatically created and populated inside of your bucket:
 ```
 <GCP bucket>/
-    analyses/      (this is where any analysis that results from testing will be stored)
+    analyses/         (this is where any analysis that results from testing will be stored)
         <analysis_ID>-<timestamp>/
             plots/
                 ...
             config.yaml
             log.txt
             metrics.csv
-    raw-data/      (this is where any raw data will be stored)
+    raw-data/         (this is where any raw data files will be stored)
+        ...
+    processed-data/
         <stack_ID>/
             annotations/
                 ...
             images/
                 ...
             metadata.yaml
-    datasets/      (this is where any prepared datasets for training will be stored)
+    datasets/         (this is where any prepared datasets for training will be stored)
         <dataset_ID>-<timestamp>/
             test/
                 annotations/
@@ -77,13 +71,13 @@ As you run the workflows you'll see the following directory structure be automat
                     ...
             config.yaml
             log.txt
-    inferences/    (this is where any stack segmentations will be stored)
+    inferences/       (this is where any stack segmentations will be stored)
         <inference_ID>-<timestamp>/
             output/
                 ...
             config.yaml
             log.txt
-    models/        (this is where any trained segmentation models will be stored)
+    models/           (this is where any trained segmentation models will be stored)
         <model_ID>-<timestamp>/
             plots/
                 ...
@@ -105,7 +99,7 @@ The following workflows assume:
 * You are familiar with image annotations and how they are used in image segmentation. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content 
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 
-## Copying the raw data into the cloud for storage and usage
+## Copying the raw data into the cloud and processing it for usage in a dataset
 
 Prerequisite artifacts:
 * A stack of (zipped) images or annotations (tifs) that we wish to use in the other workflows on your local machine
@@ -117,14 +111,19 @@ Prerequisite artifacts:
 * Inside of each zip file we expect a folder named `<stack_id>` or `<stack_id>_dmg_labels_GV.zip` containing the tifs.
 
 Infrastructure that will be used:
-* A GCP bucket where the stacks will be stored
-* Your local machine to upload the stacks to the GCP bucket
-* The `tmp/` directory inside `necstlab-damage-segmentation` to process the images before they are uploaded (all contents of this folder will be deleted)
+* A GCP bucket where the raw and processed stacks will be stored
+* Your local machine to upload the raw zip files to a GCP bucket
+* A GCP machine to process the raw data
 
 ### Workflow
 
-1. To copy stack to a GCP bucket run the command: `pipenv run python3 ingest_data_to_gcp.py --zipped-stack <zipped_stack> --gcp-bucket <gcp_bucket>` where `<local_stacks_dir>` is the local directory where the stacks are stored and `<gcp_bucket>` is the bucket where our artifacts will be stored. 
-1. When this completes, you should see your stack in `<gcp_bucket>/data/ingested/<stack_ID>`.
+1. Copy the zip files of raw data into a GCP bucket: `gsutil cp <local_data_file> gs://<gcp_bucket_name>/raw-data` where `<gcp_bucket_name>` is the bucket where our artifacts will be stored. To copy an entire folder of zip files, `cd` into the directory and use the command: `gsutil -m cp -r . gs://<gcp_bucket_name>/raw-data`
+1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/raw-data/<zip_file>`.
+1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
+1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
+1. SSH into the GCP virtual machine, `cd` into the code directory (`cd necstlab-damage-segmentation`), and process a zip file by running the command: `pipenv run python3 process_raw_data.py --gcp-bucket gs://<gcp_bucket_name> --zipped-stack gs://<gcp_bucket_name>/raw-data/<zip_file>`. If the `--zipped-stack` argument is not given, it will process all of the files in `gs://<gcp_bucket_name>/raw-data`.
+1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/processed-data/<stack_ID>`.
+1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
 Note: 
 * Inside of `ingest_data_to_gcp.py` is stack-specific fixes to naming errors. You will have to edit that file for new scans with naming errors.

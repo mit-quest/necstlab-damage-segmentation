@@ -22,6 +22,7 @@ pandas = "*"
 google-cloud-storage = "*"
 pyyaml = "*"
 jupyter = "*"
+crcmod = "*"
 
 [requires]
 python_version = "3.5"
