@@ -11,13 +11,9 @@ This repository contains the instructions and code to train and use a model for 
 
 ### Setting up your local machine
 
-#### Clone this repository
+#### 7za
 
-In a terminal window, enter `git clone git@github.com:mit-quest/necstlab-damage-segmentation.git`.
-
-Change into the main directory: `cd necstlab-damage-segmentation`
-
-If you do not have `git` installed, see [here]() for installation instructions. TODO: add link/link content
+To unzip the raw data files, we'll use 7za. To install 7za see instructions [here](https://linuxhint.com/install-7zip-compression-tool-on-ubuntu/)
 
 #### Terraform
 
@@ -34,6 +30,12 @@ To set up and destroy virtual machines, Terraform requires access to GCP. For in
 For locally run python code we will use a tool called `pipenv` to set up and manage python virtual environments and packages. See the instructions [here]() for on how to install `pipenv`. TODO: add link/link content
 
 Run the command `pipenv install` to set up the virtual environment and download the required python packages for the workflows.
+
+#### Set up this repository
+
+To copy this repository locally, in a terminal window, enter and clone the repository using the command: `git clone git@github.com:mit-quest/necstlab-damage-segmentation.git`. If you do not have `git` installed, see [here]() for installation instructions. TODO: add link/link content
+
+All commands will assume to be run from the `necstlab-damage-segmentation` directory, which you can `cd` into using: `cd necstlab-damage-segmentation`
 
 ### Setting up your GCP bucket
 
@@ -106,16 +108,27 @@ The following workflows assume:
 ## Copying the raw data into the cloud for storage and usage
 
 Prerequisite artifacts:
-* Stacks of images and annotations that we wish to use in the other workflows on your local machine
+* A stack of (zipped) images or annotations (tifs) that we wish to use in the other workflows on your local machine
+* The zip filename is expected to look like:
+    ``` 
+    <stack_id>.zip (for unsegmented images)
+    <stack_id>_dmg_labels_GV.zip (for annotations)    
+    ```
+* Inside of each zip file we expect a folder named `<stack_id>` or `<stack_id>_dmg_labels_GV.zip` containing the tifs.
 
 Infrastructure that will be used:
 * A GCP bucket where the stacks will be stored
 * Your local machine to upload the stacks to the GCP bucket
+* The `tmp/` directory inside `necstlab-damage-segmentation` to process the images before they are uploaded (all contents of this folder will be deleted)
 
 ### Workflow
 
-1. To copy the unsegmented stacks to a GCP bucket run the command: `pipenv run python3 ingest_data_to_gcp.py --local-stacks-dir <local_stacks_dir> --gcp-bucket <gcp_bucket>` where `<local_stacks_dir>` is the local directory where the stacks are stored and `<gcp_bucket>` is the bucket where our artifacts will be stored. 
-1. When this completes, you should see all of your stacks in `<gcp_bucket>/data/ingested/<stack_ID>` where `<stack_ID>` are the names of the directories inside of `<local_stacks_dir>`.
+1. To copy stack to a GCP bucket run the command: `pipenv run python3 ingest_data_to_gcp.py --zipped-stack <zipped_stack> --gcp-bucket <gcp_bucket>` where `<local_stacks_dir>` is the local directory where the stacks are stored and `<gcp_bucket>` is the bucket where our artifacts will be stored. 
+1. When this completes, you should see your stack in `<gcp_bucket>/data/ingested/<stack_ID>`.
+
+Note: 
+* Inside of `ingest_data_to_gcp.py` is stack-specific fixes to naming errors. You will have to edit that file for new scans with naming errors.
+* instead of using the `--zipped-stack` argument, `--zips-dir` can be used instead with `ingest_data_to_gcp.py` to ingest a directory of zip files. 
 
 ## Segmenting damage of a set of stacks
 
