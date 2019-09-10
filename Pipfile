@@ -23,6 +23,7 @@ google-cloud-storage = "*"
 pyyaml = "*"
 jupyter = "*"
 crcmod = "*"
+gitpython = "*"
 
 [requires]
 python_version = "3.5"

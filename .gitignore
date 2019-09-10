@@ -1,7 +1,8 @@
+__pycache__
 .idea
-tmp/
+tmp/*
 Pipfile.lock
-keys/
+keys/*
 terraform.tfstate
 terraform.tfstate.backup
 .terraform.tfstate.lock.info

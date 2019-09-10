@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 from PIL import Image
 import shutil
+from datetime import datetime
+import pytz
 import gcp_utils
+import yaml
+import git
 
-
+metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
 
@@ -43,6 +47,8 @@ def process_zip(gcp_bucket, zipped_stack):
     os.remove(Path(tmp_directory, Path(zipped_stack).name).as_posix())
     unzipped_dir = next(stack_dir.iterdir())
 
+    original_number_of_files_in_zip = len(list(unzipped_dir.iterdir()))
+
     for f in Path(unzipped_dir).iterdir():
         if f.name[-4:] != '.tif':
             # remove any non-image files
@@ -53,6 +59,28 @@ def process_zip(gcp_bucket, zipped_stack):
 
     shutil.move(unzipped_dir.as_posix(),
                 Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
+
+    # get metadata file, if exists
+    os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data/', stack_id, metadata_file_name),
+                                                 Path(tmp_directory, stack_id).as_posix()))
+
+    try:
+        with Path(tmp_directory, stack_id, metadata_file_name).open('r') as f:
+            metadata = yaml.safe_load(f)
+    except FileNotFoundError:
+        metadata = {}
+
+    metadata.update({'annotations' if is_annotation else 'images': {
+        'gcp_bucket': gcp_bucket,
+        'zipped_stack_file': zipped_stack,
+        'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
+        'original_number_of_files_in_zip': original_number_of_files_in_zip,
+        'number_of_images': len(list(unzipped_dir.iterdir())),
+        'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha}
+    })
+
+    with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:
+        yaml.safe_dump(metadata, f)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
                                                  os.path.join(gcp_bucket, 'processed-data/')))
