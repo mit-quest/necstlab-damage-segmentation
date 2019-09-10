@@ -43,15 +43,6 @@ As you run the workflows you'll see the following directory structure be automat
             config.yaml
             log.txt
             metrics.csv
-    raw-data/         (this is where any raw data files will be stored)
-        ...
-    processed-data/
-        <stack_ID>/
-            annotations/
-                ...
-            images/
-                ...
-            metadata.yaml
     datasets/         (this is where any prepared datasets for training will be stored)
         <dataset_ID>-<timestamp>/
             test/
@@ -85,6 +76,14 @@ As you run the workflows you'll see the following directory structure be automat
             log.txt
             model.hdf5
             metrics.csv
+    processed-data/
+        <stack_ID>/
+            annotations/
+                ...
+            images/
+                ...
+    raw-data/         (this is where any raw data files will be stored)
+        ...
 ```
 where `<analysis_ID>`, `<dataset_ID>`, `<inference_ID>`, and `<model_ID>` are defined inside of configuration files and `<timestamp>` is the time the process was started and is automatically generated. The `<stack_ID>`s will be created as raw data is moved into the cloud. 
 
