@@ -1,0 +1,86 @@
+import os
+from pathlib import Path
+from PIL import Image
+import shutil
+import gcp_utils
+
+
+tmp_directory = Path('./tmp')
+
+
+def process_zips(gcp_bucket):
+
+    files = gcp_utils.list_files(gcp_bucket.split('gs://')[1], 'raw-data')
+
+    for zipped_stack in files:
+        process_zip(gcp_bucket, os.path.join(gcp_bucket, zipped_stack))
+
+
+def process_zip(gcp_bucket, zipped_stack):
+
+    assert "gs://" in zipped_stack
+    assert "gs://" in gcp_bucket
+
+    # clean up the tmp directory
+    try:
+        shutil.rmtree(tmp_directory.as_posix())
+    except FileNotFoundError:
+        pass
+    tmp_directory.mkdir()
+
+    os.system("gsutil -m cp -r '{}' '{}'".format(zipped_stack, tmp_directory.as_posix()))
+
+    is_annotation = 'dmg' in zipped_stack
+
+    stack_id = Path(zipped_stack).name.split('.')[0]
+    split_strings = ['_8bit', '-', '_dmg']
+    for s in split_strings:
+        stack_id = stack_id.split(s)[0]
+
+    stack_dir = Path(tmp_directory, stack_id)
+
+    os.system("7za x -y -o'{}' '{}'".format(stack_dir.as_posix(), Path(tmp_directory, Path(zipped_stack).name).as_posix()))
+    os.remove(Path(tmp_directory, Path(zipped_stack).name).as_posix())
+    unzipped_dir = next(stack_dir.iterdir())
+
+    for f in Path(unzipped_dir).iterdir():
+        if f.name[-4:] != '.tif':
+            # remove any non-image files
+            os.remove(f.as_posix())
+        else:
+            # convert all images to greyscale (some are already and some aren't)
+            Image.open(f).convert("L").save(f)
+
+    shutil.move(unzipped_dir.as_posix(),
+                Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
+
+    os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
+                                                 os.path.join(gcp_bucket, 'processed-data/')))
+
+    shutil.rmtree(tmp_directory.as_posix())
+
+
+if __name__ == "__main__":
+    import sys
+    import argparse
+
+    argparser = argparse.ArgumentParser(sys.argv[0])
+
+    argparser.add_argument(
+        '--gcp-bucket',
+        type=str,
+        help='The GCP bucket where the raw data is located and to use to store the processed stacks.')
+
+    argparser.add_argument(
+        '--zipped-stack',
+        type=str,
+        default='',
+        help='The zipped stack to be processed.')
+
+    kw_args = argparser.parse_args().__dict__
+
+    if kw_args['zipped_stack'] == '':
+        process_zips(gcp_bucket=kw_args['gcp_bucket'])
+    else:
+        process_zip(gcp_bucket=kw_args['gcp_bucket'],
+                    zipped_stack=kw_args['zipped_stack'])

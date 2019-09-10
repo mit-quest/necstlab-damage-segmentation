@@ -1,7 +1,7 @@
 # necstlab's Damage Segmentation
 
 This repository contains the instructions and code to train and use a model for damage segmentation of carbon-fiber-laminate scans (which are often referred to as "image stacks"). To accomplish this, there are five workflows that this repository supports: 
-* copying the raw data into the cloud and processing it for usage in a dataset
+* ingesting the raw data into a cloud bucket and processing it for usage in a dataset
 * segmenting the damage of an image stack (often called inference)
 * preparing a dataset for training and testing of a damage segmentation model
 * testing the performance of a pretrained damage segmentation model on a dataset
@@ -99,7 +99,7 @@ The following workflows assume:
 * You are familiar with image annotations and how they are used in image segmentation. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content 
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 
-## Copying the raw data into the cloud and processing it for usage in a dataset
+## Ingesting the raw data into a cloud bucket and processing it for usage in a dataset
 
 Prerequisite artifacts:
 * A stack of (zipped) images or annotations (tifs) that we wish to use in the other workflows on your local machine
