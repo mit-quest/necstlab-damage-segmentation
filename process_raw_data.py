@@ -75,7 +75,7 @@ def process_zip(gcp_bucket, zipped_stack):
         'zipped_stack_file': zipped_stack,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'original_number_of_files_in_zip': original_number_of_files_in_zip,
-        'number_of_images': len(list(unzipped_dir.iterdir())),
+        'number_of_images': len(list(Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').iterdir())),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha}
     })
 
