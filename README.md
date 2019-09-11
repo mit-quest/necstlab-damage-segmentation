@@ -98,6 +98,7 @@ The following workflows assume:
 * You know how to create and destroy resources using Terraform. If you are unfamiliar with how to do this, see [here]() for instructions. TODO: add link/link content 
 * You are familiar with image annotations and how they are used in image segmentation. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content 
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
+* You are familiar with how use tmux on a remote machine and how we will use it to keep processes running even if the SSH window is closed or disconnected. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 
 ## Ingesting the raw data into a cloud bucket and processing it for usage in a dataset
 
@@ -121,7 +122,7 @@ Infrastructure that will be used:
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/raw-data/<zip_file>`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. SSH into the GCP virtual machine, `cd` into the code directory (`cd necstlab-damage-segmentation`), and process a zip file by running the command: `pipenv run python3 process_raw_data.py --gcp-bucket gs://<gcp_bucket_name> --zipped-stack gs://<gcp_bucket_name>/raw-data/<zip_file>`. If the `--zipped-stack` argument is not given, it will process all of the files in `gs://<gcp_bucket_name>/raw-data`.
+1. SSH into the GCP virtual machine, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and process a zip file by running the command: `pipenv run python3 process_raw_data.py --gcp-bucket gs://<gcp_bucket_name> --zipped-stack gs://<gcp_bucket_name>/raw-data/<zip_file>`. If the `--zipped-stack` argument is not given, it will process all of the files in `gs://<gcp_bucket_name>/raw-data`.
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/processed-data/<stack_ID>`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
@@ -146,7 +147,7 @@ Infrastructure that will be used:
 1. If the unsegmented stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To infer (segment) the damage of the stacks, SSH into the virtual machine `<project_name>-<user_name>` and run `pipenv run python3 infer_segmentation.py --config-file configurations/inference.yaml`. 
+1. To infer (segment) the damage of the stacks, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 infer_segmentation.py --config-file configurations/inference.yaml`. 
 1. Once inference has finished, you should see the folder `<gcp_bucket>/inferences/<inference_ID>-<timestamp>` has been created and populated, where `<inference_ID>` was defined in `configurations/inference.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
@@ -166,7 +167,7 @@ Infrastructure that will be used:
 1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>` and run `pipenv run python3 prepare_data.py --config-file configurations/data_preparation.yaml`. 
+1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 prepare_data.py --config-file configurations/data_preparation.yaml`. 
 1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/datasets/<dataset_ID>-<timestamp>` has been created and populated, where `<dataset_ID>` was defined in `configurations/data_preparation.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
@@ -186,7 +187,7 @@ Infrastructure that will be used:
 1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>` and run `pipenv run python3 test_segmentation_model.py --config-file configurations/test.yaml`. 
+1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 test_segmentation_model.py --config-file configurations/test.yaml`. 
 1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/analyses/<analysis_ID>-<timestamp>` has been created and populated, where `<analysis_ID>` was defined in `configurations/test.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
 
@@ -205,6 +206,6 @@ Infrastructure that will be used:
 1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>` and run `pipenv run python3 train_segmentation_model.py --config-file configurations/train.yaml`. 
+1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 train_segmentation_model.py --config-file configurations/train.yaml`. 
 1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/models/<model_ID>-<timestamp>` has been created and populated, where `<model_ID>` was defined in `configurations/train.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
