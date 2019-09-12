@@ -79,9 +79,11 @@ def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processe
             Path(data_prep_local_dir, 'downsampled', scan, 'annotations').mkdir(parents=True)
             for image_ind in file_inds_to_copy:
                 shutil.copy(scan_image_files[image_ind].as_posix(),
-                            os.path.join(data_prep_local_dir, 'downsampled', scan, 'images', scan_image_files[image_ind].name))
+                            Path(data_prep_local_dir, 'downsampled', scan, 'images', scan_image_files[
+                                image_ind].name).as_posix())
                 shutil.copy(scan_annotation_files[image_ind].as_posix(),
-                            os.path.join(data_prep_local_dir, 'downsampled', scan, 'annotations', scan_annotation_files[image_ind].name))
+                            Path(data_prep_local_dir, 'downsampled', scan, 'annotations', scan_annotation_files[
+                                image_ind].name).as_posix())
 
 
 # adapted from: https://github.com/matterport/Mask_RCNN/issues/230
@@ -119,8 +121,10 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                     annotation = Image.fromarray(annotation)
                 else:
                     raise ValueError("Image cropping type: {}".format(image_cropping_params['type']))
-                image.save(os.path.join(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[image_ind].name))
-                annotation.save(os.path.join(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[image_ind].name))
+                image.save(Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                    image_ind].name).as_posix())
+                annotation.save(Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                    image_ind].name).as_posix())
 
 
 def create_class_masks(data_prep_local_dir, class_annotation_mapping):
@@ -213,18 +217,18 @@ def main(config_file):
         'gcp_bucket': dataset_config['gcp_bucket'],
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'number_of_images': {
-            'train': len(list(Path(prepared_dataset_local_dir, dataset_config['dataset_name'], 'train').iterdir())),
-            'validation': len(list(Path(prepared_dataset_local_dir, dataset_config['dataset_name'], 'validation').iterdir())),
-            'test': len(list(Path(prepared_dataset_local_dir, dataset_config['dataset_name'], 'test').iterdir())),
+            'train': len(list(Path(prepared_dataset_local_dir, 'train', 'images').iterdir())),
+            'validation': len(list(Path(prepared_dataset_local_dir, 'validation', 'images').iterdir())),
+            'test': len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir())),
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'config_file': {
-            'name': config_file,
+            'file_name': config_file,
             'contents': dataset_config
         }
     }
 
-    with Path(prepared_dataset_local_dir, dataset_config['dataset_name'], metadata_file_name).open('w') as f:
+    with Path(prepared_dataset_local_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
     copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_config['dataset_name'])
