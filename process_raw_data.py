@@ -32,8 +32,6 @@ def process_zip(gcp_bucket, zipped_stack):
         pass
     tmp_directory.mkdir()
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(zipped_stack, tmp_directory.as_posix()))
-
     is_annotation = 'dmg' in zipped_stack
 
     stack_id = Path(zipped_stack).name.split('.')[0]
@@ -42,6 +40,8 @@ def process_zip(gcp_bucket, zipped_stack):
         stack_id = stack_id.split(s)[0]
 
     stack_dir = Path(tmp_directory, stack_id)
+
+    os.system("gsutil -m cp -r '{}' '{}'".format(zipped_stack, tmp_directory.as_posix()))
 
     os.system("7za x -y -o'{}' '{}'".format(stack_dir.as_posix(), Path(tmp_directory, Path(zipped_stack).name).as_posix()))
     os.remove(Path(tmp_directory, Path(zipped_stack).name).as_posix())
