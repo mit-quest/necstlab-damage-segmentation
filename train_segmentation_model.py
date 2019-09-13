@@ -182,7 +182,7 @@ def main(config_file):
         yaml.safe_dump(metadata, f)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'models').as_posix(),
-                                                 os.path.join(train_config['gcp_bucket'], 'models')))
+                                                 train_config['gcp_bucket']))
 
     shutil.rmtree(tmp_directory.as_posix())
 
