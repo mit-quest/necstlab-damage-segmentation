@@ -164,9 +164,9 @@ def split_prepared_data(data_prep_local_dir, prepared_dataset_local_dir, dataset
                         shutil.copy(file.as_posix(), Path(mask_class_dest_dir, file.name).as_posix())
 
 
-def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remote_dest, dataset_name):
+def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remote_dest, dataset_id):
     os.system("gsutil -m cp -r '{}' '{}'".format(prepared_dataset_location.as_posix(),
-                                                 os.path.join(prepared_dataset_remote_dest, dataset_name)))
+                                                 os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
 
 def main(config_file):
@@ -190,7 +190,7 @@ def main(config_file):
     data_prep_local_dir = Path(tmp_directory, 'preparing')
     data_prep_local_dir.mkdir()
 
-    prepared_dataset_local_dir = Path(tmp_directory, 'datasets', dataset_config['dataset_name'])
+    prepared_dataset_local_dir = Path(tmp_directory, 'datasets', dataset_config['dataset_id'])
     prepared_dataset_local_dir.mkdir(parents=True)
 
     prepared_dataset_remote_dest = os.path.join(dataset_config['gcp_bucket'], 'datasets')
@@ -200,7 +200,7 @@ def main(config_file):
         all_scans += scans
     all_scans = sorted(set(all_scans))
 
-    assert not remote_dataset_exists(prepared_dataset_remote_dest, dataset_config['dataset_name'])
+    assert not remote_dataset_exists(prepared_dataset_remote_dest, dataset_config['dataset_id'])
 
     copy_processed_data_locally_if_missing(all_scans, processed_data_remote_source, processed_data_local_dir)
 
@@ -219,7 +219,6 @@ def main(config_file):
         'number_of_images': {
             'train': len(list(Path(prepared_dataset_local_dir, 'train', 'images').iterdir())),
             'validation': len(list(Path(prepared_dataset_local_dir, 'validation', 'images').iterdir())),
-            'test': len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir())),
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'config_file': {
@@ -227,11 +226,15 @@ def main(config_file):
             'contents': dataset_config
         }
     }
+    try:
+        metadata['number_of_images']['test'] = len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir()))
+    except FileNotFoundError:
+        pass  # does not necessarily have to be test data
 
     with Path(prepared_dataset_local_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
-    copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_config['dataset_name'])
+    copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_config['dataset_id'])
 
     shutil.rmtree(tmp_directory.as_posix())
 
@@ -244,7 +247,6 @@ if __name__ == "__main__":
     argparser.add_argument(
         '--config-file',
         type=str,
-        default='./configurations/data_preparation_config.yaml',
         help='The location of the data preparation configuration file.')
 
     main(**argparser.parse_args().__dict__)
