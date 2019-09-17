@@ -43,6 +43,7 @@ As you run the workflows you'll see the following directory structure be automat
             config.yaml
             log.txt
             metrics.csv
+            metadata.yaml
     datasets/         (this is where any prepared datasets for training will be stored)
         <dataset_ID>/
             test/
@@ -62,12 +63,14 @@ As you run the workflows you'll see the following directory structure be automat
                     ...
             config.yaml
             log.txt
+            metadata.yaml
     inferences/       (this is where any stack segmentations will be stored)
         <inference_ID>-<timestamp>/
             output/
                 ...
             config.yaml
             log.txt
+            metadata.yaml
     models/           (this is where any trained segmentation models will be stored)
         <model_ID>-<timestamp>/
             plots/
@@ -75,6 +78,7 @@ As you run the workflows you'll see the following directory structure be automat
             config.yaml
             log.txt
             model.hdf5
+            metadata.yaml
             metrics.csv
     processed-data/
         <stack_ID>/
@@ -82,6 +86,7 @@ As you run the workflows you'll see the following directory structure be automat
                 ...
             images/
                 ...
+            config.yaml
             metadata.yaml
     raw-data/         (this is where any raw data files will be stored)
         ...
