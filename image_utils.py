@@ -19,17 +19,6 @@ GV_RGB_mapping = {
 }
 
 
-# def overlay_batch_predictions(image_file, prediction_array, threshold=None):
-#     image = np.asarray(Image.open(image_file).convert('RGB'))
-#     for c in batch_image_array[0].shape:
-#
-#
-#         composite_image = Image.fromarray(composite_image)
-#
-#     return composite_image
-
-
-
 def overlay_masks(images, masks):
     # assert type(images) == type(masks)
     if type(images) == np.ndarray:
@@ -95,29 +84,3 @@ class TensorBoardImage(keras.callbacks.Callback):
             writer.add_summary(summary, epoch)
 
         writer.close()
-
-
-
-# image_file = '/media/josh/Extra Drive 1/necstlab/data/easy_copy/prepared/train/images/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_0018.tif'
-# mask_files = {
-#     'class_0': '/media/josh/Extra Drive 1/necstlab/data/easy_copy/prepared/train/masks/class_0/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_dmg_labels_GV_0018.tif',
-#     'class_1': '/media/josh/Extra Drive 1/necstlab/data/easy_copy/prepared/train/masks/class_1/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_dmg_labels_GV_0018.tif',
-#     'class_2': '/media/josh/Extra Drive 1/necstlab/data/easy_copy/prepared/train/masks/class_2/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_dmg_labels_GV_0018.tif'
-# }
-#
-# overlay_masks(image_file, mask_files).show()
-
-
-# image_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/downsampled/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160/images/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_0018.tif'
-# annotation_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/downsampled/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160/annotations/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_dmg_labels_GV_0018.tif'
-
-# image_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160/images/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_0018.tif'
-# annotation_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160/annotations/8bit_AS4_CNT_S2_P1_L6_2560_1800_2160_dmg_labels_GV_0018.tif'
-
-# image_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/THIN_REF_S2_P1_L3_2496_1563_2159/images/THIN_REF_S2_P1_L3_2496_1563_2159-0070.tif'
-# annotation_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/THIN_REF_S2_P1_L3_2496_1563_2159/annotations/THIN_REF_S2_P1_L3_2496_1563_2159-dmg_labels_GV-0070.tif'
-#
-# image_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/THIN_REF_S2_P1_L3_2496_1563_2159/images/THIN_REF_S2_P1_L3_2496_1563_2159-0195.tif'
-# annotation_file = '/media/josh/Extra Drive 1/necstlab/data/processing/easy/resized/THIN_REF_S2_P1_L3_2496_1563_2159/annotations/THIN_REF_S2_P1_L3_2496_1563_2159-dmg_labels_GV-0195.tif'
-# #
-# overlay_annotation(image_file, annotation_file).show()

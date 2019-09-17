@@ -221,15 +221,15 @@ def main(config_file):
             'validation': len(list(Path(prepared_dataset_local_dir, 'validation', 'images').iterdir())),
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
-        'config_file': {
-            'file_name': config_file,
-            'contents': dataset_config
-        }
+        'original_config_filename': config_file
     }
     try:
         metadata['number_of_images']['test'] = len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir()))
     except FileNotFoundError:
         pass  # does not necessarily have to be test data
+
+    with Path(prepared_dataset_local_dir, 'config.yaml').open('w') as f:
+        yaml.safe_dump({'dataset_config': dataset_config}, f)
 
     with Path(prepared_dataset_local_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)

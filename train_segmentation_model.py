@@ -15,6 +15,7 @@ from segmentation_models.metrics import iou_score
 from image_utils import TensorBoardImage
 from collections import OrderedDict
 import git
+from gcp_utils import copy_dataset_locally_if_missing
 
 
 metadata_file_name = 'metadata.yaml'
@@ -89,13 +90,8 @@ class ImagesAndMasksGenerator(Sequence):
         return images, masks
 
 
-def copy_dataset_locally_if_missing(dataset_remote_source, local_dataset_dir):
-    if not os.path.exists(local_dataset_dir.as_posix()):
-        local_dataset_dir.mkdir(parents=True, exist_ok=True)
-        os.system("gsutil -m cp -r '{}' '{}'".format(dataset_remote_source, local_dataset_dir.as_posix()))
 
-
-def main(config_file):
+def train(config_file):
 
     with Path(config_file).open('r') as f:
         train_config = yaml.safe_load(f)['train_config']
@@ -118,25 +114,30 @@ def main(config_file):
     model_dir = Path(tmp_directory, 'models', model_id)
     model_dir.mkdir(parents=True)
 
-    target_size = train_config['target_size']
+    with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
+        dataset_config = yaml.safe_load(f)['dataset_config']
+
+    target_size = dataset_config['target_size']
     batch_size = train_config['batch_size']
     epochs = train_config['epochs']
 
-    train_generator = ImagesAndMasksGenerator(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
-                                              rescale=1./255,
-                                              target_size=target_size,
-                                              batch_size=batch_size,
-                                              shuffle=True,
-                                              random_rotation=train_config['augmentation']['random_90-degree_rotations'],
-                                              seed=None)
+    train_generator = ImagesAndMasksGenerator(
+        Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
+        rescale=1./255,
+        target_size=target_size,
+        batch_size=batch_size,
+        shuffle=True,
+        random_rotation=train_config['augmentation']['random_90-degree_rotations'],
+        seed=None)
 
-    validation_generator = ImagesAndMasksGenerator(Path(local_dataset_dir, train_config['dataset_id'],
-                                                        'validation').as_posix(),
-                                                   rescale=1./255,
-                                                   target_size=target_size,
-                                                   batch_size=batch_size,
-                                                   shuffle=True,
-                                                   seed=None)
+    validation_generator = ImagesAndMasksGenerator(
+        Path(local_dataset_dir, train_config['dataset_id'],
+             'validation').as_posix(),
+        rescale=1./255,
+        target_size=target_size,
+        batch_size=batch_size,
+        shuffle=True,
+        seed=None)
 
     model = Unet('vgg16', input_shape=(None, None, 1), classes=len(train_generator.mask_filenames), encoder_weights=None)
 
@@ -172,11 +173,11 @@ def main(config_file):
         'gcp_bucket': train_config['gcp_bucket'],
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
-        'config_file': {
-            'file_name': config_file,
-            'contents': train_config
-        }
+        'original_config_filename': config_file
     }
+
+    with Path(model_dir, 'config.yaml').open('w') as f:
+        yaml.safe_dump({'train_config': dataset_config}, f)
 
     with Path(model_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
@@ -197,4 +198,4 @@ if __name__ == "__main__":
         type=str,
         help='The location of the train configuration file.')
 
-    main(**argparser.parse_args().__dict__)
+    train(**argparser.parse_args().__dict__)
