@@ -123,7 +123,7 @@ Infrastructure that will be used:
 
 ### Workflow
 
-1. Copy the zip files of raw data into a GCP bucket: `gsutil cp <local_data_file> gs://<gcp_bucket_name>/raw-data` where `<gcp_bucket_name>` is the bucket where our artifacts will be stored. To copy an entire folder of zip files, `cd` into the directory and use the command: `gsutil -m cp -r . gs://<gcp_bucket_name>/raw-data`
+1. Copy the zip files of raw data into a GCP bucket: `gsutil -m cp <local_data_file> gs://<gcp_bucket_name>/raw-data` where `<gcp_bucket_name>` is the bucket where our artifacts will be stored. To copy an entire folder of zip files, `cd` into the directory and use the command: `gsutil -m cp -r . gs://<gcp_bucket_name>/raw-data`
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/raw-data/<zip_file>`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
