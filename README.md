@@ -114,7 +114,7 @@ Prerequisite artifacts:
     <stack_id>.zip (for unsegmented images)
     <stack_id>_dmg_labels_GV.zip (for annotations)    
     ```
-* Inside of each zip file we expect a folder named `<stack_id>` or `<stack_id>_dmg_labels_GV.zip` containing the tifs.
+* Inside of each zip file we expect a folder named `<stack_id>` or `<stack_id>_dmg_labels_GV` containing the tifs.
 
 Infrastructure that will be used:
 * A GCP bucket where the raw and processed stacks will be stored
