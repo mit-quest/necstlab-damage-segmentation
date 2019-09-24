@@ -93,7 +93,7 @@ def test(config_file):
     with Path(test_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'models').as_posix(),
+    os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'tests').as_posix(),
                                                  test_config['gcp_bucket']))
 
     shutil.rmtree(tmp_directory.as_posix())
