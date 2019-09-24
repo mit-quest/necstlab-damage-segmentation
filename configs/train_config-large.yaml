@@ -1,0 +1,8 @@
+train_config:
+  gcp_bucket: 'gs://necstlab-sandbox'
+  model_id_prefix: 'segmentation-model-large'
+  dataset_id: 'dataset-large'
+  batch_size: 10
+  epochs: 2
+  augmentation:
+    random_90-degree_rotations: True

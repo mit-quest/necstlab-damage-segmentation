@@ -131,11 +131,15 @@ def train(config_file):
 
             ax.plot(range(epochs), results.history[key_name], label=split)
         ax.set_xlabel('episodes')
-        ax.set_ylabel(metric_name)
         if metric_name == 'loss':
             ax.set_ylabel(loss_fn)
+        else:
+            ax.set_ylabel(metric_name)
         ax.legend()
-        fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
+        if metric_name == 'loss':
+            fig.savefig(Path(plots_dir, loss_fn + '.png').as_posix())
+        else:
+            fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
     metadata = {
         'gcp_bucket': train_config['gcp_bucket'],
