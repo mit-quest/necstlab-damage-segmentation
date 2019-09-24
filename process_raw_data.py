@@ -22,6 +22,8 @@ def process_zips(gcp_bucket):
 
 def process_zip(gcp_bucket, zipped_stack):
 
+    start_dt = datetime.now()
+
     assert "gs://" in zipped_stack
     assert "gs://" in gcp_bucket
 
@@ -76,7 +78,8 @@ def process_zip(gcp_bucket, zipped_stack):
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'original_number_of_files_in_zip': original_number_of_files_in_zip,
         'number_of_images': len(list(Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').iterdir())),
-        'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha}
+        'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha},
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
     })
 
     with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:

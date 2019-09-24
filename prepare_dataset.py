@@ -171,6 +171,8 @@ def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remo
 
 def main(config_file):
 
+    start_dt = datetime.now()
+
     with Path(config_file).open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
 
@@ -194,6 +196,9 @@ def main(config_file):
     prepared_dataset_local_dir.mkdir(parents=True)
 
     prepared_dataset_remote_dest = os.path.join(dataset_config['gcp_bucket'], 'datasets')
+
+    with Path(prepared_dataset_local_dir, 'config.yaml').open('w') as f:
+        yaml.safe_dump({'dataset_config': dataset_config}, f)
 
     all_scans = []
     for _, scans in dataset_config['dataset_split'].items():
@@ -221,15 +226,13 @@ def main(config_file):
             'validation': len(list(Path(prepared_dataset_local_dir, 'validation', 'images').iterdir())),
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
-        'original_config_filename': config_file
+        'original_config_filename': config_file,
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
     }
     try:
         metadata['number_of_images']['test'] = len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir()))
     except FileNotFoundError:
         pass  # does not necessarily have to be test data
-
-    with Path(prepared_dataset_local_dir, 'config.yaml').open('w') as f:
-        yaml.safe_dump({'dataset_config': dataset_config}, f)
 
     with Path(prepared_dataset_local_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)

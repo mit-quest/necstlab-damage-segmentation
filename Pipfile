@@ -24,6 +24,7 @@ pyyaml = "*"
 jupyter = "*"
 crcmod = "*"
 gitpython = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.5"

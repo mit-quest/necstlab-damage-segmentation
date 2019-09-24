@@ -1,5 +1,9 @@
+import random
+from collections import OrderedDict
+from pathlib import Path
 import numpy as np
 import tensorflow as tf
+from keras.utils import Sequence
 import keras
 from PIL import Image
 import io
@@ -84,3 +88,63 @@ class TensorBoardImage(keras.callbacks.Callback):
             writer.add_summary(summary, epoch)
 
         writer.close()
+
+
+# adapted from: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+class ImagesAndMasksGenerator(Sequence):
+    def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=True, seed=None, random_rotation=False):
+        self.dataset_directory = dataset_directory
+        self.image_filenames = sorted(Path(self.dataset_directory, 'images').iterdir())
+        self.mask_filenames = OrderedDict()
+        for c in sorted(Path(self.dataset_directory, 'masks').iterdir()):
+            self.mask_filenames[c.name] = sorted(c.iterdir())
+        self.rescale = rescale
+        self.target_size = target_size
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.seed = seed
+        self.random_rotation = random_rotation
+        self.indexes = None
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        self.on_epoch_end()
+
+    def __len__(self):
+        return int(np.floor(len(self.image_filenames) / self.batch_size))
+
+    def __getitem__(self, index):
+        # Generate indexes of the batch
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+
+        # Find list of IDs
+        batch_image_filenames = [self.image_filenames[k] for k in indexes]
+        batch_mask_filenames = {}
+        for c in self.mask_filenames:
+            batch_mask_filenames[c] = [self.mask_filenames[c][k] for k in indexes]
+
+        # Generate data
+        images, masks = self.__data_generation(batch_image_filenames, batch_mask_filenames)
+
+        return images, masks
+
+    def on_epoch_end(self):
+        'Updates indexes after each epoch'
+        self.indexes = np.arange(len(self.image_filenames))
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
+
+    def __data_generation(self, batch_image_filenames, batch_mask_filenames):
+        images = np.empty((self.batch_size, *self.target_size, 1))
+        masks = np.empty((self.batch_size, *self.target_size, len(self.mask_filenames)), dtype=int)
+
+        for i in range(len(batch_image_filenames)):
+            rotation = 0
+            if self.random_rotation:
+                rotation = random.sample([0, 90, 180, 270], k=1)[0]
+            images[i, :, :, 0] = np.asarray(Image.open(batch_image_filenames[i]).rotate(rotation))
+            for j, c in enumerate(self.mask_filenames):
+                masks[i, :, :, j] = np.asarray(Image.open(batch_mask_filenames[c][i]).rotate(rotation))
+
+        images = images * self.rescale
+
+        return images, masks

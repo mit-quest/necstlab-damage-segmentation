@@ -36,14 +36,6 @@ To store all of the artifacts (data, models, results, etc.) that are required fo
 As you run the workflows you'll see the following directory structure be automatically created and populated inside of your bucket:
 ```
 <GCP bucket>/
-    analyses/         (this is where any analysis that results from testing will be stored)
-        <analysis_ID>-<timestamp>/
-            plots/
-                ...
-            config.yaml
-            log.txt
-            metrics.csv
-            metadata.yaml
     datasets/         (this is where any prepared datasets for training will be stored)
         <dataset_ID>/
             test/
@@ -62,21 +54,20 @@ As you run the workflows you'll see the following directory structure be automat
                 images/
                     ...
             config.yaml
-            log.txt
             metadata.yaml
     inferences/       (this is where any stack segmentations will be stored)
         <inference_ID>-<timestamp>/
+            logs/
             output/
                 ...
             config.yaml
-            log.txt
             metadata.yaml
     models/           (this is where any trained segmentation models will be stored)
         <model_ID>-<timestamp>/
+            logs/
             plots/
                 ...
             config.yaml
-            log.txt
             model.hdf5
             metadata.yaml
             metrics.csv
@@ -90,8 +81,16 @@ As you run the workflows you'll see the following directory structure be automat
             metadata.yaml
     raw-data/         (this is where any raw data files will be stored)
         ...
+    tests/         (this is where any analysis that results from testing will be stored)
+        <test_ID>-<timestamp>/
+            logs/
+            plots/
+                ...
+            config.yaml
+            metrics.csv
+            metadata.yaml
 ```
-where `<analysis_ID>`, `<dataset_ID>`, `<inference_ID>`, and `<model_ID>` are defined inside of configuration files and `<timestamp>` is the time the process was started and is automatically generated. The `<stack_ID>`s will be created as raw data is moved into the cloud. 
+where `<test_ID>`, `<dataset_ID>`, `<inference_ID>`, and `<model_ID>` are defined inside of configuration files and `<timestamp>` is the time the process was started and is automatically generated. The `<stack_ID>`s will be created as raw data is moved into the cloud. 
 
 
 ### Assumed knowledge
@@ -188,7 +187,7 @@ Prerequisite artifacts:
 Infrastructure that will be used:
 * A GCP bucket where the segmented stacks will be accessed from
 * A GCP bucket where the results of the analysis will be stored
-* A GCP virtual machine to run the analysis on
+* A GCP virtual machine to run the test on
 
 ### Workflow
 1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
@@ -196,7 +195,7 @@ Infrastructure that will be used:
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
 1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 test_segmentation_model.py --config-file configurations/<config_file>`. 
-1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/analyses/<analysis_ID>-<timestamp>` has been created and populated, where `<analysis_ID>` was defined in `configurations/test.yaml`.
+1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/tests/<test_ID>-<timestamp>` has been created and populated, where `<test_ID>` was defined in `configurations/test.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
 
 ## Training a segmentation model
