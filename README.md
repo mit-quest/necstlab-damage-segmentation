@@ -60,7 +60,6 @@ As you run the workflows you'll see the following directory structure be automat
             logs/
             output/
                 ...
-            config.yaml
             metadata.yaml
     models/           (this is where any trained segmentation models will be stored)
         <model_ID>-<timestamp>/
@@ -173,7 +172,7 @@ Infrastructure that will be used:
 1. Either edit the configuration file `configs/inference_config.yaml` or create your own configuration file and place it in the `configs` folder.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To infer (segment) the damage of the stacks, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 infer_segmentation.py --config-file configs/<config_file>`. 
+1. To infer (segment) the damage of the stacks, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 infer_segmentation.py --gcp-bucket <gcp_bucket> --model-id <model_id> --stack-id <stack_id> `. 
 1. Once inference has finished, you should see the folder `<gcp_bucket>/inferences/<inference_ID>-<timestamp>` has been created and populated, where `<inference_ID>` was defined in `configs/inference.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
