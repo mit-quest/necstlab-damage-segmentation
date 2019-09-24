@@ -73,7 +73,7 @@ def test(config_file):
                   loss=loss_fn,
                   metrics=["accuracy", iou_score])
 
-    model.load_weights(Path(local_model_dir, "model.hdf5").as_posix())
+    model.load_weights(Path(local_model_dir, test_config['model_id'], "model.hdf5").as_posix())
 
     results = model.evaluate_generator(test_generator)
 
