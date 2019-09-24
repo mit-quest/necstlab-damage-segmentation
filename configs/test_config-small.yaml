@@ -1,6 +1,6 @@
 test_config:
   gcp_bucket: 'gs://necstlab-sandbox'
   dataset_id: 'dataset-small'
-  model_id: 'segmentation-model-small_20190913T211550Z'
+  model_id: 'segmentation-model-small_20190924T164308Z'
   batch_size: 10
   number_of_images_to_process: 5

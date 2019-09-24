@@ -1,6 +1,5 @@
 import shutil
 import os
-import csv
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -78,9 +77,8 @@ def test(config_file):
     results = model.evaluate_generator(test_generator)
 
     with Path(test_dir, 'metrics.csv').open('w') as f:
-        w = csv.DictWriter(f, results.history.keys())
-        w.writeheader()
-        w.writerow(results.history)
+        f.write(','.join([loss_fn, 'accuracy', 'iou_score']) + '\n')
+        f.write(','.join(map(str, results)))
 
     metadata = {
         'gcp_bucket': test_config['gcp_bucket'],
