@@ -14,7 +14,7 @@ from segmentation_models import Unet
 from segmentation_models.metrics import iou_score
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
-from gcp_utils import copy_dataset_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing
 
 
 metadata_file_name = 'metadata.yaml'
@@ -47,8 +47,8 @@ def train(config_file):
 
     local_dataset_dir = Path(tmp_directory, 'datasets')
 
-    copy_dataset_locally_if_missing(os.path.join(train_config['gcp_bucket'], 'datasets', train_config['dataset_id']),
-                                    local_dataset_dir)
+    copy_folder_locally_if_missing(os.path.join(train_config['gcp_bucket'], 'datasets', train_config['dataset_id']),
+                                   local_dataset_dir)
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
@@ -144,6 +144,8 @@ def train(config_file):
     metadata = {
         'gcp_bucket': train_config['gcp_bucket'],
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
+        'num_classes': len(train_generator.mask_filenames),
+        'target_size': target_size,
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)

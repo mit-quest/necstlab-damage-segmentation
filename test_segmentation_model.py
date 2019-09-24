@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 from segmentation_models import Unet
 from segmentation_models.metrics import iou_score
 import git
-from gcp_utils import copy_dataset_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
 
 
@@ -35,11 +35,11 @@ def test(config_file):
     local_dataset_dir = Path(tmp_directory, 'datasets')
     local_model_dir = Path(tmp_directory, 'models')
 
-    copy_dataset_locally_if_missing(os.path.join(test_config['gcp_bucket'], 'datasets', test_config['dataset_id']),
-                                    local_dataset_dir)
+    copy_folder_locally_if_missing(os.path.join(test_config['gcp_bucket'], 'datasets', test_config['dataset_id']),
+                                   local_dataset_dir)
 
-    copy_dataset_locally_if_missing(os.path.join(test_config['gcp_bucket'], 'models', test_config['model_id']),
-                                    local_model_dir)
+    copy_folder_locally_if_missing(os.path.join(test_config['gcp_bucket'], 'models', test_config['model_id']),
+                                   local_model_dir)
 
     test_id = "{}_{}".format(test_config['model_id'], test_config['dataset_id'],
                              datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
