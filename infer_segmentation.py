@@ -85,7 +85,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d):
     return stitched_pred
 
 
-def main(gcp_bucket, model_id, stack_id, prediction_threshold):
+def main(gcp_bucket, stack_id, model_id, prediction_threshold):
 
     start_dt = datetime.now()
 
@@ -166,20 +166,18 @@ if __name__ == "__main__":
     import sys
 
     argparser = argparse.ArgumentParser(sys.argv[0])
-
     argparser.add_argument(
         '--gcp-bucket',
         type=str,
         help='The GCP bucket where the raw data is located and to use to store the processed stacks.')
-
-    argparser.add_argument(
-        '--model-id',
-        type=str,
-        help='The model ID.')
     argparser.add_argument(
         '--stack-id',
         type=str,
         help='The stack ID (must already be processed).')
+    argparser.add_argument(
+        '--model-id',
+        type=str,
+        help='The model ID.')
     argparser.add_argument(
         '--prediction-threshold',
         type=float,
