@@ -176,6 +176,8 @@ def main(config_file):
     with Path(config_file).open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
 
+    dataset_id = Path(config_file).name.split('.')[0]
+
     assert "gs://" in dataset_config['gcp_bucket']
 
     # clean up the tmp directory
@@ -192,7 +194,7 @@ def main(config_file):
     data_prep_local_dir = Path(tmp_directory, 'preparing')
     data_prep_local_dir.mkdir()
 
-    prepared_dataset_local_dir = Path(tmp_directory, 'datasets', dataset_config['dataset_id'])
+    prepared_dataset_local_dir = Path(tmp_directory, 'datasets', )
     prepared_dataset_local_dir.mkdir(parents=True)
 
     prepared_dataset_remote_dest = os.path.join(dataset_config['gcp_bucket'], 'datasets')
@@ -205,12 +207,12 @@ def main(config_file):
         all_scans += scans
     all_scans = sorted(set(all_scans))
 
-    assert not remote_dataset_exists(prepared_dataset_remote_dest, dataset_config['dataset_id'])
+    assert not remote_dataset_exists(prepared_dataset_remote_dest, dataset_id)
 
     copy_processed_data_locally_if_missing(all_scans, processed_data_remote_source, processed_data_local_dir)
 
     copy_and_downsample_processed_data_to_preparation_if_missing(
-        all_scans, processed_data_local_dir, data_prep_local_dir,dataset_config['stack_downsampling'])
+        all_scans, processed_data_local_dir, data_prep_local_dir, dataset_config['stack_downsampling'])
 
     resize_and_crop(data_prep_local_dir, dataset_config['target_size'], dataset_config['image_cropping'])
 
@@ -237,7 +239,7 @@ def main(config_file):
     with Path(prepared_dataset_local_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
-    copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_config['dataset_id'])
+    copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_id)
 
     shutil.rmtree(tmp_directory.as_posix())
 

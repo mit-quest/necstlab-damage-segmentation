@@ -1,5 +1,4 @@
 dataset_config:
-  dataset_id: 'dataset-small'
   gcp_bucket: 'gs://necstlab-sandbox'
   dataset_split:
     train: [
