@@ -6,7 +6,9 @@ from datetime import datetime
 import pytz
 from keras.optimizers import Adam
 from segmentation_models import Unet
+from keras.metrics import accuracy
 from segmentation_models.metrics import iou_score
+from segmentation_models.losses import jaccard_loss, dice_loss
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
@@ -62,14 +64,16 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
-                  metrics=["accuracy", iou_score])
+                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss,
+                           'binary_crossentropy' if len(test_generator.mask_filenames) == 1 else 'categorical_crossentropy'])
 
     model.load_weights(Path(local_model_dir, model_id, "model.hdf5").as_posix())
 
     results = model.evaluate_generator(test_generator)
 
+    metric_names = [loss_fn.__name__, 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss', 'crossentropy']
     with Path(test_dir, 'metrics.csv').open('w') as f:
-        f.write(','.join([loss_fn, 'accuracy', 'iou_score']) + '\n')
+        f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))
 
     metadata = {

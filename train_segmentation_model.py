@@ -3,15 +3,16 @@ import os
 import random
 import numpy as np
 import yaml
-from PIL import Image
 from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
+from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
 from segmentation_models import Unet
-from segmentation_models.metrics import iou_score
+from segmentation_models.metrics import iou_score, f_score
+from segmentation_models.losses import jaccard_loss, dice_loss
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -90,11 +91,15 @@ def train(config_file):
 
     model = Unet('vgg16', input_shape=(None, None, 1), classes=len(train_generator.mask_filenames), encoder_weights=None)
 
-    loss_fn = 'binary_crossentropy' if len(train_generator.mask_filenames) == 1 else 'categorical_crossentropy'
+    # loss_fn = 'binary_crossentropy' if len(train_generator.mask_filenames) == 1 else 'categorical_crossentropy'
+    # loss_fn = jaccard_loss
+    crossentropy = binary_crossentropy if len(train_generator.mask_filenames) == 1 else categorical_crossentropy
+    loss_fn = crossentropy
+    # loss_fn = accuracy
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
-                  metrics=["accuracy", iou_score])
+                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, f_score, crossentropy])
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -119,7 +124,7 @@ def train(config_file):
         validation_steps=len(validation_generator),
         callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback])
 
-    metric_names = ['loss', 'accuracy', 'iou_score']
+    metric_names = ['loss', 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss', 'f_score']
     for metric_name in metric_names:
 
         fig, ax = plt.subplots()
@@ -132,12 +137,12 @@ def train(config_file):
             ax.plot(range(epochs), results.history[key_name], label=split)
         ax.set_xlabel('episodes')
         if metric_name == 'loss':
-            ax.set_ylabel(loss_fn)
+            ax.set_ylabel(loss_fn.__name__)
         else:
             ax.set_ylabel(metric_name)
         ax.legend()
         if metric_name == 'loss':
-            fig.savefig(Path(plots_dir, loss_fn + '.png').as_posix())
+            fig.savefig(Path(plots_dir, loss_fn.__name__ + '.png').as_posix())
         else:
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
