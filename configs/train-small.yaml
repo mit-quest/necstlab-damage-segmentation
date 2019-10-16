@@ -2,7 +2,7 @@ train_config:
   gcp_bucket: 'gs://necstlab-sandbox'
   model_id_prefix: 'segmentation-model-small'
   dataset_id: 'dataset-small'
-  batch_size: 10
+  batch_size: 8
   epochs: 2
   augmentation:
     random_90-degree_rotations: True
