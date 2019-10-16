@@ -7,9 +7,11 @@ import pytz
 from PIL import Image, ImageOps
 from pathlib import Path
 import git
+from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
 from keras.optimizers import Adam
 from segmentation_models import Unet
-from segmentation_models.metrics import iou_score
+from segmentation_models.metrics import iou_score, f_score
+from segmentation_models.losses import jaccard_loss, dice_loss
 from gcp_utils import copy_folder_locally_if_missing
 
 
@@ -124,11 +126,12 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
 
     model = Unet('vgg16', input_shape=(None, None, 1), classes=num_classes, encoder_weights=None)
 
-    loss_fn = 'binary_crossentropy' if num_classes == 1 else 'categorical_crossentropy'
+    crossentropy = binary_crossentropy if num_classes == 1 else categorical_crossentropy
+    loss_fn = crossentropy
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
-                  metrics=["accuracy", iou_score])
+                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, f_score, crossentropy])
 
     model.load_weights(Path(local_model_dir, "model.hdf5").as_posix())
 

@@ -91,11 +91,8 @@ def train(config_file):
 
     model = Unet('vgg16', input_shape=(None, None, 1), classes=len(train_generator.mask_filenames), encoder_weights=None)
 
-    # loss_fn = 'binary_crossentropy' if len(train_generator.mask_filenames) == 1 else 'categorical_crossentropy'
-    # loss_fn = jaccard_loss
     crossentropy = binary_crossentropy if len(train_generator.mask_filenames) == 1 else categorical_crossentropy
     loss_fn = crossentropy
-    # loss_fn = accuracy
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
