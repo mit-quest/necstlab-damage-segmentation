@@ -24,5 +24,4 @@ Infrastructure that will be used:
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
 Note: 
-* Inside of `ingest_data_to_gcp.py` is stack-specific fixes to naming errors. You will have to edit that file for new scans with naming errors.
 * instead of using the `--zipped-stack` argument, `--zips-dir` can be used instead with `ingest_data_to_gcp.py` to ingest a directory of zip files. 
