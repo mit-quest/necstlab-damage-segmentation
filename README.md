@@ -103,7 +103,7 @@ The following workflows assume:
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 * You are familiar with how use tmux on a remote machine and how we will use it to keep processes running even if the SSH window is closed or disconnected. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 
-## Ingesting the raw data into a cloud bucket and processing it for usage in a dataset
+## Data Ingestion
 
 Prerequisite artifacts:
 * A stack of (zipped) images or annotations (tifs) that we wish to use in the other workflows on your local machine
@@ -132,28 +132,7 @@ Note:
 * Inside of `ingest_data_to_gcp.py` is stack-specific fixes to naming errors. You will have to edit that file for new scans with naming errors.
 * instead of using the `--zipped-stack` argument, `--zips-dir` can be used instead with `ingest_data_to_gcp.py` to ingest a directory of zip files. 
 
-## Preparing a dataset for training and testing of a segmentation model 
-
-Prerequisite artifacts:
-* Annotated stacks (in a GCP bucket) that we will use to create the dataset
-* A dataset configuration file (on your local machine)
-
-Infrastructure that will be used:
-* A GCP bucket where the segmented stacks will be accessed from
-* A GCP bucket where the prepared dataset will be stored
-* A GCP virtual machine to run the training on
-
-### Workflow
-
-1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
-1. Either edit the configuration file `configs/data_preparation.yaml` or create your own configuration file and place it in the `configs` folder.
-1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
-1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 prepare_dataset.py --config-file configs/<config_file>`. 
-1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/datasets/<dataset_ID>-<timestamp>` has been created and populated, where `<dataset_ID>` was defined in `configs/data_preparation.yaml`.
-1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
-
-## Segmenting damage of a set of stacks
+## Inference
 
 Prerequisite artifacts:
 * Unannotated stacks (in a GCP bucket) that we wish to perform damage segmentation on
@@ -175,7 +154,48 @@ Infrastructure that will be used:
 1. Once inference has finished, you should see the folder `<gcp_bucket>/inferences/<inference_ID>-<timestamp>` has been created and populated, where `<inference_ID>` is `<stack_id>_<model_id>_<datetime>`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
-## Testing a segmentation model
+## Dataset Preparation
+
+Prerequisite artifacts:
+* Annotated stacks (in a GCP bucket) that we will use to create the dataset
+* A dataset configuration file (on your local machine)
+
+Infrastructure that will be used:
+* A GCP bucket where the segmented stacks will be accessed from
+* A GCP bucket where the prepared dataset will be stored
+* A GCP virtual machine to run the training on
+
+### Workflow
+
+1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
+1. Either edit the configuration file `configs/data_preparation.yaml` or create your own configuration file and place it in the `configs` folder.
+1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
+1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
+1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 prepare_dataset.py --config-file configs/<config_file>`. 
+1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/datasets/<dataset_ID>-<timestamp>` has been created and populated, where `<dataset_ID>` was defined in `configs/data_preparation.yaml`.
+1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
+
+## Training
+
+Prerequisite artifacts:
+* A dataset (in a GCP bucket) that we will use to train the model
+* A train configuration file (on your local machine)
+
+Infrastructure that will be used:
+* A GCP bucket where the prepared dataset for training will be accessed from
+* A GCP bucket where the trained model will be stored
+* A GCP virtual machine to run the training on
+
+### Workflow
+1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
+1. Either edit the configuration file `configs/train_config.yaml` or create your own configuration file and place it in the `configs` folder.
+1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
+1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
+1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 train_segmentation_model.py --config-file configs/<config_file>`. 
+1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/models/<model_ID>-<timestamp>` has been created and populated, where `<model_ID>` was defined in `configs/train.yaml`.
+1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
+
+## Testing
 
 Prerequisite artifacts:
 * A dataset (in a GCP bucket) that we will use to test the performance of the model against 
@@ -194,24 +214,4 @@ Infrastructure that will be used:
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
 1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 test_segmentation_model.py --gcp-bucket <gcp_bucket> --dataset-id <dataset_id> --model-id <model_id>`.
 1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/tests/<test_ID>-<timestamp>` has been created and populated, where `<test_ID>`  is `<dataset_id>_<model_id>_<datetime>`.
-1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
-
-## Training a segmentation model
-
-Prerequisite artifacts:
-* A dataset (in a GCP bucket) that we will use to train the model
-* A train configuration file (on your local machine)
-
-Infrastructure that will be used:
-* A GCP bucket where the prepared dataset for training will be accessed from
-* A GCP bucket where the trained model will be stored
-* A GCP virtual machine to run the training on
-
-### Workflow
-1. If the stacks are not in a GCP bucket, see the previous workflow `Copying the raw data into the cloud for storage and usage`.
-1. Either edit the configuration file `configs/train_config.yaml` or create your own configuration file and place it in the `configs` folder.
-1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply`). This will copy the current code base from your local machine to the GCP machine so make sure any changes to the configuration file are saved before this step is run.
-1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 train_segmentation_model.py --config-file configs/<config_file>`. 
-1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/models/<model_ID>-<timestamp>` has been created and populated, where `<model_ID>` was defined in `configs/train.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
