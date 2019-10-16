@@ -3,7 +3,7 @@
 This repository contains the instructions and code to train and use a model for damage segmentation of carbon-fiber-laminate scans (which we refer to as "image stacks"). To accomplish this, there are five workflows that this repository supports: 
 * **data ingestion**: copying the raw data into a cloud bucket and logically structuring it
 * **inference**: segmenting the damage of an image stack
-* **dataset preparation**: preparing a dataset for training and testing of a damage segmentation model
+* **dataset preparation**: preparing a dataset for use in training and testing
 * **testing**: testing the performance of a pretrained damage segmentation model on a dataset
 * **training**: training a damage segmentation model on a dataset
 
