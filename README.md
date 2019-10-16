@@ -1,4 +1,4 @@
-# necstlab's Damage Segmentation
+# necstlab Damage Segmentation
 
 This repository contains the documentation and code to train and use a model for damage segmentation of carbon-fiber-laminate scans (which we refer to as "image stacks"). To accomplish this, there are five workflows that this repository supports: 
 * [**data ingestion**](docs/data_ingestion.md): copying the raw data into a cloud bucket and logically structuring it
