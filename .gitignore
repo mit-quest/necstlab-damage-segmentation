@@ -2,7 +2,7 @@ __pycache__
 .idea
 tmp/*
 Pipfile.lock
-keys/*
+keys/*.json
 terraform.tfstate
 terraform.tfstate.backup
 .terraform.tfstate.lock.info
