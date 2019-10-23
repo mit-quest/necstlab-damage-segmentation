@@ -17,6 +17,8 @@ def process_zips(gcp_bucket):
     files = gcp_utils.list_files(gcp_bucket.split('gs://')[1], 'raw-data')
 
     for zipped_stack in files:
+        if zipped_stack == 'raw-data/':
+            continue
         process_zip(gcp_bucket, os.path.join(gcp_bucket, zipped_stack))
 
 
