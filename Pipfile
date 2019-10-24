@@ -7,7 +7,7 @@ verify_ssl = true
 
 [packages]
 numpy = "*"
-tensorflow-gpu = "*"
+tensorflow-gpu = "==1.9"
 opencv-python = "*"
 scikit-image = "*"
 sklearn = "*"
