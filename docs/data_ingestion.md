@@ -24,4 +24,4 @@ Infrastructure that will be used:
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
 Note:
-- `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename that the zip file has annotations. If no `dmg` appears it assumes it contains images.
+- `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename, then that the zip file has annotations. If no `dmg` appears, then it assumes it contains images.
