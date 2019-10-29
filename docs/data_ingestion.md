@@ -5,7 +5,7 @@ Prerequisite artifacts:
 * The zip filename is expected to look like:
     ``` 
     <stack_id>.zip (for unsegmented images)
-    <stack_id>-dmg_labels_GV.zip (for annotations)    
+    <stack_id>_dmg-labels-GV.zip (for annotations)    
     ```
 
 Infrastructure that will be used:
