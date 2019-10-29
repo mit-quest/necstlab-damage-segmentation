@@ -26,5 +26,5 @@ Infrastructure that will be used:
 Note:
 - `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename, then that the zip file has annotations. If no `dmg` appears, then it assumes it contains images.
 - An identically named file existing in both `raw-data` and `processed-data` will cause the file in `processed-data` to be overwritten by `ingest_raw_data.py`.
-- Use `nano` text editor to edit scripts previously loaded to VM. E.g., `nano configs/dataset-medium`
+- Use `nano` text editor to edit scripts previously uploaded to VM. E.g., `nano configs/dataset-medium` to edit text in `dataset-medium.yaml`
 
