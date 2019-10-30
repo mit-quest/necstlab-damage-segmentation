@@ -21,4 +21,4 @@ Infrastructure that will be used:
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
 ## Notes
--`infer_segmentation.py` looks for `<stack_id>` in `processed-data` inside bucket
+- `infer_segmentation.py` looks for `<stack_id>` in `processed-data` inside bucket
