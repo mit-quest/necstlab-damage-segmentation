@@ -99,7 +99,7 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
         pass
     tmp_directory.mkdir()
 
-    run_name = '{}_{}_{}'.format(stack_id, model_id, datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
+    run_name = '{}_{}'.format(stack_id, model_id)
 
     local_model_dir = Path(tmp_directory, 'models', model_id)
     local_model_dir.mkdir(parents=True)
