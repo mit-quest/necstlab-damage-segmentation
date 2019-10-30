@@ -132,7 +132,7 @@ def train(config_file):
                 key_name = 'val_' + key_name
 
             ax.plot(range(epochs), results.history[key_name], label=split)
-        ax.set_xlabel('episodes')
+        ax.set_xlabel('epochs')
         if metric_name == 'loss':
             ax.set_ylabel(loss_fn.__name__)
         else:
