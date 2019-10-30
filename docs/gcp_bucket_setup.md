@@ -50,7 +50,7 @@ As you run the workflows you'll see the following directory structure be automat
     raw-data/         (this is where any raw data files will be stored)
         ...
     tests/         (this is where any analysis that results from testing will be stored)
-        <test_ID>-<timestamp>/
+        <test_ID>/
             logs/
             plots/
                 ...
