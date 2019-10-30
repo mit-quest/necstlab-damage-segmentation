@@ -7,7 +7,7 @@ import pytz
 from keras.optimizers import Adam
 from segmentation_models import Unet
 from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
-from segmentation_models.metrics import iou_score, f_score
+from segmentation_models.metrics import iou_score
 from segmentation_models.losses import jaccard_loss, dice_loss
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -65,7 +65,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
-                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, f_score, crossentropy])
+                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, crossentropy])
 
     model.load_weights(Path(local_model_dir, model_id, "model.hdf5").as_posix())
 

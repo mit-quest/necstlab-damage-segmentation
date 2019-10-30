@@ -11,7 +11,7 @@ from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
 from segmentation_models import Unet
-from segmentation_models.metrics import iou_score, f_score
+from segmentation_models.metrics import iou_score
 from segmentation_models.losses import jaccard_loss, dice_loss
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
@@ -96,7 +96,7 @@ def train(config_file):
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
-                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, f_score, crossentropy])
+                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, crossentropy])
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -121,7 +121,7 @@ def train(config_file):
         validation_steps=len(validation_generator),
         callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback])
 
-    metric_names = ['loss', 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss', 'f_score']
+    metric_names = ['loss', 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss']
     for metric_name in metric_names:
 
         fig, ax = plt.subplots()

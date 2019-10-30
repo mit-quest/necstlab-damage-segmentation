@@ -5,7 +5,7 @@ Prerequisite artifacts:
 * The zip filename is expected to look like:
     ``` 
     <stack_id>.zip (for unsegmented images)
-    <stack_id>_dmg_labels_GV.zip (for annotations)    
+    <stack_id>_dmg-labels-GV.zip (for annotations)    
     ```
 
 Infrastructure that will be used:
@@ -19,6 +19,12 @@ Infrastructure that will be used:
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/raw-data/<zip_file>`.
 1. Use Terraform to start the appropriate GCP virtual machine (`terraform apply` or `terraform apply -lock=false`). 
 1. Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been created named `<project_name>-<user_name>` where `<project_name>` is the name of your GCP project and `<user_name>` is your GCP user name.
-1. SSH into the GCP virtual machine, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and process a zip file by running the command: `pipenv run python3 ingest_raw_data.py --gcp-bucket gs://<gcp_bucket_name> --zipped-stack gs://<gcp_bucket_name>/raw-data/<zip_file>`. If `pipenv run python3 ingest_raw_data.py --gcp-bucket gs://<gcp_bucket_name>` (excluding the `--zipped-stack` argument) it will process all of the files in `gs://<gcp_bucket_name>/raw-data`.
+1. SSH into the GCP virtual machine, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and process a single zip file by running the command: `pipenv run python3 ingest_raw_data.py --gcp-bucket gs://<gcp_bucket_name> --zipped-stack gs://<gcp_bucket_name>/raw-data/<zip_file>`. Alternatively, re a bucket of zipped stacks, if `pipenv run python3 ingest_raw_data.py --gcp-bucket gs://<gcp_bucket_name>` (excluding the `--zipped-stack` argument), then it will process all of the files in `gs://<gcp_bucket_name>/raw-data` (it knows to look in `raw-data`).
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/processed-data/<stack_ID>`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
+
+Note:
+- `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename, then that the zip file has annotations. If no `dmg` appears, then it assumes it contains images.
+- An identically named file existing in both `raw-data` and `processed-data` will cause the file in `processed-data` to be overwritten by `ingest_raw_data.py`.
+- In VM SSH, use `nano` text editor to edit scripts previously uploaded to VM. E.g., `nano configs/dataset-medium.yaml` to edit text in `dataset-medium.yaml`
+

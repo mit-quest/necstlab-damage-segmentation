@@ -28,8 +28,15 @@ tmp_directory = Path('./tmp')
 
 
 def remote_dataset_exists(prepared_dataset_remote_dest, dataset_name):
-    storage_client = storage.Client.from_service_account_json(
-        'keys/necstlab-5270ccc61914.json')
+
+    with Path('terraform.tfvars').open() as f:
+        line = f.readline()
+        while line:
+            if 'gcp_key_file_location' in line:
+                gcp_key_file_location = line.split('"')[1]
+            line = f.readline()
+
+    storage_client = storage.Client.from_service_account_json(gcp_key_file_location)
     bucket_name = prepared_dataset_remote_dest.split('/')[2]
     bucket = storage_client.get_bucket(bucket_name)
 
