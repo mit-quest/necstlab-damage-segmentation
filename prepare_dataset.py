@@ -1,7 +1,3 @@
-"""
-The ordering of the steps is important because it assumes a certain directory structure is progressively created!
-"""
-
 import os
 import shutil
 import random
@@ -10,10 +6,10 @@ import yaml
 import numpy as np
 from pathlib import Path
 from PIL import Image
-from google.cloud import storage
 import git
 from datetime import datetime
 import pytz
+from gcp_utils import remote_folder_exists
 
 
 ply_GV_mapping = {
@@ -25,24 +21,6 @@ ply_GV_mapping = {
 
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
-
-
-def remote_dataset_exists(prepared_dataset_remote_dest, dataset_name):
-
-    with Path('terraform.tfvars').open() as f:
-        line = f.readline()
-        while line:
-            if 'gcp_key_file_location' in line:
-                gcp_key_file_location = line.split('"')[1]
-            line = f.readline()
-
-    storage_client = storage.Client.from_service_account_json(gcp_key_file_location)
-    bucket_name = prepared_dataset_remote_dest.split('/')[2]
-    bucket = storage_client.get_bucket(bucket_name)
-
-    blobs = bucket.list_blobs(prefix='/'.join(prepared_dataset_remote_dest.split('/')[3:] + [dataset_name]),
-                              max_results=1)
-    return len(list(blobs)) >= 1
 
 
 def copy_processed_data_locally_if_missing(scans, processed_data_remote_source, processed_data_local_dir):
@@ -177,7 +155,9 @@ def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remo
 
 
 def prepare_dataset(gcp_bucket, config_file):
-
+    """
+    The ordering of the steps is important because it assumes a certain directory structure is progressively created!
+    """
     start_dt = datetime.now()
 
     with Path(config_file).open('r') as f:
@@ -214,7 +194,7 @@ def prepare_dataset(gcp_bucket, config_file):
         all_scans += scans
     all_scans = sorted(set(all_scans))
 
-    assert not remote_dataset_exists(prepared_dataset_remote_dest, dataset_id)
+    assert not remote_folder_exists(prepared_dataset_remote_dest, dataset_id)
 
     copy_processed_data_locally_if_missing(all_scans, processed_data_remote_source, processed_data_local_dir)
 

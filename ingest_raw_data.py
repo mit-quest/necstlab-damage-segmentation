@@ -7,6 +7,8 @@ import pytz
 import gcp_utils
 import yaml
 import git
+from gcp_utils import remote_folder_exists
+
 
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
@@ -45,52 +47,58 @@ def process_zip(gcp_bucket, zipped_stack):
 
     stack_dir = Path(tmp_directory, stack_id)
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(zipped_stack, tmp_directory.as_posix()))
+    if remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'), stack_id):
 
-    os.system("7za x -y -o'{}' '{}'".format(stack_dir.as_posix(), Path(tmp_directory, Path(zipped_stack).name).as_posix()))
-    os.remove(Path(tmp_directory, Path(zipped_stack).name).as_posix())
-    unzipped_dir = next(stack_dir.iterdir())
+        print("{} has already been processed! Skipping...".format(stack_id))
 
-    original_number_of_files_in_zip = len(list(unzipped_dir.iterdir()))
+    else:
 
-    for f in Path(unzipped_dir).iterdir():
-        if f.name[-4:] != '.tif':
-            # remove any non-image files
-            os.remove(f.as_posix())
-        else:
-            # convert all images to greyscale (some are already and some aren't)
-            Image.open(f).convert("L").save(f)
+        os.system("gsutil -m cp -r '{}' '{}'".format(zipped_stack, tmp_directory.as_posix()))
 
-    shutil.move(unzipped_dir.as_posix(),
-                Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
+        os.system("7za x -y -o'{}' '{}'".format(stack_dir.as_posix(), Path(tmp_directory, Path(zipped_stack).name).as_posix()))
+        os.remove(Path(tmp_directory, Path(zipped_stack).name).as_posix())
+        unzipped_dir = next(stack_dir.iterdir())
 
-    # get metadata file, if exists
-    os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data/', stack_id, metadata_file_name),
-                                                 Path(tmp_directory, stack_id).as_posix()))
+        original_number_of_files_in_zip = len(list(unzipped_dir.iterdir()))
 
-    try:
-        with Path(tmp_directory, stack_id, metadata_file_name).open('r') as f:
-            metadata = yaml.safe_load(f)
-    except FileNotFoundError:
-        metadata = {}
+        for f in Path(unzipped_dir).iterdir():
+            if f.name[-4:] != '.tif':
+                # remove any non-image files
+                os.remove(f.as_posix())
+            else:
+                # convert all images to greyscale (some are already and some aren't)
+                Image.open(f).convert("L").save(f)
 
-    metadata.update({'annotations' if is_annotation else 'images': {
-        'gcp_bucket': gcp_bucket,
-        'zipped_stack_file': zipped_stack,
-        'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
-        'original_number_of_files_in_zip': original_number_of_files_in_zip,
-        'number_of_images': len(list(Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').iterdir())),
-        'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha},
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
-    })
+        shutil.move(unzipped_dir.as_posix(),
+                    Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
 
-    with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:
-        yaml.safe_dump(metadata, f)
+        # get metadata file, if exists
+        os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data/', stack_id, metadata_file_name),
+                                                     Path(tmp_directory, stack_id).as_posix()))
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
-                                                 os.path.join(gcp_bucket, 'processed-data/')))
+        try:
+            with Path(tmp_directory, stack_id, metadata_file_name).open('r') as f:
+                metadata = yaml.safe_load(f)
+        except FileNotFoundError:
+            metadata = {}
 
-    shutil.rmtree(tmp_directory.as_posix())
+        metadata.update({'annotations' if is_annotation else 'images': {
+            'gcp_bucket': gcp_bucket,
+            'zipped_stack_file': zipped_stack,
+            'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
+            'original_number_of_files_in_zip': original_number_of_files_in_zip,
+            'number_of_images': len(list(Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').iterdir())),
+            'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha},
+            'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        })
+
+        with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:
+            yaml.safe_dump(metadata, f)
+
+        os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
+                                                     os.path.join(gcp_bucket, 'processed-data/')))
+
+        shutil.rmtree(tmp_directory.as_posix())
 
 
 if __name__ == "__main__":
