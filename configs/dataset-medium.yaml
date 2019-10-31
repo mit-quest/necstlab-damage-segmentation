@@ -1,5 +1,4 @@
 dataset_config:
-  gcp_bucket: 'gs://necstlab-sandbox'
   dataset_split:
     train: [
       "8bit_AS4_CNT_S2_P1_L6_2560_1800_2160",

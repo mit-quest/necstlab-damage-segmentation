@@ -176,7 +176,7 @@ def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remo
                                                  os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
 
-def main(config_file):
+def prepare_dataset(gcp_bucket, config_file):
 
     start_dt = datetime.now()
 
@@ -185,7 +185,7 @@ def main(config_file):
 
     dataset_id = Path(config_file).name.split('.')[0]
 
-    assert "gs://" in dataset_config['gcp_bucket']
+    assert "gs://" in gcp_bucket
 
     # clean up the tmp directory
     try:
@@ -194,7 +194,7 @@ def main(config_file):
         pass
     tmp_directory.mkdir()
 
-    processed_data_remote_source = os.path.join(dataset_config['gcp_bucket'], 'processed-data')
+    processed_data_remote_source = os.path.join(gcp_bucket, 'processed-data')
     processed_data_local_dir = Path(tmp_directory, 'processed-data')
     processed_data_local_dir.mkdir()
 
@@ -204,7 +204,7 @@ def main(config_file):
     prepared_dataset_local_dir = Path(tmp_directory, 'datasets', )
     prepared_dataset_local_dir.mkdir(parents=True)
 
-    prepared_dataset_remote_dest = os.path.join(dataset_config['gcp_bucket'], 'datasets')
+    prepared_dataset_remote_dest = os.path.join(gcp_bucket, 'datasets')
 
     with Path(prepared_dataset_local_dir, 'config.yaml').open('w') as f:
         yaml.safe_dump({'dataset_config': dataset_config}, f)
@@ -228,7 +228,7 @@ def main(config_file):
     split_prepared_data(data_prep_local_dir, prepared_dataset_local_dir, dataset_config['dataset_split'])
 
     metadata = {
-        'gcp_bucket': dataset_config['gcp_bucket'],
+        'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'number_of_images': {
             'train': len(list(Path(prepared_dataset_local_dir, 'train', 'images').iterdir())),
@@ -257,8 +257,12 @@ if __name__ == "__main__":
 
     argparser = argparse.ArgumentParser(sys.argv[0])
     argparser.add_argument(
+        '--gcp-bucket',
+        type=str,
+        help='The GCP bucket where the processed data is located and to use to store the prepared dataset.')
+    argparser.add_argument(
         '--config-file',
         type=str,
         help='The location of the data preparation configuration file.')
 
-    main(**argparser.parse_args().__dict__)
+    prepare_dataset(**argparser.parse_args().__dict__)

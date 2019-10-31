@@ -1,5 +1,4 @@
 train_config:
-  gcp_bucket: 'gs://necstlab-sandbox'
   model_id_prefix: 'segmentation-model-small'
   dataset_id: 'dataset-small'
   batch_size: 8

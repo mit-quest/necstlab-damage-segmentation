@@ -1,5 +1,4 @@
 dataset_config:
-  gcp_bucket: 'gs://necstlab-sandbox'
   dataset_split:
     train: [
       "THIN_REF_S2_P1_L3_2496_1563_2159"

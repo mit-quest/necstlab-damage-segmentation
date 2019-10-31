@@ -1,5 +1,0 @@
-inference_config:
-  scan_id: '8bit_AS4_S2_P1_L5_2560_1750_2160'
-  model_id: 'segmentation-model-small_20190913T211550Z'
-  batch_size: 10
-    number_of_images_to_process: 5
