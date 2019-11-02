@@ -1,6 +1,6 @@
 train_config:
   model_id_prefix: 'segmentation-model-xlarge_esrf16'
-  dataset_id: 'dataset-xlarge_esrf16.yaml'
+  dataset_id: 'dataset-xlarge_esrf16'
   batch_size: 8
   epochs: 50
   augmentation:
