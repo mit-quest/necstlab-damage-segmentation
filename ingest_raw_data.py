@@ -47,9 +47,13 @@ def process_zip(gcp_bucket, zipped_stack):
 
     stack_dir = Path(tmp_directory, stack_id)
 
-    if remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'), stack_id):
+    if remote_folder_exists(os.path.join(gcp_bucket, 'processed-data', stack_id), "images") and is_annotation is False:
 
-        print("{} has already been processed! Skipping...".format(stack_id))
+        print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "images")))
+
+    elif remote_folder_exists(os.path.join(gcp_bucket, 'processed-data', stack_id), "annotations") and is_annotation is True:
+
+        print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "annotations")))
 
     else:
 
