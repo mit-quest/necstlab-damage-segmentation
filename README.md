@@ -14,3 +14,7 @@ To accomplish this, there are five workflows that this repository supports:
 * [**inference**](docs/inference.md): segmenting the damage of an image stack
 
 Before running any of these workflows, you'll need to [set up your local machine](docs/local_setup.md) and [set up your GCP bucket](docs/gcp_bucket_setup.md). You may also want to look through [assumed knowledge](docs/assumed_knowledge.md).
+
+# Known gotchas
+* You can only run a single workflow at a time on a VM (due to different runs possibly stepping on each other through the temp directory. [#27](https://github.com/mit-quest/necstlab-damage-segmentation/issues/27) will address this.
+* The U-model and parameters are hardcoded in train, test, and inference. So you'll need to change all if you want change any. [#3](https://github.com/mit-quest/necstlab-damage-segmentation/issues/3) will address this.
