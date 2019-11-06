@@ -20,3 +20,4 @@ Infrastructure that will be used:
 
 ## Notes
 - `infer_segmentation.py` looks for `<stack_id>` in `processed-data` inside bucket
+- Download inference locally by (e.g.) `gsutil cp -r gs://necstlab-sandbox/inferences/8bit_AS4_S2_P1_L6_2560_1750_2160_segmentation-model-xlarge_esrf16_20191104T161333Z "G:\My Drive\Research\Experiments\Bridge AI-necstlab\Inferences"`
