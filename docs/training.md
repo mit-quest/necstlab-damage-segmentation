@@ -17,3 +17,6 @@ Infrastructure that will be used:
 1. To create a dataset, SSH into the virtual machine `<project_name>-<user_name>`, start tmux (`tmux`), `cd` into the code directory (`cd necstlab-damage-segmentation`), and run `pipenv run python3 train_segmentation_model.py  --gcp-bucket <gcp_bucket> --config-file configs/<config_filename>.yaml`. 
 1. Once dataset preparation has finished, you should see the folder `<gcp_bucket>/models/<model_ID>-<timestamp>` has been created and populated, where `<model_ID>` was defined in `configs/train_config.yaml`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed. 
+
+## Notes
+* Batch size of 16 works with P100 GPU, but batch size of 24 is too large.
