@@ -15,7 +15,8 @@ To accomplish this, there are five workflows that this repository supports:
 
 Before running any of these workflows, you'll need to [set up your local machine](docs/local_setup.md) and [set up your GCP bucket](docs/gcp_bucket_setup.md). You may also want to look through [assumed knowledge](docs/assumed_knowledge.md).
 
-Atention: For significant code changes to any files except `configs` and `.md`'s, users must:
+## Code Modifications
+For significant code changes to any files except `configs` and `.md`'s, users must:
 1. Create new branch on github web browser
 2. Refresh the local desktop client and switch to the new branch, 
 3. Make the significant change in new branch
