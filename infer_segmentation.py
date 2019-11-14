@@ -111,7 +111,7 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
     os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data', stack_id),
                                                  Path(tmp_directory, 'processed-data').as_posix()))
 
-    with Path(local_model_dir, model_id, 'config.yaml').open('r') as f:
+    with Path(local_model_dir, 'config.yaml').open('r') as f:
         train_config = yaml.safe_load(f)['train_config']
 
     with Path(local_model_dir, 'metadata.yaml').open('r') as f:
@@ -128,7 +128,7 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
         num_classes,
         train_config['loss'],
         train_config['optimizer'],
-        Path(local_model_dir, model_id, "model.hdf5").as_posix())
+        Path(local_model_dir, "model.hdf5").as_posix())
 
     n_images = len(list(Path(image_folder).iterdir()))
     for i, image_file in enumerate(sorted(Path(image_folder).iterdir())):
