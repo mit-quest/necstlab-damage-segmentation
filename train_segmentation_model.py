@@ -61,7 +61,7 @@ def train(gcp_bucket, config_file):
         dataset_config = yaml.safe_load(f)['dataset_config']
 
     with Path(model_dir, 'config.yaml').open('w') as f:
-        yaml.safe_dump({'train_config': dataset_config}, f)
+        yaml.safe_dump({'train_config': train_config}, f)
 
     target_size = dataset_config['target_size']
     batch_size = train_config['batch_size']
@@ -113,8 +113,7 @@ def train(gcp_bucket, config_file):
         validation_steps=len(validation_generator),
         callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback])
 
-    metric_names = ['loss', 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss']
-    #@@@@@@@@@@@@@@@@@ FIX_THESE !!
+    metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
 
     for metric_name in metric_names:
 
@@ -128,12 +127,12 @@ def train(gcp_bucket, config_file):
             ax.plot(range(epochs), results.history[key_name], label=split)
         ax.set_xlabel('epochs')
         if metric_name == 'loss':
-            ax.set_ylabel(loss_fn.__name__)
+            ax.set_ylabel(compiled_model.loss.__name__)
         else:
             ax.set_ylabel(metric_name)
         ax.legend()
         if metric_name == 'loss':
-            fig.savefig(Path(plots_dir, loss_fn.__name__ + '.png').as_posix())
+            fig.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
         else:
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
@@ -144,7 +143,8 @@ def train(gcp_bucket, config_file):
         'target_size': target_size,
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
+        'dataset_config': dataset_config
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
