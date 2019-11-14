@@ -87,8 +87,8 @@ def train(gcp_bucket, config_file):
         train_config['segmentation_model']['model_name'],
         train_config['segmentation_model']['model_parameters'],
         len(train_generator.mask_filenames),
-        train_config['segmentation_model']['loss'],
-        train_config['segmentation_model']['optimizer'])
+        train_config['loss'],
+        train_config['optimizer'])
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
