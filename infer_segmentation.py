@@ -7,11 +7,7 @@ import pytz
 from PIL import Image, ImageOps
 from pathlib import Path
 import git
-from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
-from keras.optimizers import Adam
-from segmentation_models import Unet
-from segmentation_models.metrics import iou_score
-from segmentation_models.losses import jaccard_loss, dice_loss
+from models import generate_compiled_segmentation_model
 
 
 metadata_file_name = 'metadata.yaml'
@@ -115,6 +111,9 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
     os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data', stack_id),
                                                  Path(tmp_directory, 'processed-data').as_posix()))
 
+    with Path(local_model_dir, model_id, 'config.yaml').open('r') as f:
+        train_config = yaml.safe_load(f)['train_config']
+
     with Path(local_model_dir, 'metadata.yaml').open('r') as f:
         model_metadata = yaml.safe_load(f)
 
@@ -123,16 +122,13 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
     target_size_1d = model_metadata['target_size'][0]
     num_classes = model_metadata['num_classes']
 
-    model = Unet('vgg16', input_shape=(None, None, 1), classes=num_classes, encoder_weights=None)
-
-    crossentropy = binary_crossentropy if num_classes == 1 else categorical_crossentropy
-    loss_fn = crossentropy
-
-    model.compile(optimizer=Adam(),
-                  loss=loss_fn,
-                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, crossentropy])
-
-    model.load_weights(Path(local_model_dir, "model.hdf5").as_posix())
+    compiled_model = generate_compiled_segmentation_model(
+        train_config['segmentation_model']['model_name'],
+        train_config['segmentation_model']['model_parameters'],
+        num_classes,
+        train_config['loss'],
+        train_config['optimizer'],
+        Path(local_model_dir, model_id, "model.hdf5").as_posix())
 
     n_images = len(list(Path(image_folder).iterdir()))
     for i, image_file in enumerate(sorted(Path(image_folder).iterdir())):
@@ -141,7 +137,7 @@ def main(gcp_bucket, stack_id, model_id, prediction_threshold):
 
         image = Image.open(image_file)
 
-        segmented_image = segment_image(model, image, prediction_threshold, target_size_1d)
+        segmented_image = segment_image(compiled_model, image, prediction_threshold, target_size_1d)
 
         segmented_image.save(Path(output_dir, image_file.name).as_posix())
 
