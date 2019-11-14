@@ -92,7 +92,7 @@ class TensorBoardImage(keras.callbacks.Callback):
 
 # adapted from: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class ImagesAndMasksGenerator(Sequence):
-    def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=True, seed=None, random_rotation=False):
+    def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=False, seed=None, random_rotation=False):
         self.dataset_directory = dataset_directory
         self.image_filenames = sorted(Path(self.dataset_directory, 'images').iterdir())
         self.mask_filenames = OrderedDict()

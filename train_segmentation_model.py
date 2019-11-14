@@ -7,15 +7,11 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
-from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
-from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
-from segmentation_models import Unet
-from segmentation_models.metrics import iou_score
-from segmentation_models.losses import jaccard_loss, dice_loss
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
+from models import generate_compiled_segmentation_model
 
 
 metadata_file_name = 'metadata.yaml'
@@ -77,26 +73,22 @@ def train(gcp_bucket, config_file):
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
-        random_rotation=train_config['augmentation']['random_90-degree_rotations'],
-        seed=None)
+        random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
+        seed=train_config['training_data_shuffle_seed'])
 
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
              'validation').as_posix(),
         rescale=1./255,
         target_size=target_size,
-        batch_size=batch_size,
-        shuffle=True,
-        seed=None)
+        batch_size=batch_size)
 
-    model = Unet('vgg16', input_shape=(None, None, 1), classes=len(train_generator.mask_filenames), encoder_weights=None)
-
-    crossentropy = binary_crossentropy if len(train_generator.mask_filenames) == 1 else categorical_crossentropy
-    loss_fn = crossentropy
-
-    model.compile(optimizer=Adam(),
-                  loss=loss_fn,
-                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, crossentropy])
+    compiled_model = generate_compiled_segmentation_model(
+        train_config['segmentation_model']['model_name'],
+        train_config['segmentation_model']['model_parameters'],
+        len(train_generator.mask_filenames),
+        train_config['segmentation_model']['loss'],
+        train_config['segmentation_model']['optimizer'])
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -113,7 +105,7 @@ def train(gcp_bucket, config_file):
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
 
-    results = model.fit_generator(
+    results = compiled_model.fit_generator(
         train_generator,
         steps_per_epoch=len(train_generator),
         epochs=epochs,
@@ -122,6 +114,8 @@ def train(gcp_bucket, config_file):
         callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback])
 
     metric_names = ['loss', 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss']
+    #@@@@@@@@@@@@@@@@@ FIX_THESE !!
+
     for metric_name in metric_names:
 
         fig, ax = plt.subplots()
