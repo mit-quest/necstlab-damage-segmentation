@@ -1,0 +1,48 @@
+dataset_config:
+  dataset_split:
+    train: [
+      "THIN_CNT_S2_P1_L4_2334_1578_2159",
+      "8bit_AS4_CNT_S1_P1_L6_2560_1750_2160",
+      "8bit_AS4_S2_P1_L6_2560_1750_2160",
+      "8bit_AS4_CNT_S2_P1_L6_2560_1800_2160",
+      "8bit_AS4_S1_P1_L6_2560_1800_2160",
+      "THIN_REF_S2_P1_L3_2496_1563_2159",
+    ]
+    validation: [
+      "8bit_AS4_CNT_S1_P1_L2_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L3_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L4_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L5_2560_1750_2160",
+      "8bit_AS4_S1_P1_L0_2560_1800_2160",
+      "8bit_AS4_S1_P1_L1_2560_1800_2160",
+      "8bit_AS4_S1_P1_L2_2560_1800_2160",
+      "8bit_AS4_S1_P1_L3_2560_1800_2160",
+      "8bit_AS4_S1_P1_L4_2560_1800_2160",
+      "8bit_AS4_S1_P1_L5_2540_1720_2160",
+      "8bit_AS4_CNT_S2_P1_L0_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L4_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L5_2560_1800_2160",
+      "THIN_REF_S2_P1_L0_2508_1551_2159",
+      "THIN_REF_S2_P1_L1_2434_1547_2159",
+      "THIN_REF_S2_P1_L2_2484_1524_2159",
+      "THIN_REF_S2_P1_L4_2433_1533_2159"
+    ]
+    test: [
+      "THIN_CNT_S2_P1_L0_2349_1578_2159",
+      "THIN_CNT_S2_P1_L2_2293_1581_2159",
+      "THIN_CNT_S2_P1_L3_2292_1566_2159",
+      "THIN_CNT_S2_P1_L5_2316_1542_2159",
+      "8bit_AS4_S2_P1_L0_2560_1750_2160",
+      "8bit_AS4_S2_P1_L4_2560_1750_2160",
+      "8bit_AS4_S2_P1_L5_2560_1750_2160",
+    ]
+  stack_downsampling:
+    type: 'None' # 'None', 'random', 'linear', 'from_start', 'from_end'
+#    frac: 1.0
+#    number_of_images: 1000
+  target_size: [512, 512]
+  image_cropping:
+    type: 'random' # 'None', 'random'
+    num_per_image: 1 # 1 is all that is supported at the moment
+  class_annotation_mapping:
+    class_0: ['0-degree_damage', '45-degree_damage', '90-degree_damage']
