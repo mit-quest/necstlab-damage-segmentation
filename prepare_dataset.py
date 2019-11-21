@@ -16,7 +16,7 @@ ply_GV_mapping = {
     'no_damage': 0,
     '0-degree_damage': 100,
     '45-degree_damage': 175,
-    '90-degree_damage': 250
+    '90-degree_damage': 250,
 }
 
 metadata_file_name = 'metadata.yaml'
@@ -38,25 +38,38 @@ def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processe
             scan_image_files = sorted(Path(processed_data_local_dir, scan, 'images').iterdir())
             scan_annotation_files = sorted(Path(processed_data_local_dir, scan, 'annotations').iterdir())
             assert len(scan_image_files) == len(scan_annotation_files)
-            total_images = len(scan_image_files)
+            assert len(scan_image_files) > (downsampling_params['num_skip_beg_slices']
+                                            + downsampling_params['num_skip_end_slices'])
+            assert downsampling_params['num_skip_beg_slices'] >= 0
+            assert downsampling_params['num_skip_end_slices'] >= 0
+            total_images = (len(scan_image_files)
+                            - downsampling_params['num_skip_beg_slices']
+                            - downsampling_params['num_skip_end_slices'])
 
             if 'number_of_images' in downsampling_params:
                 num_images = downsampling_params['number_of_images']
+                assert num_images <= total_images  # build in error check so it's compat # skipped slices
             elif 'frac' in downsampling_params:
                 num_images = math.ceil(downsampling_params['frac'] * total_images)
             else:
                 num_images = total_images
 
             if downsampling_params['type'] == 'None':
-                file_inds_to_copy = range(0, total_images)
+                file_inds_to_copy = range(downsampling_params['num_skip_beg_slices'],
+                                          total_images + downsampling_params['num_skip_beg_slices'])
             elif downsampling_params['type'] == 'random':
-                file_inds_to_copy = random.sample(range(0, total_images), k=num_images)
+                file_inds_to_copy = random.sample(range(downsampling_params['num_skip_beg_slices'],
+                                                        total_images + downsampling_params['num_skip_beg_slices']),
+                                                  k=num_images)
             elif downsampling_params['type'] == 'linear':
-                file_inds_to_copy = np.floor(np.linspace(0, total_images-1, num_images)).astype(int)
+                file_inds_to_copy = np.floor(np.linspace(downsampling_params['num_skip_beg_slices'],
+                                                         total_images + downsampling_params['num_skip_beg_slices'] - 1,
+                                                         num_images)).astype(int)
             elif downsampling_params['type'] == 'from_start':
-                file_inds_to_copy = range(0, num_images)
+                file_inds_to_copy = range(downsampling_params['num_skip_beg_slices'], num_images)
             elif downsampling_params['type'] == 'from_end':
-                file_inds_to_copy = range(total_images - num_images, total_images)
+                file_inds_to_copy = range(total_images + downsampling_params['num_skip_beg_slices'] - num_images,
+                                          total_images + downsampling_params['num_skip_beg_slices'])
             else:
                 raise ValueError("Unknown downsampling type: {}".format(downsampling_params['type']))
 
