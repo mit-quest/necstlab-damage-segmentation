@@ -1,0 +1,11 @@
+annotation_GV_labels:
+  "THIN_REF_S2_P1_L3_2496_1563_2159":
+    'no_damage': 0,
+    '0-degree_damage': 100,
+    '45-degree_damage': 175,
+    '90-degree_damage': 250
+  "8bit_AS4_S2_P1_L4_2560_1750_2160":
+    'no_damage': 0,
+    'fiber_breaks': 75,
+    '90-degree_damage': 250
+
