@@ -1,7 +1,15 @@
 train_config:
   model_id_prefix: 'segmentation-model-small'
   dataset_id: 'dataset-small'
+  segmentation_model:
+    model_name: 'Unet'
+    model_parameters:
+      backbone_name: 'vgg16'
+      encoder_weights: Null
+  loss: 'cross_entropy'
+  optimizer: 'adam'
   batch_size: 8
   epochs: 2
-  augmentation:
+  training_data_shuffle_seed: 1234
+  data_augmentation:
     random_90-degree_rotations: True

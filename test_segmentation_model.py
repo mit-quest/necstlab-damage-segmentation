@@ -4,14 +4,10 @@ import yaml
 from pathlib import Path
 from datetime import datetime
 import pytz
-from keras.optimizers import Adam
-from segmentation_models import Unet
-from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
-from segmentation_models.metrics import iou_score
-from segmentation_models.losses import jaccard_loss, dice_loss
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
+from models import generate_compiled_segmentation_model
 
 
 metadata_file_name = 'metadata.yaml'
@@ -54,24 +50,19 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         Path(local_dataset_dir, dataset_id, 'test').as_posix(),
         rescale=1./255,
         target_size=target_size,
-        batch_size=batch_size,
-        shuffle=True,
-        seed=None)
+        batch_size=batch_size)
 
-    model = Unet('vgg16', input_shape=(None, None, 1), classes=len(test_generator.mask_filenames), encoder_weights=None)
+    compiled_model = generate_compiled_segmentation_model(
+        train_config['segmentation_model']['model_name'],
+        train_config['segmentation_model']['model_parameters'],
+        len(test_generator.mask_filenames),
+        train_config['loss'],
+        train_config['optimizer'],
+        Path(local_model_dir, model_id, "model.hdf5").as_posix())
 
-    crossentropy = binary_crossentropy if len(test_generator.mask_filenames) == 1 else categorical_crossentropy
-    loss_fn = crossentropy
+    results = compiled_model.evaluate_generator(test_generator)
 
-    model.compile(optimizer=Adam(),
-                  loss=loss_fn,
-                  metrics=[accuracy, iou_score, jaccard_loss, dice_loss, crossentropy])
-
-    model.load_weights(Path(local_model_dir, model_id, "model.hdf5").as_posix())
-
-    results = model.evaluate_generator(test_generator)
-
-    metric_names = [loss_fn.__name__, 'accuracy', 'iou_score', 'jaccard_loss', 'dice_loss', 'crossentropy']
+    metric_names = [compiled_model.loss.__name__] + [m.name for m in compiled_model.metrics]
     with Path(test_dir, 'metrics.csv').open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))

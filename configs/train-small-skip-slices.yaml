@@ -1,6 +1,6 @@
 train_config:
-  model_id_prefix: 'segmentation-model-large'
-  dataset_id: 'dataset-large'
+  model_id_prefix: 'segmentation-model-small-skip-slices'
+  dataset_id: 'dataset-small-skip-slices'
   segmentation_model:
     model_name: 'Unet'
     model_parameters:
@@ -9,7 +9,7 @@ train_config:
   loss: 'cross_entropy'
   optimizer: 'adam'
   batch_size: 8
-  epochs: 50
+  epochs: 5
   training_data_shuffle_seed: 1234
   data_augmentation:
     random_90-degree_rotations: True
