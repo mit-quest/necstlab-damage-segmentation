@@ -112,17 +112,32 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                 if image_cropping_params['type'] == 'None':
                     image.thumbnail(target_size)
                     annotation.thumbnail(target_size)
+                    image.save(Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                        image_ind].name).as_posix())
+                    annotation.save(Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                        image_ind].name).as_posix())
                 elif image_cropping_params['type'] == 'random':
-                    assert image_cropping_params['num_per_image'] == 1
-                    image, annotation = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
-                    image = Image.fromarray(image)
-                    annotation = Image.fromarray(annotation)
+                    assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    for counter_crop in range(image_cropping_params['num_per_image']):
+                        image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
+                        image_crop = Image.fromarray(image_crop)
+                        annotation_crop = Image.fromarray(annotation_crop)
+                        image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                            image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
+                        annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                            image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
+                elif image_cropping_params['type'] == 'linear':
+                    assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    img = np.asarray(image)
+                    mask = np.asarray(annotation)
+                    for counter_crop in range(image_cropping_params['num_per_image']):
+                        x_crop_LHS = counter_crop * target_size[0]
+                        y_crop_top = counter_crop * target_size[1]
+                        image_crop = img[x_crop_LHS:target_size[0]]
+                elif image_cropping_params['type'] == 'all':
+                    print('hello')
                 else:
                     raise ValueError("Image cropping type: {}".format(image_cropping_params['type']))
-                image.save(Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                    image_ind].name).as_posix())
-                annotation.save(Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                    image_ind].name).as_posix())
 
 
 def create_class_masks(data_prep_local_dir, class_annotation_mapping):
