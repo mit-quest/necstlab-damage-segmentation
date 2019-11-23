@@ -142,7 +142,6 @@ def train(gcp_bucket, config_file):
     counter_n = 0
     for metric_name in metric_names:
 
-        # fig, ax = plt.subplots()
         for split in ['train', 'validate']:
 
             key_name = metric_name
@@ -156,10 +155,6 @@ def train(gcp_bucket, config_file):
         else:
             axes[counter_m, counter_n].set_ylabel(metric_name)
         axes[counter_m, counter_n].legend()
-        # if metric_name == 'loss':
-        #     fig.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
-        # else:
-        #     fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
         counter_n += 1
         if counter_n == 3:  # 3 plots per row
