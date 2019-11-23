@@ -15,7 +15,7 @@ dataset_config:
 #    number_of_images: 100
     num_skip_beg_slices: 5 # trims n slices off of beginning of stack with N total slices. Slice n+1 becomes new Slice 1
     num_skip_end_slices: 5 # trims m slices off of end of stack with N total slices. Slice N-(m+1) becomes new last slice
-  target_size: [512, 512]
+  target_size: [512, 512]  # width, height
   image_cropping:
     type: 'all' # 'None' (downscale img to target), 'linear' (def # crops), 'random' (def # crops), 'all' (all crops)
     num_per_image: 6 # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
