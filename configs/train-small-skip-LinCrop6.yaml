@@ -1,6 +1,6 @@
 train_config:
   model_id_prefix: 'segmentation-model-small-skip-LinCrop6'
-  dataset_id: 'dataset-small-skip-crop'
+  dataset_id: 'dataset-small-skip-LinCrop6'
   segmentation_model:
     model_name: 'Unet'
     model_parameters:
