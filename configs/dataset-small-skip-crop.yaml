@@ -17,8 +17,8 @@ dataset_config:
     num_skip_end_slices: 5 # trims m slices off of end of stack with N total slices. Slice N-(m+1) becomes new last slice
   target_size: [512, 512]
   image_cropping:
-    type: 'random' # 'None', 'random', 'all'
-    num_per_image: 3 # if `all` not selected, num of crops (of target size) per image
+    type: 'random' # 'None' (downscale img to target), 'linear' (def # crops), 'random' (def # crops), 'all' (all crops)
+    num_per_image: 3 # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
   class_annotation_mapping:
     class_0: ['0-degree_damage', '45-degree_damage', '90-degree_damage']
 #
