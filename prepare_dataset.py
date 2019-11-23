@@ -155,7 +155,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                             (Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                                 image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
                         if horiz_counter == (num_tiles_hor - 1):  # reached rhs of img, move back to lhs & down by trgt
-                            horiz_counter == 0
+                            horiz_counter = 0
                             vert_counter += 1
                             if vert_counter > (num_tiles_ver - 1):
                                 break  # regardless of num crops input, the bot rhs of img has been reach
