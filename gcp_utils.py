@@ -13,7 +13,7 @@ def list_files(gcp_bucket_name, prefix):
 
 
 def copy_folder_locally_if_missing(folder_remote_source, local_folder_dir):
-    if not os.path.exists(local_folder_dir.as_posix()):
+    if not os.path.exists(Path(local_folder_dir, folder_remote_source.split('/')[-1]).as_posix()):
         local_folder_dir.mkdir(parents=True, exist_ok=True)
         os.system("gsutil -m cp -r '{}' '{}'".format(folder_remote_source, local_folder_dir.as_posix()))
 
