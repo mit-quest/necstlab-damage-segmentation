@@ -13,6 +13,15 @@ from models import generate_compiled_segmentation_model
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
+# rbg
+class_colors = [
+    [255, 255, 0],  # yellow
+    [0, 255, 0],    # blue
+    [255, 0, 0],    # red
+    [0, 0, 255],    # green
+    [255, 0, 255]   # magenta
+]
+
 
 def stitch_preds_together(tiles, target_size_1d):
 
@@ -59,8 +68,11 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold):
         for j in range(len(prepared_tiles[i])):
             prediction_tiles[i].append(np.dstack((prepared_tiles[i][j], prepared_tiles[i][j], prepared_tiles[i][j])))
             prediction_tiles[i][j] = (prediction_tiles[i][j] * 255).astype(int)
-            mask = preds[i][j] >= prediction_threshold
-            prediction_tiles[i][j][mask] = [255, 255, 0]
+            # Note: this loops through in index order and places the color mask so a pixel may have many different
+            # class colors if they're all >= prediction_threshold but the color will be the last color mask applied
+            for class_i in range(preds[i][j].shape[-1]):
+                mask = preds[i][j][:, :, class_i] >= prediction_threshold
+                prediction_tiles[i][j][mask] = class_colors[class_i % len(class_colors)]
 
     return prediction_tiles
 
@@ -73,7 +85,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d):
     for i in range(len(prepared_tiles)):
         preds.append([])
         for j in range(len(prepared_tiles[i])):
-            preds[i].append(model.predict(prepared_tiles[i][j].reshape(1, target_size_1d, target_size_1d, 1))[0, :, :, 0])
+            preds[i].append(model.predict(prepared_tiles[i][j].reshape(1, target_size_1d, target_size_1d, 1))[0, :, :, :])
 
     pred_tiles = overlay_predictions(prepared_tiles, preds, prediction_threshold)
 
