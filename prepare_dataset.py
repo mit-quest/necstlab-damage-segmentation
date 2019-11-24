@@ -119,6 +119,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                     annotation.save(Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                         image_ind].name).as_posix())
                 elif image_cropping_params['type'] == 'random':
+                    assert image_cropping_params['num_per_image'] > 0
                     assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     for counter_crop in range(image_cropping_params['num_per_image']):
                         image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
@@ -129,6 +130,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                             image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
                 elif image_cropping_params['type'] == 'linear':  # do not train with pad, some overlap okay (still aug'd)
+                    assert image_cropping_params['num_per_image'] > 0
                     assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     img = np.asarray(image)
                     mask = np.asarray(annotation)
