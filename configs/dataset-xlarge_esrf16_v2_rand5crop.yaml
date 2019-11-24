@@ -47,12 +47,4 @@ dataset_config:
     type: 'random' # 'None' (downscale img to target), 'linear' (def # crops), 'random' (def # crops), 'all' (all crops)
     num_per_image: 5 # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
   class_annotation_mapping:
-    class_0: ['0-degree_damage', '45-degree_damage', '90-degree_damage']
-#
-#  class_annotation_mapping:
-#    class_0: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
-#}
-#  class_annotation_mapping:
-#    class_0_annotation_GVs: [100]
-#    class_1_annotation_GVs: [175]
-#    class_2_annotation_GVs: [250]
+    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'

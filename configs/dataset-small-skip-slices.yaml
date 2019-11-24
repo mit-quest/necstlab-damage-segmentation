@@ -20,26 +20,4 @@ dataset_config:
     type: 'random' # 'None', 'random'
     num_per_image: 1 # 1 is all that is supported at the moment
   class_annotation_mapping:
-    class_0: ['0-degree_damage', '45-degree_damage', '90-degree_damage']
-#
-#
-#  class_annotation_mapping:
-#    class_0: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
-#}
-#  class_annotation_mapping:
-#    class_0_annotation_GVs: [100]
-#    class_1_annotation_GVs: [175]
-#    class_2_annotation_GVs: [250]
-#
-#
-#  class_annotation_mapping:
-#    class_0: ['0-degree_damage', '45-degree_damage']
-#
-#  class_annotation_mapping:
-#    class_0: ['0-degree_damage', '45-degree_damage']
-#    class_1: ['90-degree_damage']
-#
-#  class_annotation_mapping:
-#    class_0: ['0-degree_damage']
-#    class_1: ['45-degree_damage']
-#    class_2: ['90-degree_damage']
+    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
