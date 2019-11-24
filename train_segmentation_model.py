@@ -136,6 +136,35 @@ def train(gcp_bucket, config_file):
         else:
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
+    # mosaic plot
+    fig2, axes = plt.subplots(nrows=2, ncols=3, figsize=(10, 6))
+    counter_m = 0
+    counter_n = 0
+    for metric_name in metric_names:
+
+        for split in ['train', 'validate']:
+
+            key_name = metric_name
+            if split == 'validate':
+                key_name = 'val_' + key_name
+
+            axes[counter_m, counter_n].plot(range(epochs), results.history[key_name], label=split)
+        axes[counter_m, counter_n].set_xlabel('epochs')
+        if metric_name == 'loss':
+            axes[counter_m, counter_n].set_ylabel(compiled_model.loss.__name__)
+        else:
+            axes[counter_m, counter_n].set_ylabel(metric_name)
+        axes[counter_m, counter_n].legend()
+
+        counter_n += 1
+        if counter_n == 3:  # 3 plots per row
+            counter_m += 1
+            counter_n = 0
+
+    fig2.tight_layout()
+    fig2.delaxes(axes[1][2])
+    fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
+
     metadata = {
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
