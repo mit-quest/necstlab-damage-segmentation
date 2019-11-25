@@ -15,8 +15,8 @@ tmp_directory = Path('./tmp')
 
 # rgb
 class_colors = [
-    [255, 255, 0],  # yellow
     [0, 0, 255],    # blue
+    [255, 255, 0],  # yellow
     [255, 0, 0],    # red
     [0, 255, 0],    # green
     [255, 0, 255]   # magenta
