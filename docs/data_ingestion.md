@@ -27,5 +27,5 @@ Note:
 - `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename, then that the zip file has annotations. If no `dmg` appears, then it assumes it contains images.
 - An identical `<stack_ID>` (image and/or annotations) existing in both `raw-data` and `processed-data` will be skipped by `ingest_raw_data.py`.
 - In VM SSH, use `nano` text editor to edit scripts previously uploaded to VM. E.g., `nano configs/dataset-medium.yaml` to edit text in `dataset-medium.yaml`
-- To create a VM without destroying others (assuming `terraform apply` seeks to creat & destroy), use `target` flag: `terraform apply -lock=false -target=google_compute_instance.vm[<number>]` to create VM <number>
+- To create a VM without destroying others (assuming `terraform apply` seeks to create & destroy), use `target` flag: `terraform apply -lock=false -target=google_compute_instance.vm[<#>]` to create VM #
 
