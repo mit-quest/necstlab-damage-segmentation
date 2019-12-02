@@ -12,13 +12,6 @@ import pytz
 from gcp_utils import remote_folder_exists
 
 
-ply_GV_mapping = {
-    'no_damage': 0,
-    '0-degree_damage': 100,
-    '45-degree_damage': 175,
-    '90-degree_damage': 250,
-}
-
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
@@ -38,6 +31,8 @@ def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processe
             scan_image_files = sorted(Path(processed_data_local_dir, scan, 'images').iterdir())
             scan_annotation_files = sorted(Path(processed_data_local_dir, scan, 'annotations').iterdir())
             assert len(scan_image_files) == len(scan_annotation_files)
+            assert 'num_skip_beg_slices' in downsampling_params
+            assert 'num_skip_end_slices' in downsampling_params
             assert len(scan_image_files) > (downsampling_params['num_skip_beg_slices']
                                             + downsampling_params['num_skip_end_slices'])
             assert downsampling_params['num_skip_beg_slices'] >= 0
@@ -199,15 +194,20 @@ def create_class_masks(data_prep_local_dir, class_annotation_mapping):
     for scan in [p.name for p in Path(data_prep_local_dir, 'resized').iterdir()]:
         if 'masks' not in [p.name for p in Path(data_prep_local_dir, 'resized', scan).iterdir()]:
             scan_annotation_files = sorted(Path(data_prep_local_dir, 'resized', scan, 'annotations').iterdir())
-            for c, damage_plies_in_c in class_annotation_mapping.items():
-                Path(data_prep_local_dir, 'resized', scan, 'masks', c).mkdir(parents=True, exist_ok=True)
+            for c, gvs_in_c in class_annotation_mapping.items():
+                assert "class_" in c
+                assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
+                class_name = c[:-len('_annotation_GVs')]
+                Path(data_prep_local_dir, 'resized', scan, 'masks', class_name).mkdir(parents=True, exist_ok=True)
                 for scan_annotation_file in scan_annotation_files:
                     annotation = np.asarray(Image.open(scan_annotation_file))
                     mask = np.zeros(annotation.shape, dtype=bool)
-                    for damage_ply in damage_plies_in_c:
-                        mask += (annotation == ply_GV_mapping[damage_ply])
+                    for gv in gvs_in_c:
+                        assert type(gv) is int
+                        mask += (annotation == gv)
                     mask = Image.fromarray(mask.astype('uint8'))
-                    mask.save(Path(data_prep_local_dir, 'resized', scan, 'masks', c, scan_annotation_file.name).as_posix())
+                    mask.save(Path(data_prep_local_dir, 'resized', scan, 'masks',
+                                   class_name, scan_annotation_file.name).as_posix())
 
 
 def recursive_copy_directory(src, dst):
