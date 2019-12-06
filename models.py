@@ -15,7 +15,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
 
-    crossentropy = binary_crossentropy if num_classes else categorical_crossentropy
+    crossentropy = binary_crossentropy if num_classes == 1 else categorical_crossentropy
     loss_fn = crossentropy
 
     model.compile(optimizer=Adam(),
