@@ -22,4 +22,4 @@ Infrastructure that will be used:
 * Batch size of 16 works with P100 GPU, but batch size of 24 is too large.
 
 ## Issues
-* #32 enable pre-trained weights: potentially with `--pre-trained-weights <model_ID>` in command line
+* #32 enable pre-trained weights: potentially with `--pre-trained-weights <model_ID>` in command line. If this parameter is excluded, then the default is no pre-training and training operates as it does currently from random initialized weights
