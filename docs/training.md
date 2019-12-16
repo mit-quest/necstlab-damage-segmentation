@@ -20,3 +20,6 @@ Infrastructure that will be used:
 
 ## Notes
 * Batch size of 16 works with P100 GPU, but batch size of 24 is too large.
+
+## Issues
+* #32 enable pre-trained weights: potentially with `--pre-trained-weights <model_ID>` in command line
