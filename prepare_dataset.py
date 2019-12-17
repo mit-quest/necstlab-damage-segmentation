@@ -43,7 +43,7 @@ def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processe
 
             if 'number_of_images' in downsampling_params:
                 num_images = downsampling_params['number_of_images']
-                assert num_images <= total_images  # build in error check so it's compat # skipped slices
+                assert num_images <= total_images
             elif 'frac' in downsampling_params:
                 num_images = math.ceil(downsampling_params['frac'] * total_images)
             else:
