@@ -26,6 +26,7 @@ def copy_processed_data_locally_if_missing(scans, processed_data_remote_source, 
 def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processed_data_local_dir,
                                                                  data_prep_local_dir, downsampling_params):
     Path(data_prep_local_dir, 'downsampled').mkdir(parents=True, exist_ok=True)
+    assert 'type' in downsampling_params
     for scan in scans:
         if scan not in [p.name for p in Path(data_prep_local_dir, 'downsampled').iterdir()]:
             scan_image_files = sorted(Path(processed_data_local_dir, scan, 'images').iterdir())
@@ -44,9 +45,12 @@ def copy_and_downsample_processed_data_to_preparation_if_missing(scans, processe
             if 'number_of_images' in downsampling_params:
                 num_images = downsampling_params['number_of_images']
                 assert num_images <= total_images
+                assert 'frac' not in downsampling_params
             elif 'frac' in downsampling_params:
                 num_images = math.ceil(downsampling_params['frac'] * total_images)
-            else:
+                assert num_images <= total_images
+                assert 'number_of_images' not in downsampling_params
+            else:  # all eligible images used
                 num_images = total_images
 
             if downsampling_params['type'] == 'None':
@@ -94,6 +98,7 @@ def random_crop(img, mask, width, height):
 
 def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
     Path(data_prep_local_dir, 'resized').mkdir(parents=True, exist_ok=True)
+    assert 'type' in image_cropping_params
     assert target_size[0] > 0
     assert target_size[1] > 0
     for scan in [p.name for p in Path(data_prep_local_dir, 'downsampled').iterdir()]:
@@ -114,6 +119,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                     annotation.save(Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                         image_ind].name).as_posix())
                 elif image_cropping_params['type'] == 'random':
+                    assert 'num_per_image' in image_cropping_params
                     assert image_cropping_params['num_per_image'] > 0
                     assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     for counter_crop in range(image_cropping_params['num_per_image']):
@@ -125,6 +131,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                             image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
                 elif image_cropping_params['type'] == 'linear':  # do not train with pad, some overlap okay (still aug'd)
+                    assert 'num_per_image' in image_cropping_params
                     assert image_cropping_params['num_per_image'] > 0
                     assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     img = np.asarray(image)
@@ -155,12 +162,41 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                             horiz_counter = 0
                             vert_counter += 1
                             if vert_counter > (num_tiles_ver - 1):
-                                break  # regardless of num crops input, the bot rhs of img has been reach
+                                break  # regardless of num crops input, the bot rhs of img has been reached
                         else:
                             horiz_counter += 1
                         assert horiz_counter < num_tiles_hor  # prevent movement off image
                         assert vert_counter < num_tiles_ver   # prevent movement off image
                 elif image_cropping_params['type'] == 'all':  # do not train with pad, some overlap okay (still aug'd)
+                    img = np.asarray(image)
+                    mask = np.asarray(annotation)
+                    num_tiles_hor = np.int(np.ceil(img.shape[1] / target_size[0]))
+                    num_tiles_ver = np.int(np.ceil(img.shape[0] / target_size[1]))
+                    counter_crop = 0
+                    for vert_counter in range(num_tiles_ver):  # L to R, then move down by trgt
+                        for horiz_counter in range(num_tiles_hor):
+                            if horiz_counter < (num_tiles_hor - 1):
+                                x_crop_lhs = horiz_counter * target_size[0]
+                            elif horiz_counter == (num_tiles_hor - 1):
+                                x_crop_lhs = img.shape[1] - target_size[0]
+                            if vert_counter < (num_tiles_ver - 1):
+                                y_crop_top = vert_counter * target_size[1]
+                            elif vert_counter == (num_tiles_ver - 1):
+                                y_crop_top = img.shape[0] - target_size[1]
+                            image_crop = img[y_crop_top:y_crop_top+target_size[1], x_crop_lhs:x_crop_lhs+target_size[0]]
+                            annotation_crop = mask[y_crop_top:y_crop_top+target_size[1], x_crop_lhs:x_crop_lhs+target_size[0]]
+                            image_crop = Image.fromarray(image_crop)
+                            annotation_crop = Image.fromarray(annotation_crop)
+                            image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                                image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
+                            annotation_crop.save(
+                                (Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                                    image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
+                            counter_crop += 1
+                elif image_cropping_params['type'] == 'class':  # smart crop: do not train with pad, some overlap okay (still aug'd)
+                    assert 'num_per_class' in image_cropping_params
+                    assert image_cropping_params['num_per_class'] > 0
+                    assert image_cropping_params['num_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     img = np.asarray(image)
                     mask = np.asarray(annotation)
                     num_tiles_hor = np.int(np.ceil(img.shape[1] / target_size[0]))
