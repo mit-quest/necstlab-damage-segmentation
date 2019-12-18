@@ -96,7 +96,7 @@ def random_crop(img, mask, width, height):
     return img, mask
 
 
-def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
+def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, class_annotation_mapping):
     Path(data_prep_local_dir, 'resized').mkdir(parents=True, exist_ok=True)
     assert 'type' in image_cropping_params
     assert target_size[0] > 0
@@ -194,34 +194,12 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params):
                                     image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
                             counter_crop += 1
                 elif image_cropping_params['type'] == 'class':  # smart crop: do not train with pad, some overlap okay (still aug'd)
-                    assert 'num_per_class' in image_cropping_params
-                    assert image_cropping_params['num_per_class'] > 0
-                    assert image_cropping_params['num_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
-                    img = np.asarray(image)
-                    mask = np.asarray(annotation)
-                    num_tiles_hor = np.int(np.ceil(img.shape[1] / target_size[0]))
-                    num_tiles_ver = np.int(np.ceil(img.shape[0] / target_size[1]))
-                    counter_crop = 0
-                    for vert_counter in range(num_tiles_ver):  # L to R, then move down by trgt
-                        for horiz_counter in range(num_tiles_hor):
-                            if horiz_counter < (num_tiles_hor - 1):
-                                x_crop_lhs = horiz_counter * target_size[0]
-                            elif horiz_counter == (num_tiles_hor - 1):
-                                x_crop_lhs = img.shape[1] - target_size[0]
-                            if vert_counter < (num_tiles_ver - 1):
-                                y_crop_top = vert_counter * target_size[1]
-                            elif vert_counter == (num_tiles_ver - 1):
-                                y_crop_top = img.shape[0] - target_size[1]
-                            image_crop = img[y_crop_top:y_crop_top+target_size[1], x_crop_lhs:x_crop_lhs+target_size[0]]
-                            annotation_crop = mask[y_crop_top:y_crop_top+target_size[1], x_crop_lhs:x_crop_lhs+target_size[0]]
-                            image_crop = Image.fromarray(image_crop)
-                            annotation_crop = Image.fromarray(annotation_crop)
-                            image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                                image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
-                            annotation_crop.save(
-                                (Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                                    image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
-                            counter_crop += 1
+                    assert 'num_pos_per_class' in image_cropping_params
+                    assert 'num_neg_per_class' in image_cropping_params
+                    assert image_cropping_params['num_pos_per_class'] > 0
+                    assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    assert 'class_' in class_annotation_mapping
+                    assert '_annotation_GVs' in class_annotation_mapping
                 else:
                     raise ValueError("Image cropping type: {}".format(image_cropping_params['type']))
 
@@ -320,7 +298,7 @@ def prepare_dataset(gcp_bucket, config_file):
     copy_and_downsample_processed_data_to_preparation_if_missing(
         all_scans, processed_data_local_dir, data_prep_local_dir, dataset_config['stack_downsampling'])
 
-    resize_and_crop(data_prep_local_dir, dataset_config['target_size'], dataset_config['image_cropping'])
+    resize_and_crop(data_prep_local_dir, dataset_config['target_size'], dataset_config['image_cropping'], dataset_config['class_annotation_mapping'])
 
     create_class_masks(data_prep_local_dir, dataset_config['class_annotation_mapping'])
 
