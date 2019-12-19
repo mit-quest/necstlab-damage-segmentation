@@ -27,4 +27,4 @@ Infrastructure that will be used:
     done
     ```
      Or `-L filecopy.log -r` or `-L cp.log -r`
-- Less secure local Ccopy: download inference locally by (e.g.) `gsutil -m cp -r gs://necstlab-sandbox/inferences/<inference_ID> <local_storage_location>`
+- Less secure local copying: download inference locally by (e.g.) `gsutil -m cp -r gs://necstlab-sandbox/inferences/<inference_ID> <local_storage_location>`
