@@ -204,7 +204,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                         assert "class_" in c
                         assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
                         class_name = c[:-len('_annotation_GVs')]
-                        if np.any(np.isin(np.asarray(annotation), gvs_in_c)):  # if class-pos is present
+                        if np.any(np.isin(np.asarray(annotation), gvs_in_c)):  # if class-pos is present in full annot
                             for counter_classpos_crop in range(image_cropping_params['num_pos_per_class']):
                                 flag_crop_pass = 0
                                 while flag_crop_pass == 0:
@@ -217,11 +217,11 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                                             image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         flag_crop_pass = 1
-                        if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c, invert=True)]) >= target_size[0] * target_size[1]:  # if class-neg is present in target size
+                        if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c, invert=True)]) >= target_size[0] * target_size[1]:  # if class-neg of target size is present
                             for counter_classneg_crop in range(image_cropping_params['num_neg_per_class']): # won't run if `num_neg_per_class` is 0
                                 flag_crop_pass = 0
                                 counter_classneg_tries = 0
-                                while flag_crop_pass == 0 and counter_classneg_tries < 100:
+                                while flag_crop_pass == 0 and counter_classneg_tries < 1000:  # stopgap soln
                                     image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
                                     if np.all(np.isin(annotation_crop, gvs_in_c, invert=True)):
                                         image_crop = Image.fromarray(image_crop)
