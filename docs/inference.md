@@ -21,8 +21,10 @@ Infrastructure that will be used:
 ## Notes
 - `infer_segmentation.py` looks for `<stack_id>` in `processed-data` inside bucket
 - More secure local copying: download inference locally by (e.g.): 
-    ```until gsutil -m cp -c -L log.txt -r gs://necstlab-sandbox/inferences/<inference_ID> <local_storage_location>; do
-          sleep 1
-       done```
+    ```
+    until gsutil -m cp -c -L log.txt -r gs://necstlab-sandbox/inferences/<inference_ID> <local_storage_location>; do
+        sleep 1
+    done
+    ```
      Or `-L filecopy.log -r` or `-L cp.log -r`
 - Less secure local Ccopy: download inference locally by (e.g.) `gsutil -m cp -r gs://necstlab-sandbox/inferences/<inference_ID> <local_storage_location>`
