@@ -193,13 +193,41 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                 (Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
                                     image_ind].name).as_posix()).replace('.', ('_crop' + str(counter_crop) + '.')))
                             counter_crop += 1
-                elif image_cropping_params['type'] == 'class':  # smart crop: do not train with pad, some overlap okay (still aug'd)
+                elif image_cropping_params['type'] == 'class':  # 'smart' crop: do not train with pad, some overlap okay (still aug'd)
                     assert 'num_pos_per_class' in image_cropping_params
                     assert 'num_neg_per_class' in image_cropping_params
-                    assert image_cropping_params['num_pos_per_class'] > 0
+                    assert image_cropping_params['num_pos_per_class'] > 0  # logical choice
                     assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
-                    assert 'class_' in class_annotation_mapping
-                    assert '_annotation_GVs' in class_annotation_mapping
+                    assert image_cropping_params['num_neg_per_class'] >= 0  # logical choice if 0
+                    assert image_cropping_params['num_neg_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    for c, gvs_in_c in class_annotation_mapping.items():
+                        assert "class_" in c
+                        assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
+                        class_name = c[:-len('_annotation_GVs')]
+                        for counter_classpos_crop in range(image_cropping_params['num_pos_per_class']):
+                            flag_crop_pass = 0
+                            while flag_crop_pass == 0:
+                                image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
+                                if list(set(gvs_in_c) & set(annotation_crop.flatten())):
+                                    image_crop = Image.fromarray(image_crop)
+                                    annotation_crop = Image.fromarray(annotation_crop)
+                                    image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                                        image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                    annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                                        image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                    flag_crop_pass = 1
+                        for counter_classneg_crop in range(image_cropping_params['num_neg_per_class']): # won't run if `num_neg_per_class` is 0
+                            flag_crop_pass = 0
+                            while flag_crop_pass == 0:
+                                image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
+                                if not list(set(gvs_in_c) & set(annotation_crop.flatten())):
+                                    image_crop = Image.fromarray(image_crop)
+                                    annotation_crop = Image.fromarray(annotation_crop)
+                                    image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
+                                        image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
+                                    annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
+                                        image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
+                                    flag_crop_pass = 1
                 else:
                     raise ValueError("Image cropping type: {}".format(image_cropping_params['type']))
 
