@@ -200,23 +200,26 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                     assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     assert image_cropping_params['num_neg_per_class'] >= 0  # logical choice if 0
                     assert image_cropping_params['num_neg_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    class_pos_min_threshold = 10  # min thresh that defines class pos pixel qty per crop
                     for c, gvs_in_c in class_annotation_mapping.items():
                         assert "class_" in c
                         assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
                         class_name = c[:-len('_annotation_GVs')]
-                        if np.any(np.isin(np.asarray(annotation), gvs_in_c)):  # if class-pos is present in full annot
+                        if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c)]) >= class_pos_min_threshold:  # if class-pos is present in full annot
                             for counter_classpos_crop in range(image_cropping_params['num_pos_per_class']):
                                 flag_crop_pass = 0
-                                while flag_crop_pass == 0:
+                                counter_classpos_tries = 0  # getting this far presents no guarantees of ok crop selection
+                                while flag_crop_pass == 0 and counter_classpos_tries < 1000:  # stopgap soln:
                                     image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
-                                    if np.any(np.isin(annotation_crop, gvs_in_c)):
+                                    if np.size(image_crop[np.isin(annotation_crop, gvs_in_c)]) >= class_pos_min_threshold:
                                         image_crop = Image.fromarray(image_crop)
                                         annotation_crop = Image.fromarray(annotation_crop)
                                         image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                                            image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                                            image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         flag_crop_pass = 1
+                                    counter_classpos_tries += 1
                         if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c, invert=True)]) >= target_size[0] * target_size[1]:  # if class-neg of target size is present
                             for counter_classneg_crop in range(image_cropping_params['num_neg_per_class']): # won't run if `num_neg_per_class` is 0
                                 flag_crop_pass = 0
@@ -227,9 +230,9 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                         image_crop = Image.fromarray(image_crop)
                                         annotation_crop = Image.fromarray(annotation_crop)
                                         image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                                            image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_neg_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
                                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                                            image_ind].name).as_posix()).replace('.', ('_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_neg_' + str(class_name) + '_crop' + str(counter_classneg_crop) + '.')))
                                         flag_crop_pass = 1
                                     counter_classneg_tries += 1
                 else:
