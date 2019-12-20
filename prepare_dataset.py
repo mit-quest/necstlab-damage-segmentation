@@ -200,7 +200,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                     assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     assert image_cropping_params['num_neg_per_class'] >= 0  # logical choice if 0
                     assert image_cropping_params['num_neg_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
-                    class_pos_min_threshold = 10  # min thresh that defines class pos pixel qty per crop
+                    class_pos_min_threshold = 1  # min thresh that defines class pos pixel qty per crop
                     for c, gvs_in_c in class_annotation_mapping.items():
                         assert "class_" in c
                         assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
