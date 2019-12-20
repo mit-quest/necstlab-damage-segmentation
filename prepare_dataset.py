@@ -15,6 +15,8 @@ from gcp_utils import remote_folder_exists
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
+max_tries_rand_crop_per_class = 1000
+
 
 def copy_processed_data_locally_if_missing(scans, processed_data_remote_source, processed_data_local_dir):
     Path(processed_data_local_dir).mkdir(parents=True, exist_ok=True)
@@ -200,18 +202,20 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                     assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
                     assert image_cropping_params['num_neg_per_class'] >= 0  # logical choice if 0
                     assert image_cropping_params['num_neg_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
-                    class_pos_min_threshold = 1  # min thresh that defines class pos pixel qty per crop
+                    assert 'min_num_class_pos_px' in image_cropping_params
+                    assert np.all(np.asarray(image_cropping_params['min_num_class_pos_px']) > 0)  # logical choice, min thresh that defines each class pos pixel qty per crop
+                    counter_min_num_class_pos_px = 0
                     for c, gvs_in_c in class_annotation_mapping.items():
                         assert "class_" in c
                         assert "_annotation_GVs" in c, "'_annotation_GVs' must be in the class name to indicate these are grayvalues"
                         class_name = c[:-len('_annotation_GVs')]
-                        if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c)]) >= class_pos_min_threshold:  # if class-pos is present in full annot
+                        if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c)]) >= image_cropping_params['min_num_class_pos_px'][counter_min_num_class_pos_px]:  # if class-pos is present in full annot
                             for counter_classpos_crop in range(image_cropping_params['num_pos_per_class']):
                                 flag_crop_pass = 0
                                 counter_classpos_tries = 0  # getting this far presents no guarantees of ok crop selection
-                                while flag_crop_pass == 0 and counter_classpos_tries < 1000:  # stopgap soln:
+                                while flag_crop_pass == 0 and counter_classpos_tries < max_tries_rand_crop_per_class:  # stopgap soln:
                                     image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
-                                    if np.size(image_crop[np.isin(annotation_crop, gvs_in_c)]) >= class_pos_min_threshold:
+                                    if np.size(image_crop[np.isin(annotation_crop, gvs_in_c)]) >= image_cropping_params['min_num_class_pos_px'][counter_min_num_class_pos_px]:
                                         image_crop = Image.fromarray(image_crop)
                                         annotation_crop = Image.fromarray(annotation_crop)
                                         image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
@@ -220,11 +224,12 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                             image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         flag_crop_pass = 1
                                     counter_classpos_tries += 1
+                        counter_min_num_class_pos_px += 1
                         if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c, invert=True)]) >= target_size[0] * target_size[1]:  # if class-neg of target size is present
                             for counter_classneg_crop in range(image_cropping_params['num_neg_per_class']): # won't run if `num_neg_per_class` is 0
                                 flag_crop_pass = 0
                                 counter_classneg_tries = 0
-                                while flag_crop_pass == 0 and counter_classneg_tries < 1000:  # stopgap soln
+                                while flag_crop_pass == 0 and counter_classneg_tries < max_tries_rand_crop_per_class:  # stopgap soln
                                     image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
                                     if np.all(np.isin(annotation_crop, gvs_in_c, invert=True)):
                                         image_crop = Image.fromarray(image_crop)
