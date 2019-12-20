@@ -15,7 +15,8 @@ from gcp_utils import remote_folder_exists
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
-max_tries_rand_crop_per_class = 1000
+max_tries_rand_crop_per_class = 1000 # stopgap soln
+max_num_crop_per_img = 36 # suits 4600 x 2048 img with 512 x 512 target
 
 
 def copy_processed_data_locally_if_missing(scans, processed_data_remote_source, processed_data_local_dir):
@@ -123,7 +124,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                 elif image_cropping_params['type'] == 'random':
                     assert 'num_per_image' in image_cropping_params
                     assert image_cropping_params['num_per_image'] > 0
-                    assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    assert image_cropping_params['num_per_image'] <= max_num_crop_per_img
                     for counter_crop in range(image_cropping_params['num_per_image']):
                         image_crop, annotation_crop = random_crop(np.asarray(image), np.asarray(annotation), target_size[0], target_size[1])
                         image_crop = Image.fromarray(image_crop)
@@ -135,7 +136,7 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                 elif image_cropping_params['type'] == 'linear':  # do not train with pad, some overlap okay (still aug'd)
                     assert 'num_per_image' in image_cropping_params
                     assert image_cropping_params['num_per_image'] > 0
-                    assert image_cropping_params['num_per_image'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    assert image_cropping_params['num_per_image'] <= max_num_crop_per_img
                     img = np.asarray(image)
                     mask = np.asarray(annotation)
                     num_tiles_hor = np.int(np.ceil(img.shape[1] / target_size[0]))
@@ -199,9 +200,9 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                     assert 'num_pos_per_class' in image_cropping_params
                     assert 'num_neg_per_class' in image_cropping_params
                     assert image_cropping_params['num_pos_per_class'] > 0  # logical choice
-                    assert image_cropping_params['num_pos_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    assert image_cropping_params['num_pos_per_class'] <= max_num_crop_per_img
                     assert image_cropping_params['num_neg_per_class'] >= 0  # logical choice if 0
-                    assert image_cropping_params['num_neg_per_class'] <= 36  # suits 4600 x 2048 img with 512 x 512 target
+                    assert image_cropping_params['num_neg_per_class'] <= max_num_crop_per_img
                     assert 'min_num_class_pos_px' in image_cropping_params
                     assert np.all(np.asarray(image_cropping_params['min_num_class_pos_px']) > 0)  # logical choice, min thresh that defines each class pos pixel qty per crop
                     counter_min_num_class_pos_px = 0
