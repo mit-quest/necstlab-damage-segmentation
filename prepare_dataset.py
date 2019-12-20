@@ -15,8 +15,8 @@ from gcp_utils import remote_folder_exists
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
-max_tries_rand_crop_per_class = 1000 # stopgap soln
-max_num_crop_per_img = 36 # suits 4600 x 2048 img with 512 x 512 target
+max_tries_rand_crop_per_class = 1000  # stopgap soln
+max_num_crop_per_img = 36  # suits 4600 x 2048 img with 512 x 512 target
 
 
 def copy_processed_data_locally_if_missing(scans, processed_data_remote_source, processed_data_local_dir):
@@ -220,9 +220,9 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                         image_crop = Image.fromarray(image_crop)
                                         annotation_crop = Image.fromarray(annotation_crop)
                                         image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_' + str(image_cropping_params['min_num_class_pos_px'][counter_min_num_class_pos_px]) + '_crop' + str(counter_classpos_crop) + '.')))
                                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_' + str(image_cropping_params['min_num_class_pos_px'][counter_min_num_class_pos_px]) + '_crop' + str(counter_classpos_crop) + '.')))
                                         flag_crop_pass = 1
                                     counter_classpos_tries += 1
                         counter_min_num_class_pos_px += 1
