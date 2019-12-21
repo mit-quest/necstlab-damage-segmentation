@@ -219,9 +219,9 @@ def resize_and_crop(data_prep_local_dir, target_size, image_cropping_params, cla
                                         image_crop = Image.fromarray(image_crop)
                                         annotation_crop = Image.fromarray(annotation_crop)
                                         image_crop.save((Path(data_prep_local_dir, 'resized', scan, 'images', scan_image_files[
-                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_' + str(image_cropping_params['min_num_class_pos_px'][class_name + '_pos_px']) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         annotation_crop.save((Path(data_prep_local_dir, 'resized', scan, 'annotations', scan_annotation_files[
-                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_' + str(image_cropping_params['min_num_class_pos_px'][class_name + '_pos_px']) + '_crop' + str(counter_classpos_crop) + '.')))
+                                            image_ind].name).as_posix()).replace('.', ('_pos_' + str(class_name) + '_crop' + str(counter_classpos_crop) + '.')))
                                         flag_crop_pass = 1
                                     counter_classpos_tries += 1
                         if np.size(np.asarray(annotation)[np.isin(np.asarray(annotation), gvs_in_c, invert=True)]) >= target_size[0] * target_size[1]:  # if class-neg of target size is present
