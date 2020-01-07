@@ -26,5 +26,4 @@ For significant code changes to any files except `configs` and `.md`'s, users mu
 7. Once approved, complete merge and then delete branch
 
 # Known gotchas
-* You can only run a single workflow at a time on a VM (due to different runs possibly stepping on each other through the temp directory. [#27](https://github.com/mit-quest/necstlab-damage-segmentation/issues/27) will address this.
-* The U-model and parameters are hardcoded in train, test, and inference. So you'll need to change all if you want change any. [#3](https://github.com/mit-quest/necstlab-damage-segmentation/issues/3) will address this.
+* You can only run a single workflow at a time on a VM (due to different runs possibly stepping on each other through the temp directory). [#27](https://github.com/mit-quest/necstlab-damage-segmentation/issues/27) will address this.
