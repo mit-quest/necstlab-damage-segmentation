@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
+import ipykernel
 from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
@@ -134,7 +135,12 @@ def train(gcp_bucket, config_file):
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
 
     # mosaic of subplot
-    fig2, axes = plt.subplots(nrows=2, ncols=3, figsize=(10, 6))
+    if len(train_generator.mask_filenames) == 1:
+        num_rows = 1
+    else:
+        num_rows = len(train_generator.mask_filenames) + 1
+    num_cols = 4
+    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
     counter_m = 0
     counter_n = 0
     for metric_name in metric_names:
@@ -150,11 +156,10 @@ def train(gcp_bucket, config_file):
             axes[counter_m, counter_n].set_ylabel(metric_name)
         axes[counter_m, counter_n].legend()
         counter_n += 1
-        if counter_n == 3:  # 3 plots per row
+        if counter_n == num_cols:  # plots per row
             counter_m += 1
             counter_n = 0
     fig2.tight_layout()
-    fig2.delaxes(axes[1][2])
     fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
 
     metadata = {
