@@ -133,6 +133,7 @@ def train(gcp_bucket, config_file):
             fig.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
         else:
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
+    plt.close()
 
     # mosaic of subplot
     if len(train_generator.mask_filenames) == 1:
@@ -161,6 +162,7 @@ def train(gcp_bucket, config_file):
             counter_n = 0
     fig2.tight_layout()
     fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
+    plt.close()
 
     metadata = {
         'gcp_bucket': gcp_bucket,
