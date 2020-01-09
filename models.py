@@ -1,9 +1,12 @@
 from keras.optimizers import Adam
-from keras.metrics import accuracy, binary_crossentropy, categorical_crossentropy
+from keras.metrics import accuracy, binary_accuracy, categorical_accuracy, binary_crossentropy, categorical_crossentropy
 from segmentation_models import Unet
-from segmentation_models.metrics import iou_score, IOUScore
+from segmentation_models.metrics import iou_score, IOUScore, f1_score, f2_score, FScore, precision, Precision, recall, Recall
 from segmentation_models.losses import jaccard_loss, JaccardLoss, dice_loss, DiceLoss, CategoricalCELoss
-from image_utils import class_binary_accuracy, ClassBinaryAccuracy
+from segmentation_models.base import KerasObject, Metric
+from segmentation_models.base import functional
+
+SMOOTH = 1e-5
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
@@ -22,16 +25,25 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     all_metrics = []
     for class_num in range(num_classes + 1):
         if class_num == 0:
-            all_metrics.extend([accuracy, iou_score, jaccard_loss])  # , dice_loss])
+            all_metrics.extend([accuracy, binary_accuracy, categorical_accuracy, iou_score, jaccard_loss, f1_score,
+                                precision, recall])  # , dice_loss])
         else:
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
-            all_metrics.append(ClassBinaryAccuracy(name=str('class' + str(class_num - 1) + '_binary_accuracy'), class_indexes=class_num - 1))
-            all_metrics.append(IOUScore(name=str('class' + str(class_num - 1) + '_iou_score'), class_indexes=class_num - 1))
+            all_metrics.append(ClassBinaryAccuracy(name=str('class' + str(class_num - 1) + '_binary_accuracy'),
+                                                   class_indexes=class_num - 1, threshold=0.5))
+            all_metrics.append(IOUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
+                                        class_indexes=class_num - 1))
             all_metrics.append(JaccardLoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_jaccard_loss')
-            # all_metrics.append(DiceLoss(class_indexes=class_num - 1))
-            # all_metrics[-1].name = str('class' + str(class_num - 1) + '_dice_loss')
+            all_metrics.append(FScore(name=str('class' + str(class_num - 1) + '_f1_score'),
+                                      class_indexes=class_num - 1, beta=1))
+            all_metrics.append(DiceLoss(class_indexes=class_num - 1))
+            all_metrics[-1].name = str('class' + str(class_num - 1) + '_dice_loss')
+            all_metrics.append(Precision(name=str('class' + str(class_num - 1) + '_precision'),
+                                         class_indexes=class_num - 1))
+            all_metrics.append(Recall(name=str('class' + str(class_num - 1) + '_recall'),
+                                      class_indexes=class_num - 1))
         if num_classes == 1:
             break
 
@@ -43,3 +55,62 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         model.load_weights(weights_to_load)
 
     return model
+
+
+# adapted from: IOUScore() from https://github.com/qubvel/segmentation_models/blob/master/segmentation_models/metrics.py
+class ClassBinaryAccuracy(Metric):
+    r"""
+    .. math:: Binary Accuracy = (TN + TP)/(TN+TP+FN+FP) = Number of correct assessments/Number of all assessments, for given class
+    for more than one class input, output becomes mean accuracy (similar but not same as categorical)
+    Args:
+        class_weights: 1. or ``np.array`` of class weights (``len(weights) = num_classes``).
+        class_indexes: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
+        smooth: value to avoid division by zero
+        per_image: if ``True``, metric is calculated as mean over images in batch (B),
+            else over whole batch
+        threshold: value to round predictions (use ``>`` comparison), if ``None`` prediction will not be round
+    Returns:
+       A callable ``class_binary_accuracy`` instance. Can be used in ``model.compile(...)`` function.
+    Example:
+    .. code:: python
+        metric = ClassBinaryAccuracy()
+        model.compile('SGD', loss=loss, metrics=[metric])
+    """
+    def __init__(
+            self,
+            class_weights=None,
+            class_indexes=None,
+            threshold=None,
+            per_image=False,
+            smooth=SMOOTH,
+            name=None,
+    ):
+        name = name or 'class_i_binary_accuracy'
+        super().__init__(name=name)
+        self.class_weights = class_weights if class_weights is not None else 1
+        self.class_indexes = class_indexes
+        self.threshold = threshold
+        self.per_image = per_image
+        self.smooth = smooth
+
+    def __call__(self, gt, pr):
+
+        backend = self.submodules['backend']
+
+        gt, pr = functional.gather_channels(gt, pr, indexes=self.class_indexes, **self.submodules)
+        pr = functional.round_if_needed(pr, self.threshold, **self.submodules)
+        axes = functional.get_reduce_axes(self.per_image, **self.submodules)
+
+        # score calculation (assumed pr are 1-hot)
+        tp = backend.sum(gt * pr, axis=axes)
+        fp = backend.sum(pr, axis=axes) - tp
+        fn = backend.sum(gt, axis=axes) - tp
+        tn = backend.sum((-gt + 1) * (-pr + 1), axis=axes)
+        score = (tp + tn) / (tp + tn + fp + fn + self.smooth)
+        score = functional.average(score, self.per_image, self.class_weights, **self.submodules)
+
+        return score
+
+
+# alias
+class_binary_accuracy = ClassBinaryAccuracy()
