@@ -139,7 +139,7 @@ def train(gcp_bucket, config_file):
         num_rows = 1
     else:
         num_rows = len(train_generator.mask_filenames) + 1
-    num_cols = 4
+    num_cols = 8
     fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
     counter_m = 0
     counter_n = 0
