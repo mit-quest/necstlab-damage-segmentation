@@ -23,7 +23,7 @@ class OneHotMetricWrapper(KerasObject):
     def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BHWC
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
-        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[3])  # assume 4D tensor is BHWC
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
 
         return self.metric_class_instance(groundtruth, prediction_onehot)
 
