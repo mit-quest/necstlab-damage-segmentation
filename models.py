@@ -79,10 +79,10 @@ class OneHotMetricWrapper:
         else:
             self.metric_class_instance_1h = None  # results in error
 
-    def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BWHC
+    def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BHWC
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.cast(K.argmax(prediction, axis=-1), K.floatx())
-        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[3])  # assume 4D tensor is BWHC
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[3])  # assume 4D tensor is BHWC
 
         return self.metric_class_instance_1h(groundtruth, prediction_onehot)
 
