@@ -1,11 +1,11 @@
 from keras.optimizers import Adam
-from keras.metrics import accuracy, Accuracy, binary_accuracy, categorical_accuracy, binary_crossentropy, categorical_crossentropy
+from keras.metrics import accuracy, Accuracy, binary_accuracy, categorical_accuracy, CategoricalAccuracy, BinaryCrossentropy as BinaryCrossentropyM, CategoricalCrossentropy as CategoricalCrossentropyM
+from keras.losses import binary_crossentropy, BinaryCrossentropy as BinaryCrossentropyL, categorical_crossentropy, CategoricalCrossentropy as CategoricalCrossentropyL
 from keras import backend as K
 from segmentation_models import Unet
 from segmentation_models.metrics import iou_score, IOUScore, f1_score, f2_score, FScore, precision, Precision, recall, Recall
 from segmentation_models.losses import jaccard_loss, JaccardLoss, dice_loss, DiceLoss, CategoricalCELoss
-from segmentation_models.base import KerasObject, Metric
-from segmentation_models.base import functional
+from segmentation_models.base import Metric, KerasObject, functional
 
 SMOOTH = 1e-5
 
@@ -14,7 +14,7 @@ class OneHotMetricWrapper(KerasObject):
     def __init__(
             self,
             name=None,
-            metric_class_instance=None,   # DO I NEED A COMMA HERE?
+            metric_class_instance=None
     ):
         self.metric_class_instance = metric_class_instance
         self.name = name or self.metric_class_instance.name
@@ -38,21 +38,30 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
 
-    crossentropy = binary_crossentropy if num_classes == 1 else categorical_crossentropy
+    crossentropy = BinaryCrossentropyL() if num_classes == 1 else CategoricalCrossentropyL()
     loss_fn = crossentropy
-
     all_metrics = []
+    if isinstance(loss_fn, BinaryCrossentropyL):
+        all_metrics.append(BinaryCrossentropyM())
+    else:
+        all_metrics.append(CategoricalCrossentropyM())
+    all_metrics[0].name = str(all_metrics[0].name + '_keras_metric')
+
     for class_num in range(num_classes + 1):
         if class_num == 0:    # all class metrics
             # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
-            all_metrics.extend([CategoricalCELoss(),
+            all_metrics.extend([
+                                CategoricalCrossentropyL(name='categ_ce_keras_loss'),
+                                CategoricalCELoss(),
                                 OneHotMetricWrapper(metric_class_instance=Accuracy()),
                                 OneHotMetricWrapper(metric_class_instance=ClassBinaryAccuracy(threshold=None)),
                                 categorical_accuracy,
-                                OneHotMetricWrapper(metric_class_instance=IOUScore()),
-                                OneHotMetricWrapper(metric_class_instance=FScore(beta=1)),
-                                OneHotMetricWrapper(metric_class_instance=Precision())])
-            all_metrics[0].name = str('sm_cat_cross_entropy')
+                                CategoricalAccuracy(name='categ_acc_class')
+                                # OneHotMetricWrapper(metric_class_instance=IOUScore()),
+                                # OneHotMetricWrapper(metric_class_instance=FScore(beta=1)),
+                                # OneHotMetricWrapper(metric_class_instance=Precision())
+                                ])
+            all_metrics[2].name = str('categ_ce_sm_loss')
         else:    # per class metrics
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
@@ -114,7 +123,7 @@ class ClassBinaryAccuracy(Metric):
             smooth=SMOOTH,
             name=None,
     ):
-        name = name or 'class_i_binary_accuracy'
+        name = name or 'class_all_binary_accuracy'
         super().__init__(name=name)
         self.class_weights = class_weights if class_weights is not None else 1
         self.class_indexes = class_indexes
