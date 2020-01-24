@@ -14,6 +14,7 @@ from metrics_utils import OneHotAccuracy, OneHotFalseNegatives, OneHotFalsePosit
 from metrics_utils import FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore
 
 global_threshold = 0.5  # 0.5 is default prediction threshold for most metrics feat. this attribute
+assert global_threshold <= 1.0
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
@@ -84,11 +85,12 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if num_classes == 1:
             break
 
-    print(all_metrics)
-    for m in all_metrics:
-        if hasattr(m.__class__, '__name__'):
-            print(m.name, m.__class__.__name__, m.__class__.__mro__)
-    input("pre-compile - press enter")
+    # manually check metric attributes and inheritance
+    # print(all_metrics)
+    # for m in all_metrics:
+    #     if hasattr(m.__class__, '__name__'):
+    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
+    # input("pre-compile - press enter")
 
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
