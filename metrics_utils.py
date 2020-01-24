@@ -7,6 +7,7 @@ import numpy as np
 
 
 SMOOTH = 1e-5
+assert SMOOTH <= 1e-5
 
 
 # one hot classes are intended to act as pass-throughs
