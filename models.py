@@ -85,7 +85,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if num_classes == 1:
             break
 
-    # manually check metric attributes and inheritance
+    # manually check metric instantiation memory location and inheritance chain
     # print(all_metrics)
     # for m in all_metrics:
     #     if hasattr(m.__class__, '__name__'):
