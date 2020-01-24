@@ -91,11 +91,12 @@ def train(gcp_bucket, config_file):
         train_config['loss'],
         train_config['optimizer'])
 
-    print(compiled_model.metrics)
-    for m in compiled_model.metrics:
-        if hasattr(m.__class__, '__name__'):
-            print(m.name, m.__class__.__name__, m.__class__.__mro__)
-    input("post-compile - press enter")
+    # manually check metric attributes and inheritance
+    # print(compiled_model.metrics)
+    # for m in compiled_model.metrics:
+    #     if hasattr(m.__class__, '__name__'):
+    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
+    # input("post-compile - press enter")
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -138,7 +139,7 @@ def train(gcp_bucket, config_file):
         if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
             ax.set_ylabel(compiled_model.loss.__name__)
         elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-            ax.set_ylabel(compiled_model.loss.namez)
+            ax.set_ylabel(compiled_model.loss.name)
         else:
             ax.set_ylabel(metric_name)
         ax.legend()
@@ -155,7 +156,7 @@ def train(gcp_bucket, config_file):
         num_rows = 1
     else:
         num_rows = len(train_generator.mask_filenames) + 1
-    num_cols = 8
+    num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
     fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
     counter_m = 0
     counter_n = 0
