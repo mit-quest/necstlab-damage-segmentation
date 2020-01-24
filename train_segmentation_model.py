@@ -91,7 +91,7 @@ def train(gcp_bucket, config_file):
         train_config['loss'],
         train_config['optimizer'])
 
-    # manually check metric attributes and inheritance
+    # manually check metric memory location and inheritance chain
     # print(compiled_model.metrics)
     # for m in compiled_model.metrics:
     #     if hasattr(m.__class__, '__name__'):
