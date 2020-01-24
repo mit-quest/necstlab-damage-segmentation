@@ -113,10 +113,6 @@ def train(gcp_bucket, config_file):
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
 
-    # base_logger_callback = BaseLogger(stateful_metrics=[''])
-
-    # prog_bar_logger = ProgbarLogger(count_mode='steps', stateful_metrics=[''])
-
     results = compiled_model.fit_generator(
         train_generator,
         steps_per_epoch=len(train_generator),
