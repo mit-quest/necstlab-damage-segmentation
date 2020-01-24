@@ -1,31 +1,18 @@
 from keras.optimizers import Adam
-from keras.metrics import accuracy, Accuracy, binary_accuracy, categorical_accuracy, CategoricalAccuracy, BinaryCrossentropy as BinaryCrossentropyM, CategoricalCrossentropy as CategoricalCrossentropyM
-from keras.losses import binary_crossentropy, BinaryCrossentropy as BinaryCrossentropyL, categorical_crossentropy, CategoricalCrossentropy as CategoricalCrossentropyL
-from keras import backend as K
+from keras.metrics import accuracy, Accuracy, binary_accuracy, categorical_accuracy, CategoricalAccuracy, \
+    BinaryCrossentropy as BinaryCrossentropyM, CategoricalCrossentropy as CategoricalCrossentropyM
+from keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
+from keras.losses import binary_crossentropy, BinaryCrossentropy as BinaryCrossentropyL, categorical_crossentropy, \
+    CategoricalCrossentropy as CategoricalCrossentropyL
 from segmentation_models import Unet
-from segmentation_models.metrics import iou_score, IOUScore, f1_score, f2_score, FScore, precision, Precision, recall, Recall
-from segmentation_models.losses import jaccard_loss, JaccardLoss, dice_loss, DiceLoss, CategoricalCELoss
-from segmentation_models.base import Metric, KerasObject, functional
+# from segmentation_models.metrics import iou_score, IOUScore, f1_score, f2_score, FScore, precision, Precision,
+# recall, Recall
+from segmentation_models.losses import CategoricalCELoss
+from metrics_utils import OneHotAccuracy, OneHotFalseNegatives, OneHotFalsePositives, OneHotTrueNegatives, \
+    OneHotTruePositives, OneHotPrecision, OneHotRecall, ClassBinaryAccuracy, OneHotClassBinaryAccuracy
+from metrics_utils import FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore
 
-SMOOTH = 1e-5
-
-
-class OneHotMetricWrapper(KerasObject):
-    def __init__(
-            self,
-            name=None,
-            metric_class_instance=None
-    ):
-        self.metric_class_instance = metric_class_instance
-        self.name = name or self.metric_class_instance.name
-        super().__init__(name=self.name)
-
-    def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BHWC
-        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
-        prediction_onehot_indices = K.argmax(prediction, axis=-1)
-        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
-
-        return self.metric_class_instance(groundtruth, prediction_onehot)
+global_threshold = 0.5  # 0.5 is default prediction threshold for most metrics feat. this attribute
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
@@ -51,37 +38,50 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if class_num == 0:    # all class metrics
             # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
             all_metrics.extend([
-                                CategoricalCrossentropyL(name='categ_ce_keras_loss'),
                                 CategoricalCELoss(),
-                                OneHotMetricWrapper(metric_class_instance=Accuracy()),
-                                OneHotMetricWrapper(metric_class_instance=ClassBinaryAccuracy(threshold=None)),
-                                categorical_accuracy,
-                                CategoricalAccuracy(name='categ_acc_class')
-                                # OneHotMetricWrapper(metric_class_instance=IOUScore()),
-                                # OneHotMetricWrapper(metric_class_instance=FScore(beta=1)),
-                                # OneHotMetricWrapper(metric_class_instance=Precision())
+                                OneHotAccuracy(),
+                                CategoricalAccuracy(name='categ_acc_class'),
+                                FalseNegatives(name='false_neg', thresholds=global_threshold),
+                                OneHotFalseNegatives(name='false_neg_1H'),
+                                TrueNegatives(name='true_neg', thresholds=global_threshold),
+                                OneHotTrueNegatives(name='true_neg_1H'),
+                                FalsePositives(name='false_pos', thresholds=global_threshold),
+                                OneHotFalsePositives(name='false_pos_1H'),
+                                TruePositives(name='true_pos', thresholds=global_threshold),
+                                OneHotTruePositives(name='true_pos_1H'),
+                                Recall(name='recall', thresholds=global_threshold),
+                                OneHotRecall(name='recall_1H'),
+                                Precision(name='precision', thresholds=global_threshold),
+                                OneHotPrecision(name='precision_1H'),
+                                FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
+                                OneHotFBetaScore(name='f1_score_1H', beta=1),
+                                IoUScore(name='iou_score', thresholds=global_threshold),
+                                OneHotIoUScore(name='iou_score_1H')
                                 ])
-            all_metrics[2].name = str('categ_ce_sm_loss')
+            all_metrics[1].name = str('categ_ce_sm_loss')
+            print(all_metrics)
+            for m in all_metrics:
+                if hasattr(m.__class__, '__name__'):
+                    print(m.name, m.__class__.__name__, m.__class__.__mro__)
+            input("pre-compile - press enter")
         else:    # per class metrics
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=ClassBinaryAccuracy(name=str('class' + str(class_num - 1) + '_binary_accuracy'),
-                                                                                             class_indexes=class_num - 1,
-                                                                                             threshold=None)))
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=IOUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
-                                                                                  class_indexes=class_num - 1)))
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=JaccardLoss(class_indexes=class_num - 1)))
-            all_metrics[-1].name = str('class' + str(class_num - 1) + '_jaccard_loss')
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=FScore(name=str('class' + str(class_num - 1) + '_f1_score'),
-                                                                                class_indexes=class_num - 1,
-                                                                                beta=1)))
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=DiceLoss(class_indexes=class_num - 1,
-                                                                                  beta=1)))
-            all_metrics[-1].name = str('class' + str(class_num - 1) + '_dice_loss')
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=Precision(name=str('class' + str(class_num - 1) + '_precision'),
-                                                                                   class_indexes=class_num - 1)))
-            all_metrics.append(OneHotMetricWrapper(metric_class_instance=Recall(name=str('class' + str(class_num - 1) + '_recall'),
-                                                                                class_indexes=class_num - 1)))
+            all_metrics.append(ClassBinaryAccuracy(name=str('class' + str(class_num - 1) + '_binary_accuracy'),
+                                                   class_indexes=class_num - 1,
+                                                   threshold=None))
+            all_metrics.append(OneHotClassBinaryAccuracy(name=str('class' + str(class_num - 1) + '_binary_accuracy_1H'),
+                                                         class_indexes=class_num - 1,
+                                                         threshold=None))
+            all_metrics.append(OneHotIoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
+                                              class_id=class_num - 1))
+            all_metrics.append(OneHotFBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
+                                                class_id=class_num - 1,
+                                                beta=1))
+            all_metrics.append(OneHotPrecision(name=str('class' + str(class_num - 1) + '_precision'),
+                                               class_id=class_num - 1))
+            all_metrics.append(OneHotRecall(name=str('class' + str(class_num - 1) + '_recall'),
+                                            class_id=class_num - 1))
         if num_classes == 1:
             break
 
@@ -93,62 +93,3 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         model.load_weights(weights_to_load)
 
     return model
-
-
-# adapted from: IOUScore() from https://github.com/qubvel/segmentation_models/blob/master/segmentation_models/metrics.py
-class ClassBinaryAccuracy(Metric):
-    r"""
-    .. math:: Binary Accuracy = (TN + TP)/(TN+TP+FN+FP) = Number of correct assessments/Number of all assessments, for given class
-    for more than one class input, output becomes mean accuracy (similar but not same as categorical)
-    Args:
-        class_weights: 1. or ``np.array`` of class weights (``len(weights) = num_classes``).
-        class_indexes: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
-        smooth: value to avoid division by zero
-        per_image: if ``True``, metric is calculated as mean over images in batch (B),
-            else over whole batch
-        threshold: value to round predictions (use ``>`` comparison), if ``None`` prediction will not be round
-    Returns:
-       A callable ``class_binary_accuracy`` instance. Can be used in ``model.compile(...)`` function.
-    Example:
-    .. code:: python
-        metric = ClassBinaryAccuracy()
-        model.compile('SGD', loss=loss, metrics=[metric])
-    """
-    def __init__(
-            self,
-            class_weights=None,
-            class_indexes=None,
-            threshold=None,
-            per_image=False,
-            smooth=SMOOTH,
-            name=None,
-    ):
-        name = name or 'class_all_binary_accuracy'
-        super().__init__(name=name)
-        self.class_weights = class_weights if class_weights is not None else 1
-        self.class_indexes = class_indexes
-        self.threshold = threshold
-        self.per_image = per_image
-        self.smooth = smooth
-
-    def __call__(self, gt, pr):
-
-        backend = self.submodules['backend']
-
-        gt, pr = functional.gather_channels(gt, pr, indexes=self.class_indexes, **self.submodules)
-        pr = functional.round_if_needed(pr, self.threshold, **self.submodules)
-        axes = functional.get_reduce_axes(self.per_image, **self.submodules)
-
-        # score calculation (assumed pr are 1-hot)
-        tp = backend.sum(gt * pr, axis=axes)
-        fp = backend.sum(pr, axis=axes) - tp
-        fn = backend.sum(gt, axis=axes) - tp
-        tn = backend.sum((-gt + 1) * (-pr + 1), axis=axes)
-        score = (tp + tn) / (tp + tn + fp + fn + self.smooth)
-        score = functional.average(score, self.per_image, self.class_weights, **self.submodules)
-
-        return score
-
-
-# alias
-class_binary_accuracy = ClassBinaryAccuracy()
