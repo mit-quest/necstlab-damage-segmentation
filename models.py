@@ -14,7 +14,7 @@ from metrics_utils import OneHotAccuracy, OneHotFalseNegatives, OneHotFalsePosit
 from metrics_utils import FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore
 
 global_threshold = 0.5  # 0.5 is default prediction threshold for most metrics feat. this attribute
-assert global_threshold <= 1.0
+assert global_threshold <= 1.0  # threshold effectively ignored for one hot metrics
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
@@ -29,7 +29,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     crossentropy = BinaryCrossentropyL() if num_classes == 1 else CategoricalCrossentropyL()
     loss_fn = crossentropy
-    all_metrics = []
+    all_metrics = []    # one-hot versions are generally preferred for given metric
     if isinstance(loss_fn, BinaryCrossentropyL):
         all_metrics.append(BinaryCrossentropyM())
     else:
@@ -42,8 +42,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
             all_metrics.extend([
                                 CategoricalCELoss(),
                                 Accuracy(),
-                                OneHotAccuracy(name='accuracy_1H'),
-                                CategoricalAccuracy(name='categ_acc_class'),
+                                OneHotAccuracy(),
+                                OneHotClassBinaryAccuracyKeras(),
+                                OneHotClassBinaryAccuracySM(),
+                                CategoricalAccuracy(),
                                 FalseNegatives(name='false_neg', thresholds=global_threshold),
                                 OneHotFalseNegatives(name='false_neg_1H'),
                                 TrueNegatives(name='true_neg', thresholds=global_threshold),
@@ -61,26 +63,26 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                 IoUScore(name='iou_score', thresholds=global_threshold),
                                 OneHotIoUScore(name='iou_score_1H')
                                 ])
-            all_metrics[1].name = str('categ_ce_sm_loss')
+            all_metrics[1].name = str('categ_cross_entropy_sm')
         else:    # per class metrics
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
             all_metrics.append(ClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm'),
                                                      class_indexes=class_num - 1, threshold=global_threshold))
-            all_metrics.append(OneHotClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_1H_sm'),
+            all_metrics.append(OneHotClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm_1H'),
                                                            class_indexes=class_num - 1, threshold=global_threshold))
             all_metrics.append(ClassBinaryAccuracyKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_keras'),
                                                         class_id=class_num - 1, thresholds=global_threshold))
-            all_metrics.append(OneHotClassBinaryAccuracyKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_1H_keras'),
+            all_metrics.append(OneHotClassBinaryAccuracyKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_keras_1H'),
                                                               class_id=class_num - 1, thresholds=global_threshold))
-            all_metrics.append(OneHotIoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
+            all_metrics.append(OneHotIoUScore(name=str('class' + str(class_num - 1) + '_iou_score_1H'),
                                               class_id=class_num - 1, thresholds=global_threshold))
-            all_metrics.append(OneHotFBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
+            all_metrics.append(OneHotFBetaScore(name=str('class' + str(class_num - 1) + '_f1_score_1H'),
                                                 class_id=class_num - 1,
                                                 beta=1, thresholds=global_threshold))
-            all_metrics.append(OneHotPrecision(name=str('class' + str(class_num - 1) + '_precision'),
+            all_metrics.append(OneHotPrecision(name=str('class' + str(class_num - 1) + '_precision_1H'),
                                                class_id=class_num - 1, thresholds=global_threshold))
-            all_metrics.append(OneHotRecall(name=str('class' + str(class_num - 1) + '_recall'),
+            all_metrics.append(OneHotRecall(name=str('class' + str(class_num - 1) + '_recall_1H'),
                                             class_id=class_num - 1, thresholds=global_threshold))
         if num_classes == 1:
             break
