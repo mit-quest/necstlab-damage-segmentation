@@ -579,12 +579,13 @@ class ClassBinaryAccuracySM(MetricSM):
         pr = functional.round_if_needed(pr, self.threshold, **self.submodules)
         axes = functional.get_reduce_axes(self.per_image, **self.submodules)
 
-        # score calculation (assumed pr are 1-hot)
+        # score calculation (assumed pr are 1-hot in practice)
         tp = backend.sum(gt * pr, axis=axes)
         fp = backend.sum(pr, axis=axes) - tp
         fn = backend.sum(gt, axis=axes) - tp
         tn = backend.sum((-gt + 1) * (-pr + 1), axis=axes)
         score = (tp + tn) / (tp + tn + fp + fn + self.smooth)
+        # score is averaged over whole batch here (unlike Keras, where score is accumulated over batch)
         score = functional.average(score, self.per_image, self.class_weights, **self.submodules)
 
         return score
