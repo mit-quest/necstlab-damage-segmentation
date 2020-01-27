@@ -25,6 +25,7 @@ jupyter = "*"
 crcmod = "*"
 gitpython = "*"
 matplotlib = "*"
+ipykernel = "*"
 
 [requires]
 python_version = "3.5"

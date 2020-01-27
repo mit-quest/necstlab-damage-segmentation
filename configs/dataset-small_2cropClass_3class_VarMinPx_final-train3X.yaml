@@ -4,10 +4,10 @@ dataset_config:
       "THIN_REF_S2_P1_L3_2496_1563_2159"
     ]
     validation: [
-      "THIN_CNT_S2_P1_L4_2334_1578_2159",
+      "THIN_REF_S2_P1_L3_2496_1563_2159",
     ]
     test: [
-      "8bit_AS4_S2_P1_L6_2560_1750_2160",
+      "THIN_REF_S2_P1_L3_2496_1563_2159",
     ]
   stack_downsampling:
     type: 'linear' # 'None', 'random', 'linear', 'from_start', 'from_end'

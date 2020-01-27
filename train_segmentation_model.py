@@ -7,7 +7,8 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
-from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
+import ipykernel
+from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, BaseLogger, ProgbarLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -90,6 +91,13 @@ def train(gcp_bucket, config_file):
         train_config['loss'],
         train_config['optimizer'])
 
+    # manually check metric memory location and inheritance chain
+    # print(compiled_model.metrics)
+    # for m in compiled_model.metrics:
+    #     if hasattr(m.__class__, '__name__'):
+    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
+    # input("post-compile - press enter")
+
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
     tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), batch_size=batch_size, write_graph=True,
@@ -111,59 +119,64 @@ def train(gcp_bucket, config_file):
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback])
+        callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback]
+    )
 
+    # individual plots
     metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
-
     for metric_name in metric_names:
-
         fig, ax = plt.subplots()
         for split in ['train', 'validate']:
-
             key_name = metric_name
             if split == 'validate':
                 key_name = 'val_' + key_name
-
             ax.plot(range(epochs), results.history[key_name], label=split)
         ax.set_xlabel('epochs')
-        if metric_name == 'loss':
+        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
             ax.set_ylabel(compiled_model.loss.__name__)
+        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
+            ax.set_ylabel(compiled_model.loss.name)
         else:
             ax.set_ylabel(metric_name)
         ax.legend()
-        if metric_name == 'loss':
+        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
             fig.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
+        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
+            fig.savefig(Path(plots_dir, compiled_model.loss.name + '.png').as_posix())
         else:
             fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
+    plt.close()
 
-    # mosaic plot
-    fig2, axes = plt.subplots(nrows=2, ncols=3, figsize=(10, 6))
+    # mosaic of subplot
+    if len(train_generator.mask_filenames) == 1:
+        num_rows = 1
+    else:
+        num_rows = len(train_generator.mask_filenames) + 1
+    num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
+    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
     counter_m = 0
     counter_n = 0
     for metric_name in metric_names:
-
         for split in ['train', 'validate']:
-
             key_name = metric_name
             if split == 'validate':
                 key_name = 'val_' + key_name
-
             axes[counter_m, counter_n].plot(range(epochs), results.history[key_name], label=split)
         axes[counter_m, counter_n].set_xlabel('epochs')
-        if metric_name == 'loss':
+        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
             axes[counter_m, counter_n].set_ylabel(compiled_model.loss.__name__)
+        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
+            axes[counter_m, counter_n].set_ylabel(compiled_model.loss.name)
         else:
             axes[counter_m, counter_n].set_ylabel(metric_name)
         axes[counter_m, counter_n].legend()
-
         counter_n += 1
-        if counter_n == 3:  # 3 plots per row
+        if counter_n == num_cols:  # plots per row
             counter_m += 1
             counter_n = 0
-
     fig2.tight_layout()
-    fig2.delaxes(axes[1][2])
     fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
+    plt.close()
 
     metadata = {
         'gcp_bucket': gcp_bucket,

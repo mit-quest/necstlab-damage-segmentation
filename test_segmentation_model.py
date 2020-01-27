@@ -62,7 +62,11 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
 
     results = compiled_model.evaluate_generator(test_generator)
 
-    metric_names = [compiled_model.loss.__name__] + [m.name for m in compiled_model.metrics]
+    if hasattr(compiled_model.loss, '__name__'):
+        metric_names = [compiled_model.loss.__name__] + [m.name for m in compiled_model.metrics]
+    elif hasattr(compiled_model.loss, 'name'):
+        metric_names = [compiled_model.loss.name] + [m.name for m in compiled_model.metrics]
+
     with Path(test_dir, 'metrics.csv').open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))
