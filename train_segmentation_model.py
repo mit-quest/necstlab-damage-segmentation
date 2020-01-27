@@ -150,7 +150,7 @@ def train(gcp_bucket, config_file):
     # mosaic of subplot
     if len(train_generator.mask_filenames) == 1:
         num_rows = 1
-    else:
+    else:  # 1 row for all classes, 1 row for each of n classes
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
     fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
