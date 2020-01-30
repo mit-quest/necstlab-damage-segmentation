@@ -2,7 +2,7 @@ import os
 from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
 from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
 from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.utils import metrics_utils_tf_keras
+from tensorflow.python.keras.utils import metrics_utils as metrics_utils_tf_keras
 from tensorflow.python.keras.utils.generic_utils import to_list
 from tensorflow.python.ops import init_ops, math_ops
 import numpy as np
