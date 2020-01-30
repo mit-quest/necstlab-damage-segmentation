@@ -1,9 +1,11 @@
-from keras.metrics import Metric as MetricKeras, Accuracy
-from keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
-from keras import backend as K
+import os
+from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
+from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
+from tensorflow.keras import backend as K
 from keras.utils import metrics_utils as metrics_utils_keras
-from segmentation_models.base import Metric as MetricSM, functional
 import numpy as np
+os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
+from segmentation_models.base import Metric as MetricSM, functional
 
 
 SMOOTH = 1e-5
