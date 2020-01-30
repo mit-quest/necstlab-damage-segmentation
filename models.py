@@ -1,15 +1,15 @@
 import os
 from tensorflow.keras.optimizers import Adam
-from keras.metrics import (accuracy, Accuracy, binary_accuracy, categorical_accuracy, CategoricalAccuracy,
-                           BinaryCrossentropy as BinaryCrossentropyM,
-                           CategoricalCrossentropy as CategoricalCrossentropyM)
-from keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
-from keras.losses import (binary_crossentropy, BinaryCrossentropy as BinaryCrossentropyL, categorical_crossentropy,
-                          CategoricalCrossentropy as CategoricalCrossentropyL)
+from tensorflow.keras.metrics import (Accuracy, BinaryAccuracy, CategoricalAccuracy,
+                                      BinaryCrossentropy as BinaryCrossentropyM,
+                                      CategoricalCrossentropy as CategoricalCrossentropyM,
+                                      FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
+from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
+                                     CategoricalCrossentropy as CategoricalCrossentropyL)
 from metrics_utils import (OneHotAccuracy, OneHotFalseNegatives, OneHotFalsePositives, OneHotTrueNegatives,
                            OneHotTruePositives, OneHotPrecision, OneHotRecall, ClassBinaryAccuracyKeras,
-                           OneHotClassBinaryAccuracyKeras, ClassBinaryAccuracySM, OneHotClassBinaryAccuracySM)
-from metrics_utils import FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore
+                           OneHotClassBinaryAccuracyKeras, ClassBinaryAccuracySM, OneHotClassBinaryAccuracySM,
+                           FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore)
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet
 from segmentation_models.losses import CategoricalCELoss
@@ -33,10 +33,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     loss_fn = crossentropy
     all_metrics = []    # one-hot versions are generally preferred for given metric
     if isinstance(loss_fn, BinaryCrossentropyL):
-        all_metrics.append(BinaryCrossentropyM())
+        all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
     else:
-        all_metrics.append(CategoricalCrossentropyM())
-    all_metrics[0].name = str(all_metrics[0].name + '_keras_metric')
+        all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
+    #all_metrics[0].name = str(all_metrics[0].name + '_keras_metric')
 
     for class_num in range(num_classes + 1):
         if class_num == 0:    # all class metrics
