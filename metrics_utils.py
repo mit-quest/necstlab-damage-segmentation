@@ -1,8 +1,10 @@
 import os
 from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
 from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
-from tensorflow.keras import backend as K
-from keras.utils import metrics_utils as metrics_utils_keras
+from tensorflow.python.keras import backend as K
+from tensorflow.python.keras.utils import metrics_utils_tf_keras
+from tensorflow.python.keras.utils.generic_utils import to_list
+from tensorflow.python.ops import init_ops, math_ops
 import numpy as np
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models.base import Metric as MetricSM, functional
@@ -14,9 +16,8 @@ assert SMOOTH <= 1e-5
 
 # one hot classes are intended to act as pass-throughs
 class OneHotAccuracy(Accuracy):
-    def __init__(self, name=None, dtype=None):
-        self.name = name or 'accuracy_1H'
-        super().__init__(name=self.name, dtype=dtype)
+    def __init__(self, name='accuracy_1H', dtype=None):
+        super().__init__(name=name, dtype=dtype)
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
@@ -27,11 +28,10 @@ class OneHotAccuracy(Accuracy):
 
 
 class OneHotFalseNegatives(FalseNegatives):
-    def __init__(self, thresholds=None, name=None, dtype=None):
-        self.name = name or 'FN_1H'
+    def __init__(self, thresholds=None, name='FN_1H', dtype=None):
         super().__init__(
             thresholds=thresholds,
-            name=self.name,
+            name=name,
             dtype=dtype
         )
 
@@ -44,11 +44,10 @@ class OneHotFalseNegatives(FalseNegatives):
 
 
 class OneHotFalsePositives(FalsePositives):
-    def __init__(self, thresholds=None, name=None, dtype=None):
-        self.name = name or 'FP_1H'
+    def __init__(self, thresholds=None, name='FP_1H', dtype=None):
         super().__init__(
             thresholds=thresholds,
-            name=self.name,
+            name=name,
             dtype=dtype
         )
 
@@ -61,11 +60,10 @@ class OneHotFalsePositives(FalsePositives):
 
 
 class OneHotTrueNegatives(TrueNegatives):
-    def __init__(self, thresholds=None, name=None, dtype=None):
-        self.name = name or 'TN_1H'
+    def __init__(self, thresholds=None, name='TN_1H', dtype=None):
         super().__init__(
             thresholds=thresholds,
-            name=self.name,
+            name=name,
             dtype=dtype
         )
 
@@ -78,11 +76,10 @@ class OneHotTrueNegatives(TrueNegatives):
 
 
 class OneHotTruePositives(TruePositives):
-    def __init__(self, thresholds=None, name=None, dtype=None):
-        self.name = name or 'TP_1H'
+    def __init__(self, thresholds=None, name='TP_1H', dtype=None):
         super().__init__(
             thresholds=thresholds,
-            name=self.name,
+            name=name,
             dtype=dtype
         )
 
@@ -99,14 +96,13 @@ class OneHotPrecision(Precision):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='precision_1H',
                  dtype=None):
-        self.name = name or 'precision_1H'
         super().__init__(
             thresholds=thresholds,
             top_k=top_k,
             class_id=class_id,
-            name=self.name,
+            name=name,
             dtype=dtype)
 
     # call redirects to parent class following one hot conversion
@@ -122,14 +118,13 @@ class OneHotRecall(Recall):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='recall_1H',
                  dtype=None):
-        self.name = name or 'recall_1H'
         super().__init__(
             thresholds=thresholds,
             top_k=top_k,
             class_id=class_id,
-            name=self.name,
+            name=name,
             dtype=dtype)
 
     # call redirects to parent class following one hot conversion
@@ -140,8 +135,9 @@ class OneHotRecall(Recall):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
 
-# based on Keras precision and recall class definitions found at:
-# https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
+# keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
 class FBetaScore(MetricKeras):
     """Abstract base class for F1Score.
     For additional information, see the
@@ -186,8 +182,7 @@ class FBetaScore(MetricKeras):
                  class_id=None,
                  name=None,
                  dtype=None):
-        self.beta = beta
-        self.name = name or str('f' + str(self.beta) + 'score')
+        name = name or str('f' + str(beta) + 'score')
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
         if top_k is not None and K.backend() != 'tensorflow':
@@ -198,28 +193,29 @@ class FBetaScore(MetricKeras):
         self.top_k = top_k
         self.class_id = class_id
 
-        default_threshold = 0.5 if top_k is None else metrics_utils_keras.NEG_INF
-        self.thresholds = metrics_utils_keras.parse_init_thresholds(
+        default_threshold = 0.5 if top_k is None else metrics_utils_tf_keras.NEG_INF
+        self.thresholds = metrics_utils_tf_keras.parse_init_thresholds(
             thresholds, default_threshold=default_threshold)
         self.true_positives = self.add_weight(
             'true_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_positives = self.add_weight(
             'false_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_negatives = self.add_weight(
             'false_negatives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        return metrics_utils_keras.update_confusion_matrix_variables(
+        # for tf v1, use 'return metrics_...'. for tf v2, use 'metrics_...' (for inherited keras/tf.keras Metric class)
+        metrics_utils_tf_keras.update_confusion_matrix_variables(
             {
-                metrics_utils_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives
+                metrics_utils_tf_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives
             },
             y_true,
             y_pred,
@@ -239,7 +235,7 @@ class FBetaScore(MetricKeras):
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
-        num_thresholds = len(metrics_utils_keras.to_list(self.thresholds))
+        num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
             [(v, np.zeros((num_thresholds,))) for v in self.weights])
 
@@ -262,14 +258,13 @@ class OneHotFBetaScore(FBetaScore):
                  class_id=None,
                  name=None,
                  dtype=None):
-        self.beta = beta
-        self.name = name or str('f' + str(self.beta) + 'score_1H')
+        name = name or str('f' + str(beta) + 'score_1H')
         super().__init__(
-            beta=self.beta,
+            beta=beta,
             thresholds=thresholds,
             top_k=top_k,
             class_id=class_id,
-            name=self.name,
+            name=name,
             dtype=dtype)
 
     # call redirects to parent class following one hot conversion
@@ -280,8 +275,9 @@ class OneHotFBetaScore(FBetaScore):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
 
-# based on Keras precision and recall class definitions found at:
-# https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
+# keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
 class IoUScore(MetricKeras):
     """Computes the mean Intersection-Over-Union metric.
     Intersection-Over-Union is a common evaluation metric for semantic image
@@ -324,9 +320,8 @@ class IoUScore(MetricKeras):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='iou_score',
                  dtype=None):
-        self.name = name or 'iou_score'
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
         if top_k is not None and K.backend() != 'tensorflow':
@@ -337,28 +332,29 @@ class IoUScore(MetricKeras):
         self.top_k = top_k
         self.class_id = class_id
 
-        default_threshold = 0.5 if top_k is None else metrics_utils_keras.NEG_INF
-        self.thresholds = metrics_utils_keras.parse_init_thresholds(
+        default_threshold = 0.5 if top_k is None else metrics_utils_tf_keras.NEG_INF
+        self.thresholds = metrics_utils_tf_keras.parse_init_thresholds(
             thresholds, default_threshold=default_threshold)
         self.true_positives = self.add_weight(
             'true_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_positives = self.add_weight(
             'false_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_negatives = self.add_weight(
             'false_negatives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        return metrics_utils_keras.update_confusion_matrix_variables(
+        # for tf v1, use 'return metrics_...'. for tf v2, use 'metrics_...' (for inherited keras/tf.keras Metric class)
+        metrics_utils_tf_keras.update_confusion_matrix_variables(
             {
-                metrics_utils_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives
+                metrics_utils_tf_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives
             },
             y_true,
             y_pred,
@@ -377,7 +373,7 @@ class IoUScore(MetricKeras):
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
-        num_thresholds = len(metrics_utils_keras.to_list(self.thresholds))
+        num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
             [(v, np.zeros((num_thresholds,))) for v in self.weights])
 
@@ -396,14 +392,13 @@ class OneHotIoUScore(IoUScore):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='iou_score_1H',
                  dtype=None):
-        self.name = name or 'iou_score_1H'
         super().__init__(
             thresholds=thresholds,
             top_k=top_k,
             class_id=class_id,
-            name=self.name,
+            name=name,
             dtype=dtype)
 
     # call redirects to parent class following one hot conversion
@@ -415,8 +410,9 @@ class OneHotIoUScore(IoUScore):
 
 
 # VERSION 2 CLASSBINARYACCURACY METHOD, BASED ON KERAS PACKAGE -- ACCUMULATED OVER EPOCH (inherit KERAS.METRIC)
-# based on Keras precision and recall class definitions found at:
-# https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
+# keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
+# tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
 class ClassBinaryAccuracyKeras(MetricKeras):
     r"""
     .. math:: Binary Accuracy = (TN + TP)/(TN+TP+FN+FP) = Number of correct assessments/Number of all assessments,
@@ -440,9 +436,8 @@ class ClassBinaryAccuracyKeras(MetricKeras):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='class_all_binary_accuracy_keras',
                  dtype=None):
-        self.name = name or 'class_all_binary_accuracy_keras'
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
         if top_k is not None and K.backend() != 'tensorflow':
@@ -453,33 +448,34 @@ class ClassBinaryAccuracyKeras(MetricKeras):
         self.top_k = top_k
         self.class_id = class_id
 
-        default_threshold = 0.5 if top_k is None else metrics_utils_keras.NEG_INF
-        self.thresholds = metrics_utils_keras.parse_init_thresholds(
+        default_threshold = 0.5 if top_k is None else metrics_utils_tf_keras.NEG_INF
+        self.thresholds = metrics_utils_tf_keras.parse_init_thresholds(
             thresholds, default_threshold=default_threshold)
         self.true_positives = self.add_weight(
             'true_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_positives = self.add_weight(
             'false_positives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.false_negatives = self.add_weight(
             'false_negatives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
         self.true_negatives = self.add_weight(
             'true_negatives',
             shape=(len(self.thresholds),),
-            initializer='zeros')
+            initializer=init_ops.zeros_initializer)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        return metrics_utils_keras.update_confusion_matrix_variables(
+        # for tf v1, use 'return metrics_...'. for tf v2, use 'metrics_...' (for inherited keras/tf.keras Metric class)
+        metrics_utils_tf_keras.update_confusion_matrix_variables(
             {
-                metrics_utils_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
-                metrics_utils_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives,
-                metrics_utils_keras.ConfusionMatrix.TRUE_NEGATIVES: self.true_negatives
+                metrics_utils_tf_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives,
+                metrics_utils_tf_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives,
+                metrics_utils_tf_keras.ConfusionMatrix.TRUE_NEGATIVES: self.true_negatives
             },
             y_true,
             y_pred,
@@ -498,7 +494,7 @@ class ClassBinaryAccuracyKeras(MetricKeras):
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
-        num_thresholds = len(metrics_utils_keras.to_list(self.thresholds))
+        num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
             [(v, np.zeros((num_thresholds,))) for v in self.weights])
 
@@ -517,14 +513,13 @@ class OneHotClassBinaryAccuracyKeras(ClassBinaryAccuracyKeras):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name=None,
+                 name='class_all_binary_accuracy_keras_1H',
                  dtype=None):
-        self.name = name or 'class_all_binary_accuracy_keras_1H'
         super().__init__(
             thresholds=thresholds,
             top_k=top_k,
             class_id=class_id,
-            name=self.name,
+            name=name,
             dtype=dtype)
 
     # call redirects to parent class following one hot conversion
