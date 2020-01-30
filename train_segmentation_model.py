@@ -107,10 +107,6 @@ def train(gcp_bucket, config_file):
     train_image_and_mask_paths = sample_image_and_mask_paths(train_generator, n_sample_images)
     validation_image_and_mask_paths = sample_image_and_mask_paths(validation_generator, n_sample_images)
 
-    tensorboard_image_callback = TensorBoardImage(
-        log_dir=logs_dir.as_posix(),
-        images_and_masks_paths=train_image_and_mask_paths + validation_image_and_mask_paths)
-
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
 
     results = compiled_model.fit(
@@ -119,7 +115,7 @@ def train(gcp_bucket, config_file):
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
     )
 
     # individual plots
