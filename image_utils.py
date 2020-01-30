@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pathlib import Path
 import numpy as np
 import tensorflow as tf
-from keras.utils import Sequence
+from tensorflow.keras.utils import Sequence
 import keras as keras
 from PIL import Image
 import io

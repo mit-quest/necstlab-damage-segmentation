@@ -100,7 +100,7 @@ def train(gcp_bucket, config_file):
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
-    tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), batch_size=batch_size, write_graph=True,
+    tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), write_graph=True,
                                        write_grads=False, write_images=True, update_freq='epoch')
 
     n_sample_images = 20
@@ -113,7 +113,7 @@ def train(gcp_bucket, config_file):
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
 
-    results = compiled_model.fit_generator(
+    results = compiled_model.fit(
         train_generator,
         steps_per_epoch=len(train_generator),
         epochs=epochs,

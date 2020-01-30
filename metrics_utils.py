@@ -1,6 +1,6 @@
 import os
 from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
-from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
+from keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.utils import metrics_utils as metrics_utils_tf_keras
 from tensorflow.python.keras.utils.generic_utils import to_list
@@ -190,6 +190,7 @@ class FBetaScore(MetricKeras):
                 '`top_k` argument for `Precision` metric is currently supported '
                 'only with TensorFlow backend.')
 
+        self.beta = beta
         self.top_k = top_k
         self.class_id = class_id
 
