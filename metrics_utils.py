@@ -1,7 +1,7 @@
 import os
 from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
 from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
-from tensorflow.python.keras import backend as K
+import tensorflow.keras.backend as K
 from tensorflow.python.keras.utils import metrics_utils as metrics_utils_tf_keras
 from tensorflow.python.keras.utils.generic_utils import to_list
 from tensorflow.python.ops import init_ops, math_ops
@@ -15,6 +15,8 @@ assert SMOOTH <= 1e-5
 
 
 # one hot classes are intended to act as pass-throughs
+
+# `MeanMetricWrapper` inheritance in custom metric: do not need to remove 'return' from `def update_state` in tf2.0
 class OneHotAccuracy(Accuracy):
     def __init__(self, name='accuracy_1H', dtype=None):
         super().__init__(name=name, dtype=dtype)
@@ -43,22 +45,7 @@ class OneHotFalseNegatives(FalseNegatives):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates the given confusion matrix condition statistics.
-        Args:
-          y_true: The ground truth values.
-          y_pred: The predicted values.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {self._confusion_matrix_cond: self.accumulator},
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 class OneHotFalsePositives(FalsePositives):
@@ -77,22 +64,7 @@ class OneHotFalsePositives(FalsePositives):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates the given confusion matrix condition statistics.
-        Args:
-          y_true: The ground truth values.
-          y_pred: The predicted values.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {self._confusion_matrix_cond: self.accumulator},
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 class OneHotTrueNegatives(TrueNegatives):
@@ -111,22 +83,7 @@ class OneHotTrueNegatives(TrueNegatives):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates the given confusion matrix condition statistics.
-        Args:
-          y_true: The ground truth values.
-          y_pred: The predicted values.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {self._confusion_matrix_cond: self.accumulator},
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 class OneHotTruePositives(TruePositives):
@@ -145,22 +102,7 @@ class OneHotTruePositives(TruePositives):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates the given confusion matrix condition statistics.
-        Args:
-          y_true: The ground truth values.
-          y_pred: The predicted values.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {self._confusion_matrix_cond: self.accumulator},
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 class OneHotPrecision(Precision):
@@ -185,28 +127,7 @@ class OneHotPrecision(Precision):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates true positive and false positive statistics.
-        Args:
-          y_true: The ground truth values, with the same dimensions as `y_pred`.
-            Will be cast to `bool`.
-          y_pred: The predicted values. Each element must be in the range `[0, 1]`.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {
-                metrics_utils_tf_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
-                metrics_utils_tf_keras.ConfusionMatrix.FALSE_POSITIVES: self.false_positives
-            },
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            top_k=self.top_k,
-            class_id=self.class_id,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 class OneHotRecall(Recall):
@@ -231,28 +152,7 @@ class OneHotRecall(Recall):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        """Accumulates true positive and false negative statistics.
-        Args:
-          y_true: The ground truth values, with the same dimensions as `y_pred`.
-            Will be cast to `bool`.
-          y_pred: The predicted values. Each element must be in the range `[0, 1]`.
-          sample_weight: Optional weighting of each example. Defaults to 1. Can be a
-            `Tensor` whose rank is either 0, or the same rank as `y_true`, and must
-            be broadcastable to `y_true`.
-        Returns:
-          Update op.
-        """
-        metrics_utils_tf_keras.update_confusion_matrix_variables(
-            {
-                metrics_utils_tf_keras.ConfusionMatrix.TRUE_POSITIVES: self.true_positives,
-                metrics_utils_tf_keras.ConfusionMatrix.FALSE_NEGATIVES: self.false_negatives
-            },
-            y_true,
-            y_pred,
-            thresholds=self.thresholds,
-            top_k=self.top_k,
-            class_id=self.class_id,
-            sample_weight=sample_weight)
+        super().update_state(y_true, y_pred, sample_weight)
 
 
 # based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
