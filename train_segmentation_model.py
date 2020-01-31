@@ -8,7 +8,7 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import ipykernel
-from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, BaseLogger, ProgbarLogger
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing

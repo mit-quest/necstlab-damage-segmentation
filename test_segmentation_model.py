@@ -60,7 +60,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         train_config['optimizer'],
         Path(local_model_dir, model_id, "model.hdf5").as_posix())
 
-    results = compiled_model.evaluate_generator(test_generator)
+    results = compiled_model.evaluate(test_generator)
 
     if hasattr(compiled_model.loss, '__name__'):
         metric_names = [compiled_model.loss.__name__] + [m.name for m in compiled_model.metrics]
