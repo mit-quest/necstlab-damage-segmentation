@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
-import ipykernel
+import ipykernel    # needed when using many metrics, to avoid verbose=2 output
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
@@ -100,8 +100,10 @@ def train(gcp_bucket, config_file):
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
+    # profile_batch = 0 is needed until insufficinet privileges issue resolved with CUPTI
+    #   (_https://github.com/tensorflow/tensorflow/issues/35860)
     tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), write_graph=True,
-                                       write_grads=False, write_images=True, update_freq='epoch')
+                                       write_grads=False, write_images=True, update_freq='epoch', profile_batch=0)
 
     n_sample_images = 20
     train_image_and_mask_paths = sample_image_and_mask_paths(train_generator, n_sample_images)
