@@ -11,5 +11,7 @@ train_config:
   batch_size: 8
   epochs: 2
   training_data_shuffle_seed: 1234
+  validation_data_shuffle_seed: 1234
+  test_data_shuffle_seed: 1234
   data_augmentation:
     random_90-degree_rotations: True

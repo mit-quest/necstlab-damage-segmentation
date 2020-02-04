@@ -82,7 +82,8 @@ def train(gcp_bucket, config_file):
              'validation').as_posix(),
         rescale=1./255,
         target_size=target_size,
-        batch_size=batch_size)
+        batch_size=batch_size,
+        seed=train_config['validation_data_shuffle_seed'])
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
