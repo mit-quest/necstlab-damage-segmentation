@@ -1,5 +1,5 @@
 import os
-from tensorflow.keras.metrics import Metric as MetricKeras, Accuracy
+from tensorflow.keras.metrics import Metric as MetricTfKeras, Accuracy as AccuracyTfKeras
 from tensorflow.keras.metrics import FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall
 import tensorflow.keras.backend as K
 from tensorflow.python.keras.utils import metrics_utils as metrics_utils_tf_keras
@@ -8,7 +8,7 @@ from tensorflow.python.ops import init_ops, math_ops
 import numpy as np
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models.base import Metric as MetricSM, functional
-
+from keras.metrics import Accuracy as AccuracyKeras
 
 SMOOTH = 1e-5
 assert SMOOTH <= 1e-5
@@ -17,8 +17,40 @@ assert SMOOTH <= 1e-5
 # one hot classes are intended to act as pass-throughs
 
 # `MeanMetricWrapper` inheritance in custom metric: do not need to remove 'return' from `def update_state` in tf2.0
-class OneHotAccuracy(Accuracy):
-    def __init__(self, name='accuracy_1H', dtype=None):
+class OneHotAccuracyTfKeras(AccuracyTfKeras):
+    def __init__(self, name='accuracy_tfkeras_1H', dtype=None):
+        super().__init__(name=name, dtype=dtype)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+
+# test 1H implementation location
+class OneHotHotAccuracyTfKeras(AccuracyTfKeras):
+    def __init__(self, name='accuracy_tfkeras_1H1H', dtype=None):
+        super().__init__(name=name, dtype=dtype)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):  # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices,
+                                      K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
+class OneHotAccuracyKeras(AccuracyKeras):
+    def __init__(self, name='accuracy_keras_1H', dtype=None):
         super().__init__(name=name, dtype=dtype)
 
     # call redirects to parent class following one hot conversion
@@ -105,6 +137,29 @@ class OneHotTruePositives(TruePositives):
         super().update_state(y_true, y_pred, sample_weight)
 
 
+# test 1H implementation location
+class OneHotHotTruePositives(TruePositives):
+    def __init__(self, thresholds=None, name='TP_1H1H', dtype=None):
+        super().__init__(
+            thresholds=thresholds,
+            name=name,
+            dtype=dtype
+        )
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices,
+                                      K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
 class OneHotPrecision(Precision):
     def __init__(self,
                  thresholds=None,
@@ -158,7 +213,7 @@ class OneHotRecall(Recall):
 # based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
 # keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
 # tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
-class FBetaScore(MetricKeras):
+class FBetaScore(MetricTfKeras):
     """Abstract base class for F1Score.
     For additional information, see the
     following: https://en.wikipedia.org/wiki/F1_score#Definition
@@ -205,11 +260,6 @@ class FBetaScore(MetricKeras):
         name = name or str('f' + str(beta) + 'score')
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
-        if top_k is not None and K.backend() != 'tensorflow':
-            raise RuntimeError(
-                '`top_k` argument for `Precision` metric is currently supported '
-                'only with TensorFlow backend.')
-
         self.beta = beta
         self.top_k = top_k
         self.class_id = class_id
@@ -246,19 +296,16 @@ class FBetaScore(MetricKeras):
             sample_weight=sample_weight)
 
     def result(self):
-        denom = ((1 + self.beta * self.beta) * self.true_positives + self.beta * self.beta * self.false_negatives
-                 + self.false_positives)
-        result = K.switch(
-            K.greater(denom, 0),
-            ((1 + self.beta * self.beta) * self.true_positives) / denom,
-            K.zeros_like(self.true_positives))
-
+        denominator = ((1 + self.beta * self.beta) * self.true_positives + self.beta * self.beta * self.false_negatives
+                       + self.false_positives)
+        numerator = (1 + self.beta * self.beta) * self.true_positives
+        result = math_ops.div_no_nan(numerator, denominator)
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
         num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
-            [(v, np.zeros((num_thresholds,))) for v in self.weights])
+            [(v, np.zeros((num_thresholds,))) for v in self.variables])
 
     def get_config(self):
         config = {
@@ -296,10 +343,42 @@ class OneHotFBetaScore(FBetaScore):
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
 
 
+# test 1H implementation location
+class OneHotHotFBetaScore(FBetaScore):
+    def __init__(self,
+                 beta=1,
+                 thresholds=None,
+                 top_k=None,
+                 class_id=None,
+                 name=None,
+                 dtype=None):
+        name = name or str('f' + str(beta) + 'score_1H1H')
+        super().__init__(
+            beta=beta,
+            thresholds=thresholds,
+            top_k=top_k,
+            class_id=class_id,
+            name=name,
+            dtype=dtype)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
 # based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
 # keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
 # tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
-class IoUScore(MetricKeras):
+class IoUScore(MetricTfKeras):
     """Computes the mean Intersection-Over-Union metric.
     Intersection-Over-Union is a common evaluation metric for semantic image
     segmentation, which first computes the IOU for each semantic class and then
@@ -345,11 +424,6 @@ class IoUScore(MetricKeras):
                  dtype=None):
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
-        if top_k is not None and K.backend() != 'tensorflow':
-            raise RuntimeError(
-                '`top_k` argument for `Precision` metric is currently supported '
-                'only with TensorFlow backend.')
-
         self.top_k = top_k
         self.class_id = class_id
 
@@ -385,18 +459,15 @@ class IoUScore(MetricKeras):
             sample_weight=sample_weight)
 
     def result(self):
-        denom = (self.true_positives + self.false_negatives + self.false_positives)
-        result = K.switch(
-            K.greater(denom, 0),
-            self.true_positives / denom,
-            K.zeros_like(self.true_positives))
-
+        denominator = (self.true_positives + self.false_negatives + self.false_positives)
+        numerator = self.true_positives
+        result = math_ops.div_no_nan(numerator, denominator)
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
         num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
-            [(v, np.zeros((num_thresholds,))) for v in self.weights])
+            [(v, np.zeros((num_thresholds,))) for v in self.variables])
 
     def get_config(self):
         config = {
@@ -434,7 +505,7 @@ class OneHotIoUScore(IoUScore):
 # based on Keras/tf.keras precision and recall class definitions found at (depending on import source):
 # keras: https://github.com/keras-team/keras/blob/7a39b6c62d43c25472b2c2476bd2a8983ae4f682/keras/metrics.py#L1154
 # tf.keras: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py#L1134
-class ClassBinaryAccuracyKeras(MetricKeras):
+class ClassBinaryAccuracyTfKeras(MetricTfKeras):
     r"""
     .. math:: Binary Accuracy = (TN + TP)/(TN+TP+FN+FP) = Number of correct assessments/Number of all assessments,
     for given class for more than one class input, output becomes mean accuracy (similar but not same as categorical)
@@ -457,15 +528,10 @@ class ClassBinaryAccuracyKeras(MetricKeras):
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name='class_all_binary_accuracy_keras',
+                 name='class_all_binary_accuracy_tfkeras',
                  dtype=None):
         super().__init__(name=name, dtype=dtype)
         self.init_thresholds = thresholds
-        if top_k is not None and K.backend() != 'tensorflow':
-            raise RuntimeError(
-                '`top_k` argument for `Precision` metric is currently supported '
-                'only with TensorFlow backend.')
-
         self.top_k = top_k
         self.class_id = class_id
 
@@ -506,18 +572,15 @@ class ClassBinaryAccuracyKeras(MetricKeras):
             sample_weight=sample_weight)
 
     def result(self):
-        denom = (self.true_positives + self.false_negatives + self.false_positives + self.true_negatives)
-        result = K.switch(
-            K.greater(denom, 0),
-            (self.true_positives + self.true_negatives) / denom,
-            K.zeros_like(self.true_positives + self.true_negatives))
-
+        denominator = (self.true_positives + self.false_negatives + self.false_positives + self.true_negatives)
+        numerator = self.true_positives + self.true_negatives
+        result = math_ops.div_no_nan(numerator, denominator)
         return result[0] if len(self.thresholds) == 1 else result
 
     def reset_states(self):
         num_thresholds = len(to_list(self.thresholds))
         K.batch_set_value(
-            [(v, np.zeros((num_thresholds,))) for v in self.weights])
+            [(v, np.zeros((num_thresholds,))) for v in self.variables])
 
     def get_config(self):
         config = {
@@ -529,12 +592,12 @@ class ClassBinaryAccuracyKeras(MetricKeras):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class OneHotClassBinaryAccuracyKeras(ClassBinaryAccuracyKeras):
+class OneHotClassBinaryAccuracyTfKeras(ClassBinaryAccuracyTfKeras):
     def __init__(self,
                  thresholds=None,
                  top_k=None,
                  class_id=None,
-                 name='class_all_binary_accuracy_keras_1H',
+                 name='class_all_binary_accuracy_tfkeras_1H',
                  dtype=None):
         super().__init__(
             thresholds=thresholds,
