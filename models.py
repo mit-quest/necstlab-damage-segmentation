@@ -10,7 +10,9 @@ from metrics_utils import (OneHotAccuracyKeras, OneHotAccuracyTfKeras, OneHotFal
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
                            OneHotClassBinaryAccuracySM, FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore,
-                           OneHotHotAccuracyTfKeras, OneHotHotFBetaScore, OneHotHotTruePositives)
+                           OneHotHotAccuracyTfKeras, OneHotHotFBetaScore, OneHotHotTruePositives,
+                           OneHotHotClassBinaryAccuracySM, OneHotUpStClassBinaryAccuracySM,
+                           OneHotUpStAccuracyTfKeras, OneHotUpStTruePositives, OneHotUpStFBetaScore)
 from keras.metrics import Accuracy as AccuracyKeras
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet
@@ -49,10 +51,13 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 AccuracyTfKeras(name='accuracy_tfkeras'),
                 OneHotAccuracyTfKeras(),
                 OneHotHotAccuracyTfKeras(),
+                OneHotUpStAccuracyTfKeras(),
                 ClassBinaryAccuracyTfKeras(),
                 OneHotClassBinaryAccuracyTfKeras(),
                 ClassBinaryAccuracySM(),
                 OneHotClassBinaryAccuracySM(),
+                OneHotHotClassBinaryAccuracySM(),
+                OneHotUpStClassBinaryAccuracySM(),
                 BinaryAccuracy(),
                 CategoricalAccuracy(),
                 FalseNegatives(name='false_neg', thresholds=global_threshold),
@@ -64,13 +69,15 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 TruePositives(name='true_pos', thresholds=global_threshold),
                 OneHotTruePositives(name='true_pos_1H'),
                 OneHotHotTruePositives(name='true_pos_1H1H'),
+                OneHotUpStTruePositives(name='true_pos_1HUpSt'),
                 Recall(name='recall', thresholds=global_threshold),
                 OneHotRecall(name='recall_1H'),
                 Precision(name='precision', thresholds=global_threshold),
                 OneHotPrecision(name='precision_1H'),
                 FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
                 OneHotFBetaScore(name='f1_score_1H', beta=1),
-                OneHotHotFBetaScore(),
+                OneHotHotFBetaScore(name='f1_score_1H1H', beta=1),
+                OneHotUpStFBetaScore(name='f1_score_1HUpSt', beta=1),
                 IoUScore(name='iou_score', thresholds=global_threshold),
                 OneHotIoUScore(name='iou_score_1H')
             ])
@@ -82,9 +89,9 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                                      class_indexes=class_num - 1, threshold=global_threshold))
             all_metrics.append(OneHotClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm_1H'),
                                                            class_indexes=class_num - 1, threshold=global_threshold))
-            all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_keras'),
+            all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras'),
                                                           class_id=class_num - 1, thresholds=global_threshold))
-            all_metrics.append(OneHotClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_keras_1H'),
+            all_metrics.append(OneHotClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras_1H'),
                                                                 class_id=class_num - 1, thresholds=global_threshold))
             all_metrics.append(IoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
                                         class_id=class_num - 1, thresholds=global_threshold))

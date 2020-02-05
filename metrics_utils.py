@@ -5,10 +5,11 @@ import tensorflow.keras.backend as K
 from tensorflow.python.keras.utils import metrics_utils as metrics_utils_tf_keras
 from tensorflow.python.keras.utils.generic_utils import to_list
 from tensorflow.python.ops import init_ops, math_ops
+from keras.metrics import Accuracy as AccuracyKeras
 import numpy as np
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models.base import Metric as MetricSM, functional
-from keras.metrics import Accuracy as AccuracyKeras
+
 
 SMOOTH = 1e-5
 assert SMOOTH <= 1e-5
@@ -41,6 +42,26 @@ class OneHotHotAccuracyTfKeras(AccuracyTfKeras):
         prediction_onehot = K.one_hot(prediction_onehot_indices,
                                       K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
+# test 1H implementation location
+class OneHotUpStAccuracyTfKeras(AccuracyTfKeras):
+    def __init__(self, name='accuracy_tfkeras_1HUpSt', dtype=None):
+        super().__init__(name=name, dtype=dtype)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):  # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        # prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        # prediction_onehot = K.one_hot(prediction_onehot_indices,
+        #                               K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
@@ -152,6 +173,29 @@ class OneHotHotTruePositives(TruePositives):
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices,
+                                      K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
+# test 1H implementation location
+class OneHotUpStTruePositives(TruePositives):
+    def __init__(self, thresholds=None, name='TP_1HUpSt', dtype=None):
+        super().__init__(
+            thresholds=thresholds,
+            name=name,
+            dtype=dtype
+        )
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        # prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        # prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         prediction_onehot_indices = K.argmax(y_pred, axis=-1)
@@ -367,6 +411,38 @@ class OneHotHotFBetaScore(FBetaScore):
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
         return super().__call__(groundtruth, prediction_onehot, **kwargs)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
+# test 1H implementation location
+class OneHotUpStFBetaScore(FBetaScore):
+    def __init__(self,
+                 beta=1,
+                 thresholds=None,
+                 top_k=None,
+                 class_id=None,
+                 name=None,
+                 dtype=None):
+        name = name or str('f' + str(beta) + 'score_1HUpSt')
+        super().__init__(
+            beta=beta,
+            thresholds=thresholds,
+            top_k=top_k,
+            class_id=class_id,
+            name=name,
+            dtype=dtype)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        # prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        # prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction, **kwargs)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
@@ -697,3 +773,72 @@ class OneHotClassBinaryAccuracySM(ClassBinaryAccuracySM):
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
         return super().__call__(groundtruth, prediction_onehot)
+
+
+# test 1H implementation location
+class OneHotHotClassBinaryAccuracySM(ClassBinaryAccuracySM):
+    def __init__(
+            self,
+            class_weights=None,
+            class_indexes=None,
+            threshold=None,
+            per_image=False,
+            smooth=SMOOTH,
+            name=None
+    ):
+        self.name = name or 'class_all_binary_accuracy_sm_1H1H'
+        super().__init__(
+            class_weights=class_weights,
+            class_indexes=class_indexes,
+            threshold=threshold,
+            per_image=per_image,
+            smooth=smooth,
+            name=self.name)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction_onehot)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)
+
+
+# test 1H implementation location
+class OneHotUpStClassBinaryAccuracySM(ClassBinaryAccuracySM):
+    def __init__(
+            self,
+            class_weights=None,
+            class_indexes=None,
+            threshold=None,
+            per_image=False,
+            smooth=SMOOTH,
+            name=None
+    ):
+        self.name = name or 'class_all_binary_accuracy_sm_1HUpSt'
+        super().__init__(
+            class_weights=class_weights,
+            class_indexes=class_indexes,
+            threshold=threshold,
+            per_image=per_image,
+            smooth=smooth,
+            name=self.name)
+
+    # call redirects to parent class following one hot conversion
+    def __call__(self, groundtruth, prediction):  # assuming 4D tensor is BHWC
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        # prediction_onehot_indices = K.argmax(prediction, axis=-1)
+        # prediction_onehot = K.one_hot(prediction_onehot_indices,
+        #                               K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
+        return super().__call__(groundtruth, prediction)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
+        prediction_onehot_indices = K.argmax(y_pred, axis=-1)
+        prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(y_pred)[-1])  # assume 4D tensor is BHWC
+        super().update_state(y_true, prediction_onehot, sample_weight)

@@ -51,7 +51,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
-        seed=train_config['test_data_shuffle_seed'])
+        seed=None)  # train_config['test_data_shuffle_seed'])
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
@@ -60,6 +60,13 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         train_config['loss'],
         train_config['optimizer'],
         Path(local_model_dir, model_id, "model.hdf5").as_posix())
+
+    # manually check metric memory location and inheritance chain
+    print(compiled_model.metrics)
+    for m in compiled_model.metrics:
+        if hasattr(m.__class__, '__name__'):
+            print(m.name, m.__class__.__name__, m.__class__.__mro__)
+    input("post-compile - press enter")
 
     results = compiled_model.evaluate(test_generator)
 
