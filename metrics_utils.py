@@ -15,6 +15,20 @@ SMOOTH = 1e-5
 assert SMOOTH <= 1e-5
 
 
+# In summary, to achieve one hot metrics:
+# 1. For a metric class who via definition inherits tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper, for
+#    one hot conversion in which this metric class is inherited by a sub-class one hot version:
+#    -	in tf2, place 1H at __ call __ method or update_state method (or both), followed by corresponding super().
+#    -	in tf1, place 1H at update_state method, followed by corresponding super().
+# 2. For a metric class who via definition does NOT inherit tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper
+#    (e.g., instead, inherits segmentation_models.metrics.Metric), for one hot conversion in which this metric class is
+#    inherited by a sub-class one hot version (note, the class instance will be treated as a function and automatically
+#    wrapped with tf.keras.metrics.MeanMetricWrapper during model.compile) :
+#    -	in tf2, place 1H at __ call __ method, followed by corresponding super(). Interestingly in tf2, the result is
+#   independent of whether or not the update_state method result has a return statement.
+#    -	in tf1, place 1H at __ call __ method, followed by corresponding super().
+
+
 # one hot classes are intended to act as pass-throughs
 
 # `MeanMetricWrapper` inheritance in custom metric: do not need to remove 'return' from `def update_state` in tf2.0

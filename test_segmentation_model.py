@@ -62,11 +62,11 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         Path(local_model_dir, model_id, "model.hdf5").as_posix())
 
     # manually check metric memory location and inheritance chain
-    print(compiled_model.metrics)
-    for m in compiled_model.metrics:
-        if hasattr(m.__class__, '__name__'):
-            print(m.name, m.__class__.__name__, m.__class__.__mro__)
-    input("post-compile - press enter")
+    # print(compiled_model.metrics)
+    # for m in compiled_model.metrics:
+    #     if hasattr(m.__class__, '__name__'):
+    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
+    # input("post-compile - press enter")
 
     results = compiled_model.evaluate(test_generator)
 

@@ -35,7 +35,9 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     crossentropy = BinaryCrossentropyL() if num_classes == 1 else CategoricalCrossentropyL()
     loss_fn = crossentropy
+
     all_metrics = []    # one-hot versions are generally preferred for given metric
+    # make first metric a copy of loss, to verify `val_loss` is correct
     if isinstance(loss_fn, BinaryCrossentropyL):
         all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
     else:
@@ -50,14 +52,14 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 OneHotAccuracyKeras(),
                 AccuracyTfKeras(name='accuracy_tfkeras'),
                 OneHotAccuracyTfKeras(),
-                OneHotHotAccuracyTfKeras(),
-                OneHotUpStAccuracyTfKeras(),
+                # OneHotHotAccuracyTfKeras(),       # test location of 1H implementation
+                # OneHotUpStAccuracyTfKeras(),       # test location of 1H implementation
                 ClassBinaryAccuracyTfKeras(),
                 OneHotClassBinaryAccuracyTfKeras(),
                 ClassBinaryAccuracySM(),
                 OneHotClassBinaryAccuracySM(),
-                OneHotHotClassBinaryAccuracySM(),
-                OneHotUpStClassBinaryAccuracySM(),
+                # OneHotHotClassBinaryAccuracySM(),       # test location of 1H implementation
+                # OneHotUpStClassBinaryAccuracySM(),       # test location of 1H implementation
                 BinaryAccuracy(),
                 CategoricalAccuracy(),
                 FalseNegatives(name='false_neg', thresholds=global_threshold),
@@ -68,16 +70,16 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 OneHotFalsePositives(name='false_pos_1H'),
                 TruePositives(name='true_pos', thresholds=global_threshold),
                 OneHotTruePositives(name='true_pos_1H'),
-                OneHotHotTruePositives(name='true_pos_1H1H'),
-                OneHotUpStTruePositives(name='true_pos_1HUpSt'),
+                # OneHotHotTruePositives(name='true_pos_1H1H'),       # test location of 1H implementation
+                # OneHotUpStTruePositives(name='true_pos_1HUpSt'),       # test location of 1H implementation
                 Recall(name='recall', thresholds=global_threshold),
                 OneHotRecall(name='recall_1H'),
                 Precision(name='precision', thresholds=global_threshold),
                 OneHotPrecision(name='precision_1H'),
                 FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
                 OneHotFBetaScore(name='f1_score_1H', beta=1),
-                OneHotHotFBetaScore(name='f1_score_1H1H', beta=1),
-                OneHotUpStFBetaScore(name='f1_score_1HUpSt', beta=1),
+                # OneHotHotFBetaScore(name='f1_score_1H1H', beta=1),       # test location of 1H implementation
+                # OneHotUpStFBetaScore(name='f1_score_1HUpSt', beta=1),       # test location of 1H implementation
                 IoUScore(name='iou_score', thresholds=global_threshold),
                 OneHotIoUScore(name='iou_score_1H')
             ])
