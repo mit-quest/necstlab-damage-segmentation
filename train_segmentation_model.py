@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
-import ipykernel    # needed when using many metrics, to avoid verbose=2 output
+import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
@@ -91,13 +91,6 @@ def train(gcp_bucket, config_file):
         len(train_generator.mask_filenames),
         train_config['loss'],
         train_config['optimizer'])
-
-    # manually check metric memory location and inheritance chain
-    # print(compiled_model.metrics)
-    # for m in compiled_model.metrics:
-    #     if hasattr(m.__class__, '__name__'):
-    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
-    # input("post-compile - press enter")
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
