@@ -75,7 +75,7 @@ def train(gcp_bucket, config_file):
         batch_size=batch_size,
         shuffle=True,
         random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
-        seed=train_config['training_data_shuffle_seed'])
+        seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
 
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
@@ -83,7 +83,7 @@ def train(gcp_bucket, config_file):
         rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
-        seed=train_config['validation_data_shuffle_seed'])
+        seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],

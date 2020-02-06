@@ -51,7 +51,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
-        seed=None)  # train_config['test_data_shuffle_seed'])
+        seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
