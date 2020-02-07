@@ -7,8 +7,8 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
-import ipykernel
-from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, BaseLogger, ProgbarLogger
+import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -75,14 +75,15 @@ def train(gcp_bucket, config_file):
         batch_size=batch_size,
         shuffle=True,
         random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
-        seed=train_config['training_data_shuffle_seed'])
+        seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
 
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
              'validation').as_posix(),
         rescale=1./255,
         target_size=target_size,
-        batch_size=batch_size)
+        batch_size=batch_size,
+        seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
@@ -91,35 +92,26 @@ def train(gcp_bucket, config_file):
         train_config['loss'],
         train_config['optimizer'])
 
-    # manually check metric memory location and inheritance chain
-    # print(compiled_model.metrics)
-    # for m in compiled_model.metrics:
-    #     if hasattr(m.__class__, '__name__'):
-    #         print(m.name, m.__class__.__name__, m.__class__.__mro__)
-    # input("post-compile - press enter")
-
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
-    tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), batch_size=batch_size, write_graph=True,
-                                       write_grads=False, write_images=True, update_freq='epoch')
+    # profile_batch = 0 is needed until insufficinet privileges issue resolved with CUPTI
+    #   (_https://github.com/tensorflow/tensorflow/issues/35860)
+    tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), write_graph=True,
+                                       write_grads=False, write_images=True, update_freq='epoch', profile_batch=0)
 
     n_sample_images = 20
     train_image_and_mask_paths = sample_image_and_mask_paths(train_generator, n_sample_images)
     validation_image_and_mask_paths = sample_image_and_mask_paths(validation_generator, n_sample_images)
 
-    tensorboard_image_callback = TensorBoardImage(
-        log_dir=logs_dir.as_posix(),
-        images_and_masks_paths=train_image_and_mask_paths + validation_image_and_mask_paths)
-
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
 
-    results = compiled_model.fit_generator(
+    results = compiled_model.fit(
         train_generator,
         steps_per_epoch=len(train_generator),
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, tensorboard_image_callback, csv_logger_callback]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
     )
 
     # individual plots
