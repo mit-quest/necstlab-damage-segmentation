@@ -39,6 +39,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     else:
         all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
 
+    # standard thresholded version (default threshold is 0.5) also kept below, in case it's desired in certain scenario
     for class_num in range(num_classes + 1):
         if class_num == 0:    # all class metrics
             # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
