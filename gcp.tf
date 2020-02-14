@@ -71,7 +71,10 @@ resource "google_compute_instance" "vm" {
   }
 
   provisioner "remote-exec" {
-    script = "./scripts/resource-creation.sh"
+    inline = [
+      "echo 'Running resource creation script... (this may take 10+ minutes)'",
+      "bash ~/${var.repository_name}/scripts/resource-creation.sh > resource-creation.log"
+    ]
     connection {
       user = "${var.username}"
       type = "ssh"
