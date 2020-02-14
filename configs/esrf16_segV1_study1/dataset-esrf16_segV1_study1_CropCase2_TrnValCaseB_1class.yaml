@@ -1,0 +1,60 @@
+dataset_config:
+  dataset_split:
+    train: [
+      "8bit_AS4_S1_P1_L1_2560_1800_2160",
+      "8bit_AS4_S1_P1_L3_2560_1800_2160",
+      "8bit_AS4_S1_P1_L5_2540_1720_2160",
+      "8bit_AS4_CNT_S2_P1_L0_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L5_2560_1800_2160",
+      "8bit_AS4_CNT_S1_P1_L2_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L4_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L6_2560_1750_2160",
+      "THIN_REF_S2_P1_L1_2434_1547_2159",
+      "THIN_REF_S2_P1_L3_2496_1563_2159"
+    ]
+    validation: [
+      "8bit_AS4_S1_P1_L0_2560_1800_2160",
+      "8bit_AS4_S1_P1_L2_2560_1800_2160",
+      "8bit_AS4_S1_P1_L4_2560_1800_2160",
+      "8bit_AS4_S1_P1_L6_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L4_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L6_2560_1800_2160",
+      "8bit_AS4_CNT_S1_P1_L3_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L5_2560_1750_2160",
+      "THIN_REF_S2_P1_L0_2508_1551_2159",
+      "THIN_REF_S2_P1_L2_2484_1524_2159",
+      "THIN_REF_S2_P1_L4_2433_1533_2159"
+    ]
+    test: [
+      "THIN_CNT_S2_P1_L0_2349_1578_2159",
+      "THIN_CNT_S2_P1_L2_2293_1581_2159",
+      "THIN_CNT_S2_P1_L3_2292_1566_2159",
+      "THIN_CNT_S2_P1_L4_2334_1578_2159",
+      "THIN_CNT_S2_P1_L5_2316_1542_2159",
+      "8bit_AS4_S2_P1_L0_2560_1750_2160",
+      "8bit_AS4_S2_P1_L4_2560_1750_2160",
+      "8bit_AS4_S2_P1_L5_2560_1750_2160",
+      "8bit_AS4_S2_P1_L6_2560_1750_2160"
+    ]
+  stack_downsampling:
+    type: 'linear' # 'None', 'random', 'linear', 'from_start', 'from_end'
+#    frac: 1.0  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
+    number_of_images: 25  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
+    num_skip_beg_slices: 50 # trims n slices off of beginning of stack with N total slices. Slice n+1 becomes new Slice 1
+    num_skip_end_slices: 50 # trims m slices off of end of stack with N total slices. Slice N-(m+1) becomes new last slice
+  target_size: [512, 512]  # width, height
+  image_cropping:
+    type: 'class' # 'None' (downscale to target), 'linear' (def # crops), 'random' (def # crops), `class` (def # crops), 'all' (all crops)
+    num_per_image: None # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
+    num_pos_per_class: 1 # if `class` selected, then is num of random class-positive crops (of target sz) per img, >0
+    num_neg_per_class: 1 # if `class` selected, then is num of random class-negative crops (of target sz) per img, >=0
+    min_num_class_pos_px: # if `class` selected, then is min num of class-pos pixels required in given class-pos crop, >0
+      class_0_pos_px: 5 # '0-degree_damage', '45-degree_damage', '90-degree_damage'
+#      class_0_pos_px: 5 # '0-degree_damage'
+#      class_1_pos_px: 5 # '45-degree_damage'
+#      class_2_pos_px: 5  # '90-degree_damage'
+  class_annotation_mapping:
+    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
+#    class_0_annotation_GVs: [100]  # '0-degree_damage'
+#    class_1_annotation_GVs: [175]  # '45-degree_damage'
+#    class_2_annotation_GVs: [250]  # '90-degree_damage'
