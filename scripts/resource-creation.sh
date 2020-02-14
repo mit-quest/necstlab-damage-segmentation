@@ -34,8 +34,6 @@ sudo apt-get install -y cmake \
 	tree \
 	p7zip-full
 
-sudo pip3 uninstall crcmod
-sudo pip3 install pipenv
-sudo pip3 install --no-cache-dir -U crcmod
-
-cd necstlab-damage-segmentation && pipenv install
+pip3 uninstall crcmod
+pip3 install --no-cache-dir -U crcmod
+pip3 install -r requirements.txt
