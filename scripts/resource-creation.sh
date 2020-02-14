@@ -15,7 +15,6 @@ sudo apt-get -y install cuda
 export PATH=/usr/local/cuda-10.1/bin${PATH:+:${PATH}}
 
 # install cudnn
-echo "Installing cudnn"
 wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7_7.6.5.32-1+cuda10.1_amd64.deb
 sudo dpkg -i libcudnn7_7.6.5.32-1+cuda10.1_amd64.deb
 
@@ -38,5 +37,5 @@ pip3 install --upgrade pip
 pip3 install --upgrade setuptools
 pip3 uninstall crcmod -y
 pip3 install --no-cache-dir crcmod
-echo "Installing python requirements from the requirements file"
+pip3 install --upgrade pyasn1
 cd necstlab-damage-segmentation && pip3 install -r requirements.txt
