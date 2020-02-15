@@ -8,3 +8,4 @@ The workflows contained in this repository assume:
 * You are familiar with image annotations and how they are used in image segmentation. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content 
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
 * You are familiar with how use tmux on a remote machine and how we will use it to keep processes running even if the SSH window is closed or disconnected. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
+* The codebase is meant to be run on a virtual machine so it installs the python package user-wide. If you wish to run the code locally, we suggest using `virtualenv` (see [here](virtual_environment.md) for instructions).

@@ -21,7 +21,6 @@ sudo dpkg -i libcudnn7_7.6.5.32-1+cuda10.1_amd64.deb
 wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 
-
 # install needed packages
 sudo apt-get install -y cmake \
 	git \
@@ -34,8 +33,9 @@ sudo apt-get install -y cmake \
 	tree \
 	p7zip-full
 
-sudo pip3 uninstall crcmod
-sudo pip3 install pipenv
-sudo pip3 install --no-cache-dir -U crcmod
-
-cd necstlab-damage-segmentation && pipenv install
+pip3 install --upgrade pip
+pip3 install --upgrade setuptools
+pip3 uninstall crcmod -y
+pip3 install --no-cache-dir crcmod
+pip3 install --upgrade pyasn1
+cd necstlab-damage-segmentation && pip3 install -r requirements.txt
