@@ -50,7 +50,7 @@ dataset_config:
     num_neg_per_class: 1 # if `class` selected, then is num of random class-negative crops (of target sz) per img, >=0
     min_num_class_pos_px: # if `class` selected, then is min num of class-pos pixels required in given class-pos crop, >0
 #      class_0_pos_px: 10 # '0-degree_damage', '45-degree_damage', '90-degree_damage'
-      class_0_pos_px: 262145‬ # 'background', give value > all pixels in each crop to skip given class
+      class_0_pos_px: 262145 # 'background', give value > all pixels in each crop to skip given class
       class_1_pos_px: 5 # '0-degree_damage'
       class_2_pos_px: 5 # '45-degree_damage'
       class_3_pos_px: 5  # '90-degree_damage'
