@@ -29,7 +29,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
 
-    crossentropy = BinaryCrossentropyL() if num_classes == 1 else CategoricalCrossentropyL()
+    crossentropy = BinaryCrossentropyL()
     loss_fn = crossentropy
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
@@ -43,8 +43,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     for class_num in range(num_classes + 1):
         if class_num == 0:    # all class metrics
             # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
+            if not isinstance(loss_fn, BinaryCrossentropyL):
+                all_metrics.extend([CategoricalCELoss()])
+                all_metrics[1].name = str('categ_cross_entropy_sm')
             all_metrics.extend([
-                CategoricalCELoss(),
                 AccuracyTfKeras(),
                 OneHotAccuracyTfKeras(),
                 ClassBinaryAccuracyTfKeras(),
@@ -70,7 +72,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 IoUScore(name='iou_score', thresholds=global_threshold),
                 OneHotIoUScore(name='iou_score_1H')
             ])
-            all_metrics[1].name = str('categ_cross_entropy_sm')
         else:    # per class metrics
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')

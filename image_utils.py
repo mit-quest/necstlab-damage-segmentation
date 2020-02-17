@@ -12,13 +12,13 @@ import io
 class_RGB_mapping = {
     'class_0': None,
     'class_1': [255, 0, 0],  # blue: 0 degree ply damage
-    'class_2': [0, 255, 0],  # green: 45 degree ply damage
+    'class_2': [255, 255, 0],  # yellow: 45 degree ply damage
     'class_3': [0, 0, 255],  # red: 90 degree ply damage
 }
 
 GV_RGB_mapping = {
     100: [255, 0, 0],  # blue: 0 degree ply damage
-    175: [0, 255, 0],  # green: 45 degree ply damage
+    175: [255, 255, 0],  # yellow: 45 degree ply damage
     250: [0, 0, 255],  # red: 90 degree ply damage
 }
 
