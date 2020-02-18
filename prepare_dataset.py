@@ -286,6 +286,7 @@ def split_prepared_data(data_prep_local_dir, prepared_dataset_local_dir, dataset
 
 
 def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remote_dest, dataset_id):
+    print('Copying dataset {} to gcp bucket...'.format(dataset_id))
     os.system("gsutil -m cp -r '{}' '{}'".format(prepared_dataset_location.as_posix(),
                                                  os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
