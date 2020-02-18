@@ -70,16 +70,19 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
 
             above_threshold_mask = preds[i][j].max(axis=2) >= prediction_threshold
             best_class_by_pixel = preds[i][j].argmax(axis=2)
+            color_counter = 0
             for class_i in range(preds[i][j].shape[-1]):
                 above_threshold_and_best_class = above_threshold_mask & (best_class_by_pixel == class_i)
                 if (background_class is not None) and (class_i == background_class):
                     continue
                 else:
                     if 'labels' in output_type:
-                        prediction_tiles[i][j][above_threshold_and_best_class] = int((class_i + 1) *
+                        prediction_tiles[i][j][above_threshold_and_best_class] = int((color_counter + 1) *
                                                                                      np.floor(255/preds[i][j].shape[-1]))
                     else:
-                        prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[class_i % len(class_colors)]
+                        prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter
+                                                                                              % len(class_colors)]
+                    color_counter += 1
     return prediction_tiles
 
 
