@@ -68,7 +68,7 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
             prediction_tiles[i].append(np.dstack((prepared_tiles[i][j], prepared_tiles[i][j], prepared_tiles[i][j])))
             prediction_tiles[i][j] = (prediction_tiles[i][j] * 255).astype(int)
 
-            above_threshold_mask = preds[i][j].max(axis=2) >= prediction_threshold
+            above_threshold_mask = preds[i][j].max(axis=2) > prediction_threshold
             best_class_by_pixel = preds[i][j].argmax(axis=2)
             color_counter = 0
             for class_i in range(preds[i][j].shape[-1]):

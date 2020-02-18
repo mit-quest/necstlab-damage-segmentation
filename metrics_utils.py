@@ -1,4 +1,5 @@
 import os
+from tensorflow import where as tfwhere, zeros_like as tfzeros_like
 from tensorflow.keras.metrics import (Metric as MetricTfKeras, Accuracy as AccuracyTfKeras,
                                       FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
 import tensorflow.keras.backend as K
@@ -13,6 +14,9 @@ from segmentation_models.base import Metric as MetricSM, functional
 SMOOTH = 1e-5
 assert SMOOTH <= 1e-5
 
+global_threshold = 0.5  # 0.5 is default prediction threshold for most metrics feat. this attribute
+assert global_threshold <= 1.0  # threshold effectively ignored for one hot metrics
+assert global_threshold >= 0  # threshold effectively ignored for one hot metrics
 
 # In summary, to achieve one hot metrics:
 # 1. For a metric class who via definition inherits tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper, for
@@ -28,7 +32,7 @@ assert SMOOTH <= 1e-5
 #    -	in tf1, place 1H at __ call __ method, followed by corresponding super().
 
 
-# one hot classes are intended to act as pass-throughs
+# one hot classes are intended to act as pass-throughs. 1H (argmax) proceeds after thresholding, as done in infer.
 
 # `MeanMetricWrapper` inheritance in custom metric: do not need to remove 'return' from `def update_state` in tf2.0
 class OneHotAccuracyTfKeras(AccuracyTfKeras):
@@ -37,6 +41,8 @@ class OneHotAccuracyTfKeras(AccuracyTfKeras):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, global_threshold), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -53,6 +59,8 @@ class OneHotFalseNegatives(FalseNegatives):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -72,6 +80,8 @@ class OneHotFalsePositives(FalsePositives):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -91,6 +101,8 @@ class OneHotTrueNegatives(TrueNegatives):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -110,6 +122,8 @@ class OneHotTruePositives(TruePositives):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -135,6 +149,8 @@ class OneHotPrecision(Precision):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -160,6 +176,8 @@ class OneHotRecall(Recall):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -296,6 +314,8 @@ class OneHotFBetaScore(FBetaScore):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -422,6 +442,8 @@ class OneHotIoUScore(IoUScore):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
@@ -535,6 +557,8 @@ class OneHotClassBinaryAccuracyTfKeras(ClassBinaryAccuracyTfKeras):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction, **kwargs):  # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.thresholds), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices,
@@ -620,6 +644,8 @@ class OneHotClassBinaryAccuracySM(ClassBinaryAccuracySM):
 
     # call redirects to parent class following one hot conversion
     def __call__(self, groundtruth, prediction):   # assuming 4D tensor is BHWC
+        # based on tf.keras binary_accuracy
+        prediction = tfwhere(math_ops.greater(prediction, self.threshold), prediction, tfzeros_like(prediction))
         # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot_indices = K.argmax(prediction, axis=-1)
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
