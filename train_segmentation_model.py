@@ -141,7 +141,7 @@ def train(gcp_bucket, config_file):
 
     # mosaic of subplot
     if len(train_generator.mask_filenames) == 1:
-        num_rows = 1
+        num_rows = 2
     else:  # 1 row for all classes, 1 row for each of n classes
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)

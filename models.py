@@ -108,4 +108,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if weights_to_load:
         model.load_weights(weights_to_load)
 
+    print(model.summary())
+
     return model

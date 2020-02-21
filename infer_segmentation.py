@@ -23,14 +23,14 @@ class_colors = [
 ]
 
 
-def stitch_preds_together(tiles, target_size_1d, output_type):
+def stitch_preds_together(tiles, target_size_1d, labels_output):
     n_tile_rows = len(tiles)
     n_tile_cols = len(tiles[0])
     stitched_array = np.zeros((target_size_1d * n_tile_rows, target_size_1d * n_tile_cols, 3))
     for i in range(n_tile_rows):
         for j in range(n_tile_cols):
             stitched_array[i*target_size_1d:(i+1)*target_size_1d, j*target_size_1d:(j+1)*target_size_1d, :] = tiles[i][j]
-    if 'labels' in output_type:
+    if labels_output:
         stitched_image = Image.fromarray(np.mean(stitched_array, -1).astype('uint8'))
     else:
         stitched_image = Image.fromarray(stitched_array.astype('uint8'))
@@ -60,7 +60,7 @@ def prepare_image(image, target_size_1d):
     return tiles
 
 
-def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_class, output_type):
+def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_class_index, labels_output):
     prediction_tiles = []
     for i in range(len(prepared_tiles)):
         prediction_tiles.append([])
@@ -73,20 +73,19 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
             color_counter = 0
             for class_i in range(preds[i][j].shape[-1]):
                 above_threshold_and_best_class = above_threshold_mask & (best_class_by_pixel == class_i)
-                if (background_class is not None) and (class_i == background_class):
+                if (background_class_index is not None) and (class_i == background_class_index):
                     continue
                 else:
-                    if 'labels' in output_type:
+                    if labels_output:
                         prediction_tiles[i][j][above_threshold_and_best_class] = int((color_counter + 1) *
                                                                                      np.floor(255/preds[i][j].shape[-1]))
                     else:
-                        prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter
-                                                                                              % len(class_colors)]
-                    color_counter += 1
+                        prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter]
+                    color_counter = (color_counter + 1) % len(class_colors)
     return prediction_tiles
 
 
-def segment_image(model, image, prediction_threshold, target_size_1d, background_class, output_type):
+def segment_image(model, image, prediction_threshold, target_size_1d, background_class_index, labels_output):
 
     prepared_tiles = prepare_image(image, target_size_1d)
 
@@ -97,23 +96,23 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
             preds[i].append(model.predict(prepared_tiles[i][j].reshape(1, target_size_1d, target_size_1d, 1))[0, :, :, :])
 
     # make background black if labels only
-    if 'labels' in output_type:
+    if labels_output:
         for i in range(len(prepared_tiles)):
             for j in range(len(prepared_tiles[i])):
                 prepared_tiles[i][j] = prepared_tiles[i][j] * 0
 
-    pred_tiles = overlay_predictions(prepared_tiles, preds, prediction_threshold, background_class, output_type)
-    stitched_pred = stitch_preds_together(pred_tiles, target_size_1d, output_type)
+    pred_tiles = overlay_predictions(prepared_tiles, preds, prediction_threshold, background_class_index, labels_output)
+    stitched_pred = stitch_preds_together(pred_tiles, target_size_1d, labels_output)
     return stitched_pred
 
 
-def main(gcp_bucket, model_id, background_class, stack_id, image_ids, prediction_threshold, output_type):
+def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, prediction_threshold, labels_output):
     start_dt = datetime.now()
 
     assert "gs://" in gcp_bucket
 
-    if background_class is not None:
-        assert background_class >= 0
+    if background_class_index is not None:
+        assert background_class_index >= 0
 
     # clean up the tmp directory
     try:
@@ -170,22 +169,22 @@ def main(gcp_bucket, model_id, background_class, stack_id, image_ids, prediction
             image = Image.open(image_file)
 
             segmented_image = segment_image(compiled_model, image, prediction_threshold,
-                                            target_size_1d, background_class, output_type)
+                                            target_size_1d, background_class_index, labels_output)
 
-            if 'labels' in output_type:
-                image_file_ext = image_file.name[-4:]
-                segmented_image.save(Path(output_dir, str(image_file.name[:-4] + '_labels' + image_file_ext)).as_posix())
+            if labels_output:
+                image_file_ext = image_file.split('.')[-1]
+                segmented_image.save(Path(output_dir, str(image_file.split('.')[0] + '_labels.' + image_file_ext)).as_posix())
             else:
                 segmented_image.save(Path(output_dir, image_file.name).as_posix())
 
     metadata = {
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
-        'background-class': background_class,
+        'background_class_index': background_class_index,
         'stack_id': stack_id,
         'image_ids': image_ids,
         'prediction_threshold': prediction_threshold,
-        'output_type': output_type,
+        'labels_output': labels_output,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
@@ -213,10 +212,10 @@ if __name__ == "__main__":
         type=str,
         help='The model ID.')
     argparser.add_argument(
-        '--background-class',
+        '--background-class-index',
         type=int,
         default=None,
-        help='For this model, indicate background class if used during model training, to exclude background overlay.')
+        help='For this model, indicate background class index if used during model training, to exclude background overlay.')
     argparser.add_argument(
         '--stack-id',
         type=str,
@@ -232,9 +231,9 @@ if __name__ == "__main__":
         default=0.5,
         help='Threshold to apply to the prediction to classify a pixel as part of a class.')
     argparser.add_argument(
-        '--output-type',
-        type=str,
-        default='overlay',
-        help='Can output either an overlaid image or labels only.')
+        '--labels-output',
+        type=bool,
+        default=False,
+        help='If false, will output overlaid image (RGB); if true, will output labels only image (GV).')
 
     main(**argparser.parse_args().__dict__)
