@@ -26,8 +26,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
 
-    crossentropy = BinaryCrossentropyL()
-    loss_fn = crossentropy
+    loss_fn = BinaryCrossentropyL()
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
