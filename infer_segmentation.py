@@ -75,13 +75,12 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
                 above_threshold_and_best_class = above_threshold_mask & (best_class_by_pixel == class_i)
                 if (background_class_index is not None) and (class_i == background_class_index):
                     continue
+                if labels_output:
+                    prediction_tiles[i][j][above_threshold_and_best_class] = int((color_counter + 1) *
+                                                                                 np.floor(255/preds[i][j].shape[-1]))
                 else:
-                    if labels_output:
-                        prediction_tiles[i][j][above_threshold_and_best_class] = int((color_counter + 1) *
-                                                                                     np.floor(255/preds[i][j].shape[-1]))
-                    else:
-                        prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter]
-                    color_counter = (color_counter + 1) % len(class_colors)
+                    prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter]
+                color_counter = (color_counter + 1) % len(class_colors)
     return prediction_tiles
 
 
