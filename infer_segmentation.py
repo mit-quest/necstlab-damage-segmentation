@@ -172,8 +172,8 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, pred
                                             target_size_1d, background_class_index, labels_output)
 
             if labels_output:
-                image_file_ext = image_file.split('.')[-1]
-                segmented_image.save(Path(output_dir, str(image_file.split('.')[0] + '_labels.' + image_file_ext)).as_posix())
+                image_file_ext = image_file.parts[-1].split('.')[-1]
+                segmented_image.save(Path(output_dir, str(image_file.parts[-1].split('.')[0] + '_labels.' + image_file_ext)).as_posix())
             else:
                 segmented_image.save(Path(output_dir, image_file.name).as_posix())
 
