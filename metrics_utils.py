@@ -14,9 +14,10 @@ from segmentation_models.base import Metric as MetricSM, functional
 SMOOTH = 1e-5
 assert SMOOTH <= 1e-5
 
-global_threshold = 0.5  # 0.5 is default prediction threshold for most metrics feat. this attribute
-assert global_threshold <= 1.0  # threshold effectively ignored for one hot metrics
-assert global_threshold >= 0  # threshold effectively ignored for one hot metrics
+# 0.5 is default prediction threshold for most metrics which use a threshold value
+# and the threshold value is also effectively ignored for one hot metrics
+global_threshold = 0.5  
+assert 0.0 <= global_threshold <= 1.0 
 
 # In summary, to achieve one hot metrics:
 # 1. For a metric class who via definition inherits tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper, for
