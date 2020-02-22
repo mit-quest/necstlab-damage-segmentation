@@ -1,5 +1,5 @@
 train_config:
-  model_id_prefix: 'segmentation-model-esrf16_segV1_study1_CropCase4_TrnValCaseB'
+  model_id_prefix: 'segmentation-model-esrf16_segV1_study1_BinCE_CropCase4_TrnValCaseB'
   dataset_id: 'dataset-esrf16_segV1_study1_CropCase4_TrnValCaseB'
   segmentation_model:
     model_name: 'Unet'
