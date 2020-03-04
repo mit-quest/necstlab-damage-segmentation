@@ -1,9 +1,9 @@
 # Assumed knowledge
 
 The workflows contained in this repository assume:
-* You know how to check the status of GCP virtual machines using the GCP compute engine dashboard. If you are unfamiliar with how to do this, see [here]() for instructions. TODO: add link/link content 
-* You know how to SSH into a GCP virtual machine. If you are unfamiliar with how to do this, see [here]() for instructions. TODO: add link/link content
-* You know how to check the contents of a GCP bucket using the GCP storage dashboard. If you are unfamiliar with how to do this, see [here]() for instructions. TODO: add link/link content 
+* You know how to check the status of GCP virtual machines using the GCP compute engine dashboard. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/compute/docs/instances) for instructions. 
+* You know how to SSH into a GCP virtual machine. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/compute/docs/instances/connecting-to-instance) for instructions to use local SSH client or [here](https://cloud.google.com/compute/docs/ssh-in-browser) for their browser client.
+* You know how to check the contents of a GCP bucket using the GCP storage dashboard. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/storage/docs/listing-objects) for instructions. 
 * You know how to create and destroy resources using Terraform. If you are unfamiliar with how to do this, see [here]() for instructions. TODO: add link/link content 
 * You are familiar with image annotations and how they are used in image segmentation. If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content 
 * You are familiar with how datasets are used in Machine Learning (for example, splitting your data into train, validation, and test). If you are unfamiliar with this, see [here]() for more information. TODO: add link/link content  
