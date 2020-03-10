@@ -160,6 +160,13 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, pred
     else:
         images_list = image_ids.split(',')
 
+    if labels_output in ['false', 'False']:
+        labels_output = False
+    elif labels_output in ['true', 'True']:
+        labels_output = True
+    else:
+        raise AssertionError('`labels_output` is not one of following strings: "true", "True", "false", or "False".')
+
     n_images = len(list(Path(image_folder).iterdir()))
     for i, image_file in enumerate(sorted(Path(image_folder).iterdir())):
         if image_file.parts[-1] in images_list:
@@ -231,8 +238,8 @@ if __name__ == "__main__":
         help='Threshold to apply to the prediction to classify a pixel as part of a class.')
     argparser.add_argument(
         '--labels-output',
-        type=bool,
-        default=False,
+        type=str,
+        default='False',
         help='If false, will output overlaid image (RGB); if true, will output labels only image (GV).')
 
     main(**argparser.parse_args().__dict__)
