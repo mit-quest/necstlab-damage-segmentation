@@ -8,6 +8,7 @@ from PIL import Image, ImageOps
 from pathlib import Path
 import git
 from models import generate_compiled_segmentation_model
+from image_utils import str2bool
 
 # infer can be run multiple times (labels, overlay), create new metadata each time
 metadata_file_name = 'metadata_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
@@ -23,13 +24,24 @@ class_colors = [
 ]
 
 
-def stitch_preds_together(tiles, target_size_1d, labels_output):
+def stitch_preds_together(tiles, target_size_1d, labels_output, pad_output, image):
     n_tile_rows = len(tiles)
     n_tile_cols = len(tiles[0])
-    stitched_array = np.zeros((target_size_1d * n_tile_rows, target_size_1d * n_tile_cols, 3))
+    if not pad_output:
+        stitched_array = np.zeros((image.size[1], image.size[0], 3))
+    else:
+        stitched_array = np.zeros((target_size_1d * n_tile_rows, target_size_1d * n_tile_cols, 3))
     for i in range(n_tile_rows):
         for j in range(n_tile_cols):
-            stitched_array[i*target_size_1d:(i+1)*target_size_1d, j*target_size_1d:(j+1)*target_size_1d, :] = tiles[i][j]
+            if not pad_output and i == n_tile_rows - 1 and j == n_tile_cols - 1:
+                stitched_array[image.size[1]-target_size_1d:image.size[1], image.size[0]-target_size_1d:image.size[0], :] = tiles[i][j]
+            elif not pad_output and i == n_tile_rows - 1:
+                stitched_array[image.size[1] - target_size_1d:image.size[1], j * target_size_1d:(j + 1) * target_size_1d, :] = tiles[i][j]
+            elif not pad_output and j == n_tile_cols - 1:
+                stitched_array[i * target_size_1d:(i + 1) * target_size_1d, image.size[0] - target_size_1d:image.size[0], :] = tiles[i][j]
+            else:
+                stitched_array[i*target_size_1d:(i+1)*target_size_1d, j*target_size_1d:(j+1)*target_size_1d, :] = tiles[i][j]
+
     if labels_output:
         stitched_image = Image.fromarray(np.mean(stitched_array, -1).astype('uint8'))
     else:
@@ -37,21 +49,36 @@ def stitch_preds_together(tiles, target_size_1d, labels_output):
     return stitched_image
 
 
-def prepare_image(image, target_size_1d):
+def prepare_image(image, target_size_1d, pad_output):
     # make the image an event multiple of 512x512
     desired_size = target_size_1d * np.ceil(np.asarray(image.size) / target_size_1d).astype(int)
     delta_w = desired_size[0] - image.size[0]
     delta_h = desired_size[1] - image.size[1]
-    padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
+    if pad_output:
+        padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
+    else:
+        padding = (0, 0, 0, 0)
     padded_image = ImageOps.expand(image, padding, fill=int(np.asarray(image).mean()))
 
     # break into 512x512 tiles
     padded_image = np.asarray(padded_image)
     tiles = []
-    for i in range(padded_image.shape[0] // target_size_1d):
+    for i in range(np.ceil(padded_image.shape[0] / target_size_1d).astype(int)):
         tiles.append([])
-        for j in range(padded_image.shape[1] // target_size_1d):
-            tiles[i].append(padded_image[i*target_size_1d:(i+1)*target_size_1d, j*target_size_1d:(j+1)*target_size_1d].copy())
+        for j in range(np.ceil(padded_image.shape[1] / target_size_1d).astype(int)):
+            if (not pad_output and i == np.ceil(padded_image.shape[0] / target_size_1d).astype(int) - 1
+                    and j == np.ceil(padded_image.shape[1] / target_size_1d).astype(int) - 1):
+                tiles[i].append(padded_image[image.size[1]-target_size_1d:image.size[1],
+                                image.size[0]-target_size_1d:image.size[0]].copy())
+            elif not pad_output and i == np.ceil(padded_image.shape[0] / target_size_1d).astype(int) - 1:
+                tiles[i].append(padded_image[image.size[1] - target_size_1d:image.size[1],
+                                j * target_size_1d:(j + 1) * target_size_1d].copy())
+            elif not pad_output and j == np.ceil(padded_image.shape[1] / target_size_1d).astype(int) - 1:
+                tiles[i].append(padded_image[i * target_size_1d:(i + 1) * target_size_1d,
+                                image.size[0] - target_size_1d:image.size[0]].copy())
+            else:
+                tiles[i].append(padded_image[i*target_size_1d:(i+1)*target_size_1d,
+                                j*target_size_1d:(j+1)*target_size_1d].copy())
 
     # scale the images to be between 0 and 1 if GV
     for i in range(len(tiles)):
@@ -84,9 +111,9 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
     return prediction_tiles
 
 
-def segment_image(model, image, prediction_threshold, target_size_1d, background_class_index, labels_output):
+def segment_image(model, image, prediction_threshold, target_size_1d, background_class_index, labels_output, pad_output):
 
-    prepared_tiles = prepare_image(image, target_size_1d)
+    prepared_tiles = prepare_image(image, target_size_1d, pad_output)
 
     preds = []
     for i in range(len(prepared_tiles)):
@@ -101,11 +128,13 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
                 prepared_tiles[i][j] = prepared_tiles[i][j] * 0
 
     pred_tiles = overlay_predictions(prepared_tiles, preds, prediction_threshold, background_class_index, labels_output)
-    stitched_pred = stitch_preds_together(pred_tiles, target_size_1d, labels_output)
+    stitched_pred = stitch_preds_together(pred_tiles, target_size_1d, labels_output, pad_output, image)
     return stitched_pred
 
 
-def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, prediction_threshold, labels_output):
+def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, prediction_threshold, labels_output,
+         pad_output):
+
     start_dt = datetime.now()
 
     assert "gs://" in gcp_bucket
@@ -160,6 +189,10 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, pred
     else:
         images_list = image_ids.split(',')
 
+    labels_output = str2bool(labels_output)
+
+    pad_output = str2bool(pad_output)
+
     n_images = len(list(Path(image_folder).iterdir()))
     for i, image_file in enumerate(sorted(Path(image_folder).iterdir())):
         if image_file.parts[-1] in images_list:
@@ -168,11 +201,19 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, pred
             image = Image.open(image_file)
 
             segmented_image = segment_image(compiled_model, image, prediction_threshold,
-                                            target_size_1d, background_class_index, labels_output)
+                                            target_size_1d, background_class_index, labels_output, pad_output)
 
-            if labels_output:
-                image_file_ext = image_file.parts[-1].split('.')[-1]
-                segmented_image.save(Path(output_dir, str(image_file.parts[-1].split('.')[0] + '_labels.' + image_file_ext)).as_posix())
+            # enable saving of various versions of same inference
+            image_file_ext = image_file.parts[-1].split('.')[-1]
+            if labels_output and pad_output:
+                segmented_image.save(Path(output_dir, str(
+                    image_file.parts[-1].split('.')[0] + '_pad_labels.' + image_file_ext)).as_posix())
+            elif labels_output:
+                segmented_image.save(Path(output_dir, str(
+                    image_file.parts[-1].split('.')[0] + '_labels.' + image_file_ext)).as_posix())
+            elif pad_output:
+                segmented_image.save(Path(output_dir, str(
+                    image_file.parts[-1].split('.')[0] + '_pad.' + image_file_ext)).as_posix())
             else:
                 segmented_image.save(Path(output_dir, image_file.name).as_posix())
 
@@ -184,6 +225,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, pred
         'image_ids': image_ids,
         'prediction_threshold': prediction_threshold,
         'labels_output': labels_output,
+        'pad_output': pad_output,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
@@ -231,8 +273,13 @@ if __name__ == "__main__":
         help='Threshold to apply to the prediction to classify a pixel as part of a class.')
     argparser.add_argument(
         '--labels-output',
-        type=bool,
-        default=False,
+        type=str,
+        default='False',
         help='If false, will output overlaid image (RGB); if true, will output labels only image (GV).')
+    argparser.add_argument(
+        '--pad-output',
+        type=str,
+        default='False',
+        help='If false, will output inference identical to input image size.')
 
     main(**argparser.parse_args().__dict__)
