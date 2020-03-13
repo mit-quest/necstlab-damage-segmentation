@@ -115,10 +115,17 @@ def train(gcp_bucket, config_file):
     )
 
     prediction_thresholds_optimized = {}
+    opt_config = []
     for i in range(len(train_generator.mask_filenames)):
-        prediction_threshold_optimized = fit_prediction_thresholds(i, train_config, validation_generator,
-                                                                   Path(model_dir, "model.hdf5").as_posix())
-        prediction_thresholds_optimized.update({str('class_' + str(i)) : prediction_threshold_optimized})
+        print('\n' + str('Fitting class ' + str(i) + ' prediction threshold...'))
+        prediction_threshold_optimized, opt_config = fit_prediction_thresholds(i, train_config, validation_generator,
+                                                                               Path(model_dir, "model.hdf5").as_posix())
+        prediction_thresholds_optimized.update({str('class_'+str(i)): {'x': float(prediction_threshold_optimized.x),
+                                                                       'success': prediction_threshold_optimized.success,
+                                                                       'status': prediction_threshold_optimized.status,
+                                                                       'message': prediction_threshold_optimized.message,
+                                                                       'nfev': prediction_threshold_optimized.nfev,
+                                                                       'fun': float(prediction_threshold_optimized.fun)}})
 
     # individual plots
     metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
@@ -185,6 +192,7 @@ def train(gcp_bucket, config_file):
         'original_config_filename': config_file,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
+        'threshold_optimization_configuration': opt_config,
         'prediction_thresholds_optimized': prediction_thresholds_optimized
     }
 
