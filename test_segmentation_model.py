@@ -44,6 +44,9 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
     with Path(local_model_dir, model_id, 'config.yaml').open('r') as f:
         train_config = yaml.safe_load(f)['train_config']
 
+    with Path(local_model_dir, model_id, metadata_file_name).open('r') as f:
+        model_metadata = yaml.safe_load(f)
+
     target_size = dataset_config['target_size']
 
     test_generator = ImagesAndMasksGenerator(
@@ -53,13 +56,27 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         batch_size=batch_size,
         seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
 
+    class_optimized_thresholds = {}
+    if 'prediction_thresholds_optimized' in model_metadata:
+        for i in range(len(test_generator.mask_filenames)):
+            if ('x' in model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
+                    model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+                class_optimized_thresholds.update(
+                    {str('class_' + str(i)): model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
+                )
+            else:
+                class_optimized_thresholds.update({str('class_' + str(i)) : None})
+    else:
+        class_optimized_thresholds = None
+
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
         train_config['segmentation_model']['model_parameters'],
         len(test_generator.mask_filenames),
         train_config['loss'],
         train_config['optimizer'],
-        Path(local_model_dir, model_id, "model.hdf5").as_posix())
+        Path(local_model_dir, model_id, "model.hdf5").as_posix(),
+        class_optimized_thresholds=class_optimized_thresholds)
 
     results = compiled_model.evaluate(test_generator)
 
@@ -76,6 +93,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         'gcp_bucket': gcp_bucket,
         'dataset_id': dataset_id,
         'model_id': model_id,
+        'loaded_class_optimized_thresholds': class_optimized_thresholds,
         'batch_size': batch_size,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
