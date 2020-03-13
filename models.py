@@ -1,6 +1,7 @@
 import os
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccuracy, CategoricalAccuracy,
                                       BinaryCrossentropy as BinaryCrossentropyM,
@@ -19,8 +20,9 @@ from segmentation_models.losses import CategoricalCELoss
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
-                                         weights_to_load=None, optimized_metric=False, optimized_class=None,
-                                         optimizing_threshold=None):
+                                         weights_to_load=None, optimizing_threshold_flag=False,
+                                         optimizing_class_id=None, optimizing_input_threshold=None,
+                                         class_optimized_thresholds=None):
 
     # These are the only model, loss, and optimizer currently supported
     assert model_name == 'Unet'
@@ -70,41 +72,46 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
             ])
         else:    # per class metrics
+            if class_optimized_thresholds is None or class_optimized_thresholds[str('class_'+str(class_num-1))] is None:
+                class_threshold = global_threshold
+            else:
+                class_threshold = class_optimized_thresholds[str('class_'+str(class_num-1))]
+
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
             all_metrics.append(ClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm'),
-                                                     class_indexes=class_num - 1, threshold=global_threshold))
+                                                     class_indexes=class_num - 1, threshold=class_threshold))
             all_metrics.append(OneHotClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm_1H'),
-                                                           class_indexes=class_num - 1, threshold=global_threshold))
+                                                           class_indexes=class_num - 1, threshold=class_threshold))
             all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras'),
-                                                          class_id=class_num - 1, thresholds=global_threshold))
+                                                          class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(OneHotClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras_1H'),
-                                                                class_id=class_num - 1, thresholds=global_threshold))
+                                                                class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(IoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
-                                        class_id=class_num - 1, thresholds=global_threshold))
+                                        class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(OneHotIoUScore(name=str('class' + str(class_num - 1) + '_iou_score_1H'),
-                                              class_id=class_num - 1, thresholds=global_threshold))
+                                              class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(FBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
                                           class_id=class_num - 1,
-                                          beta=1, thresholds=global_threshold))
+                                          beta=1, thresholds=class_threshold))
             all_metrics.append(OneHotFBetaScore(name=str('class' + str(class_num - 1) + '_f1_score_1H'),
                                                 class_id=class_num - 1,
-                                                beta=1, thresholds=global_threshold))
+                                                beta=1, thresholds=class_threshold))
             all_metrics.append(Precision(name=str('class' + str(class_num - 1) + '_precision'),
-                                         class_id=class_num - 1, thresholds=global_threshold))
+                                         class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(OneHotPrecision(name=str('class' + str(class_num - 1) + '_precision_1H'),
-                                               class_id=class_num - 1, thresholds=global_threshold))
+                                               class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(Recall(name=str('class' + str(class_num - 1) + '_recall'),
-                                      class_id=class_num - 1, thresholds=global_threshold))
+                                      class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(OneHotRecall(name=str('class' + str(class_num - 1) + '_recall_1H'),
-                                            class_id=class_num - 1, thresholds=global_threshold))
+                                            class_id=class_num - 1, thresholds=class_threshold))
 
         if num_classes == 1:
             break
 
-    if optimized_metric:
-        all_metrics = [OneHotIoUScore(name=str('class' + str(optimized_class) + '_iou_score_1H'),
-                                      class_id=optimized_class, thresholds=optimizing_threshold)]
+    if optimizing_threshold_flag:
+        all_metrics = [OneHotIoUScore(name=str('class' + str(optimizing_class_id) + '_iou_score_1H'),
+                                      class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
 
     #strategy = tf.distribute.MirroredStrategy()
     #with strategy.scope():
@@ -116,7 +123,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if weights_to_load:
         model.load_weights(weights_to_load)
 
-    if not optimized_metric:
+    if not optimizing_threshold_flag:
         print(model.summary())
 
     return model
@@ -125,14 +132,14 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 class EvaluateModelForInputThreshold:
     def __init__(
             self,
-            optimized_class=None,
+            optimizing_class_id=None,
             train_config=None,
             dataset_generator=None,
             model_path=False,
             name=None
     ):
         self.name = name or 'optimizing_compiled_model'
-        self.optimized_class = optimized_class
+        self.optimizing_class_id = optimizing_class_id
         self.train_config = train_config
         self.dataset_generator = dataset_generator
         self.model_path = model_path
@@ -146,22 +153,28 @@ class EvaluateModelForInputThreshold:
             self.train_config['loss'],
             self.train_config['optimizer'],
             weights_to_load=self.model_path,
-            optimized_metric=True,
-            optimized_class=self.optimized_class,
-            optimizing_threshold=input_threshold)
+            optimizing_threshold_flag=True,
+            optimizing_class_id=self.optimizing_class_id,
+            optimizing_input_threshold=input_threshold)
 
-        all_results = optimizing_model.evaluate(self.dataset_generator)
+        all_results = optimizing_model.evaluate(self.dataset_generator,
+                                                steps=np.ceil(len(self.dataset_generator) / 2).astype(int))
         assert len(all_results) == 2
 
         return 1 - all_results[-1]
 
 
 # framework to fit prediction threshold
-def fit_prediction_thresholds(optimized_class, train_config, dataset_generator, model_path):
-    optimizing_compiled_model = EvaluateModelForInputThreshold(optimized_class, train_config, dataset_generator,
+def fit_prediction_thresholds(optimizing_class_id, train_config, dataset_generator, model_path):
+    optimizing_compiled_model = EvaluateModelForInputThreshold(optimizing_class_id, train_config, dataset_generator,
                                                                model_path)
+    opt_bounds = [0, 1]
+    opt_method = 'bounded'
+    opt_tol = 0.01
+    opt_options = {'maxiter' : 1000, 'disp' : True}
+    optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
+                                  'opt_options': opt_options}
+    optimized_threshold = minimize_scalar(optimizing_compiled_model, bounds=(opt_bounds[0], opt_bounds[1]),
+                                          method=opt_method, tol=opt_tol, options=opt_options)
 
-    optimal_threshold = minimize_scalar(optimizing_compiled_model, bounds=(0, 1), tol=0.01,
-                                        options={'maxiter' : 1000, 'disp' : True})
-
-    return optimal_threshold
+    return optimized_threshold, optimization_configuration
