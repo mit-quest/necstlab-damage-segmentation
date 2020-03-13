@@ -1,4 +1,6 @@
 import os
+from scipy.optimize import minimize_scalar
+import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccuracy, CategoricalAccuracy,
                                       BinaryCrossentropy as BinaryCrossentropyM,
@@ -17,14 +19,13 @@ from segmentation_models.losses import CategoricalCELoss
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
-                                         weights_to_load=None):
+                                         weights_to_load=None, optimized_metric=False, optimized_class=None,
+                                         optimizing_threshold=None):
 
     # These are the only model, loss, and optimizer currently supported
     assert model_name == 'Unet'
     assert loss == 'cross_entropy'
     assert optimizer == 'adam'
-
-    model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
 
     loss_fn = BinaryCrossentropyL()
 
@@ -101,6 +102,13 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if num_classes == 1:
             break
 
+    if optimized_metric:
+        all_metrics = [OneHotIoUScore(name=str('class' + str(optimized_class) + '_iou_score_1H'),
+                                      class_id=optimized_class, thresholds=optimizing_threshold)]
+
+    #strategy = tf.distribute.MirroredStrategy()
+    #with strategy.scope():
+    model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
                   metrics=all_metrics)
@@ -108,6 +116,52 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if weights_to_load:
         model.load_weights(weights_to_load)
 
-    print(model.summary())
+    if not optimized_metric:
+        print(model.summary())
 
     return model
+
+
+class EvaluateModelForInputThreshold:
+    def __init__(
+            self,
+            optimized_class=None,
+            train_config=None,
+            dataset_generator=None,
+            model_path=False,
+            name=None
+    ):
+        self.name = name or 'optimizing_compiled_model'
+        self.optimized_class = optimized_class
+        self.train_config = train_config
+        self.dataset_generator = dataset_generator
+        self.model_path = model_path
+
+    # evaluate model performance on specified dataset for specified prediction threshold
+    def __call__(self, input_threshold):
+        optimizing_model = generate_compiled_segmentation_model(
+            self.train_config['segmentation_model']['model_name'],
+            self.train_config['segmentation_model']['model_parameters'],
+            len(self.dataset_generator.mask_filenames),
+            self.train_config['loss'],
+            self.train_config['optimizer'],
+            weights_to_load=self.model_path,
+            optimized_metric=True,
+            optimized_class=self.optimized_class,
+            optimizing_threshold=input_threshold)
+
+        all_results = optimizing_model.evaluate(self.dataset_generator)
+        assert len(all_results) == 2
+
+        return 1 - all_results[-1]
+
+
+# framework to fit prediction threshold
+def fit_prediction_thresholds(optimized_class, train_config, dataset_generator, model_path):
+    optimizing_compiled_model = EvaluateModelForInputThreshold(optimized_class, train_config, dataset_generator,
+                                                               model_path)
+
+    optimal_threshold = minimize_scalar(optimizing_compiled_model, bounds=(0, 1), tol=0.01,
+                                        options={'maxiter' : 1000, 'disp' : True})
+
+    return optimal_threshold

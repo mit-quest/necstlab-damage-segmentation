@@ -12,7 +12,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
-from models import generate_compiled_segmentation_model
+from models import generate_compiled_segmentation_model, fit_prediction_thresholds
 
 
 metadata_file_name = 'metadata.yaml'
@@ -114,6 +114,12 @@ def train(gcp_bucket, config_file):
         callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
     )
 
+    prediction_thresholds_optimized = {}
+    for i in range(len(train_generator.mask_filenames)):
+        prediction_threshold_optimized = fit_prediction_thresholds(i, train_config, validation_generator,
+                                                                   Path(model_dir, "model.hdf5").as_posix())
+        prediction_thresholds_optimized.update({str('class_' + str(i)) : prediction_threshold_optimized})
+
     # individual plots
     metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
     for metric_name in metric_names:
@@ -178,7 +184,8 @@ def train(gcp_bucket, config_file):
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
-        'dataset_config': dataset_config
+        'dataset_config': dataset_config,
+        'prediction_thresholds_optimized': prediction_thresholds_optimized
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
