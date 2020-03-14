@@ -171,7 +171,7 @@ def fit_prediction_thresholds(optimizing_class_id, train_config, dataset_generat
     opt_bounds = [0, 1]
     opt_method = 'bounded'
     opt_tol = 0.01
-    opt_options = {'maxiter' : 1000, 'disp' : True}
+    opt_options = {'maxiter': 1000, 'disp': True}
     optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
                                   'opt_options': opt_options}
     optimized_threshold = minimize_scalar(optimizing_compiled_model, bounds=(opt_bounds[0], opt_bounds[1]),

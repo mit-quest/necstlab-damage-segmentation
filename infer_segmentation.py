@@ -96,23 +96,26 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
             prediction_tiles[i].append(np.dstack((prepared_tiles[i][j], prepared_tiles[i][j], prepared_tiles[i][j])))
             prediction_tiles[i][j] = (prediction_tiles[i][j] * 255).astype(int)
 
-            above_threshold_mask = preds[i][j] > prediction_threshold
-            best_class_by_pixel = preds[i][j].argmax(axis=2)
+            relative_above_threshold_mask = np.divide(preds[i][j], np.multiply(np.ones_like(preds[i][j]),
+                                                                               prediction_threshold)).max(axis=-1) > 1
+            best_class_by_pixel = np.divide(preds[i][j], np.multiply(np.ones_like(preds[i][j]),
+                                                                     prediction_threshold)).argmax(axis=-1)
             color_counter = 0
             for class_i in range(preds[i][j].shape[-1]):
-                above_threshold_and_best_class = above_threshold_mask & (best_class_by_pixel == class_i)
+                rel_above_threshold_and_best_class = relative_above_threshold_mask & (best_class_by_pixel == class_i)
                 if (background_class_index is not None) and (class_i == background_class_index):
                     continue
                 if labels_output:
-                    prediction_tiles[i][j][above_threshold_and_best_class] = int((color_counter + 1) *
-                                                                                 np.floor(255/preds[i][j].shape[-1]))
+                    prediction_tiles[i][j][rel_above_threshold_and_best_class] = int((color_counter + 1) *
+                                                                                     np.floor(255/preds[i][j].shape[-1]))
                 else:
-                    prediction_tiles[i][j][above_threshold_and_best_class] = class_colors[color_counter]
+                    prediction_tiles[i][j][rel_above_threshold_and_best_class] = class_colors[color_counter]
                 color_counter = (color_counter + 1) % len(class_colors)
     return prediction_tiles
 
 
-def segment_image(model, image, prediction_threshold, target_size_1d, background_class_index, labels_output, pad_output):
+def segment_image(model, image, prediction_threshold, target_size_1d, background_class_index,
+                  labels_output, pad_output):
 
     prepared_tiles = prepare_image(image, target_size_1d, pad_output)
 
@@ -120,7 +123,8 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
     for i in range(len(prepared_tiles)):
         preds.append([])
         for j in range(len(prepared_tiles[i])):
-            preds[i].append(model.predict(prepared_tiles[i][j].reshape(1, target_size_1d, target_size_1d, 1))[0, :, :, :])
+            preds[i].append(model.predict(prepared_tiles[i][j].reshape(1, target_size_1d,
+                                                                       target_size_1d, 1))[0, :, :, :])
 
     # make background black if labels only
     if labels_output:
@@ -191,7 +195,11 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
 
     # set threshold(s) used for inference
     if user_specified_prediction_threshold:
-        prediction_threshold = np.ones(num_classes) * user_specified_prediction_threshold
+        if len(user_specified_prediction_threshold) == 1:
+            prediction_threshold = np.ones(num_classes) * user_specified_prediction_threshold
+        else:
+            assert len(user_specified_prediction_threshold) == num_classes
+            prediction_threshold = np.asarray(user_specified_prediction_threshold)
     elif 'prediction_thresholds_optimized' in model_metadata:
         prediction_threshold = np.empty(num_classes)
         for i in range(num_classes):
@@ -250,6 +258,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     metadata = {
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
+        'user_specified_prediction_threshold': user_specified_prediction_threshold,
         'loaded_class_optimized_thresholds': class_optimized_thresholds,
         'prediction_thresholds_used': prediction_threshold,
         'background_class_index': background_class_index,
