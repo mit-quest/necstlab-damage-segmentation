@@ -20,9 +20,9 @@ from segmentation_models.losses import CategoricalCELoss
 
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
-                                         weights_to_load=None, optimizing_threshold_flag=False,
+                                         weights_to_load=None, optimizing_threshold_class_metric=None,
                                          optimizing_class_id=None, optimizing_input_threshold=None,
-                                         class_optimized_thresholds=None):
+                                         optimized_class_thresholds=None):
 
     # These are the only model, loss, and optimizer currently supported
     assert model_name == 'Unet'
@@ -72,10 +72,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
             ])
         else:    # per class metrics
-            if class_optimized_thresholds is None or class_optimized_thresholds[str('class_'+str(class_num-1))] is None:
+            if optimized_class_thresholds is None or optimized_class_thresholds[str('class_'+str(class_num-1))] is None:
                 class_threshold = global_threshold
             else:
-                class_threshold = class_optimized_thresholds[str('class_'+str(class_num-1))]
+                class_threshold = optimized_class_thresholds[str('class_'+str(class_num-1))]
 
             all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
@@ -109,12 +109,24 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if num_classes == 1:
             break
 
-    if optimizing_threshold_flag:
+    # use single class metric if fitting prediction threshold
+    if 'iou_score_1H' in optimizing_threshold_class_metric:
         all_metrics = [OneHotIoUScore(name=str('class' + str(optimizing_class_id) + '_iou_score_1H'),
                                       class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+    elif 'f1_score_1H' in optimizing_threshold_class_metric:
+        all_metrics = [OneHotFBetaScore(name=str('class' + str(optimizing_class_id) + '_f1_score_1H'),
+                                        class_id=optimizing_class_id, beta=1, thresholds=optimizing_input_threshold)]
+    elif 'precision_1H' in optimizing_threshold_class_metric:
+        all_metrics = [OneHotPrecision(name=str('class' + str(optimizing_class_id) + '_precision_1H'),
+                                       class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+    elif 'recall_1H' in optimizing_threshold_class_metric:
+        all_metrics = [OneHotRecall(name=str('class' + str(optimizing_class_id) + '_recall_1H'),
+                                    class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+    elif optimizing_threshold_class_metric is not None:
+        AssertionError('use eligible single class metric if fitting prediction threshold - see models.py')
 
-    #strategy = tf.distribute.MirroredStrategy()
-    #with strategy.scope():
+    # strategy = tf.distribute.MirroredStrategy()
+    # with strategy.scope():
     model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
@@ -123,7 +135,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if weights_to_load:
         model.load_weights(weights_to_load)
 
-    if not optimizing_threshold_flag:
+    if optimizing_threshold_class_metric is None:
         print(model.summary())
 
     return model
@@ -133,15 +145,20 @@ class EvaluateModelForInputThreshold:
     def __init__(
             self,
             optimizing_class_id=None,
+            optimizing_threshold_class_metric=None,
             train_config=None,
             dataset_generator=None,
+            dataset_downsample_factor=1.0,
             model_path=False,
             name=None
     ):
         self.name = name or 'optimizing_compiled_model'
         self.optimizing_class_id = optimizing_class_id
+        self.optimizing_threshold_class_metric = optimizing_threshold_class_metric
         self.train_config = train_config
         self.dataset_generator = dataset_generator
+        self.dataset_downsample_factor = dataset_downsample_factor
+        assert 0 < self.dataset_downsample_factor <= 1.0
         self.model_path = model_path
 
     # evaluate model performance on specified dataset for specified prediction threshold
@@ -153,27 +170,32 @@ class EvaluateModelForInputThreshold:
             self.train_config['loss'],
             self.train_config['optimizer'],
             weights_to_load=self.model_path,
-            optimizing_threshold_flag=True,
+            optimizing_threshold_class_metric=self.optimizing_threshold_class_metric,
             optimizing_class_id=self.optimizing_class_id,
             optimizing_input_threshold=input_threshold)
 
         all_results = optimizing_model.evaluate(self.dataset_generator,
-                                                steps=np.ceil(len(self.dataset_generator) / 2).astype(int))
+                                                steps=np.ceil(self.dataset_downsample_factor *
+                                                              len(self.dataset_generator)).astype(int))
         assert len(all_results) == 2
 
         return 1 - all_results[-1]
 
 
 # framework to fit prediction threshold
-def fit_prediction_thresholds(optimizing_class_id, train_config, dataset_generator, model_path):
-    optimizing_compiled_model = EvaluateModelForInputThreshold(optimizing_class_id, train_config, dataset_generator,
-                                                               model_path)
+def fit_prediction_thresholds(optimizing_class_id, optimizing_threshold_class_metric, train_config,
+                              dataset_generator, dataset_downsample_factor, model_path):
+    optimizing_compiled_model = EvaluateModelForInputThreshold(optimizing_class_id, optimizing_threshold_class_metric,
+                                                               train_config, dataset_generator,
+                                                               dataset_downsample_factor, model_path)
     opt_bounds = [0, 1]
     opt_method = 'bounded'
     opt_tol = 0.01
     opt_options = {'maxiter': 1000, 'disp': True}
     optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
-                                  'opt_options': opt_options}
+                                  'opt_options': opt_options, 'opt_class_metric': optimizing_threshold_class_metric,
+                                  'opt_dataset_generator': dataset_generator.dataset_directory,
+                                  'opt_dataset_downsample_factor': dataset_downsample_factor}
     optimized_threshold = minimize_scalar(optimizing_compiled_model, bounds=(opt_bounds[0], opt_bounds[1]),
                                           method=opt_method, tol=opt_tol, options=opt_options)
 

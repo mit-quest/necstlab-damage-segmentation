@@ -182,16 +182,16 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     num_classes = model_metadata['num_classes']
 
     # load optimized threshold(s) for either use or reference
-    class_optimized_thresholds = {}
+    optimized_class_thresholds = {}
     if 'prediction_thresholds_optimized' in model_metadata:
         for i in range(num_classes):
             if ('x' in model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
                     model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
-                class_optimized_thresholds.update(
+                optimized_class_thresholds.update(
                     {str('class_' + str(i)): model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
                 )
             else:
-                class_optimized_thresholds.update({str('class_' + str(i)): None})
+                optimized_class_thresholds.update({str('class_' + str(i)): None})
 
     # set threshold(s) used for inference
     if user_specified_prediction_threshold:
@@ -220,7 +220,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         train_config['loss'],
         train_config['optimizer'],
         Path(local_model_dir, "model.hdf5").as_posix(),
-        class_optimized_thresholds=class_optimized_thresholds)
+        optimized_class_thresholds=optimized_class_thresholds)
 
     if image_ids is None:
         images_list = list(Path(image_folder).iterdir())
@@ -259,7 +259,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
         'user_specified_prediction_threshold': user_specified_prediction_threshold,
-        'loaded_class_optimized_thresholds': class_optimized_thresholds,
+        'loaded_optimized_class_thresholds': optimized_class_thresholds,
         'prediction_thresholds_used': prediction_threshold,
         'background_class_index': background_class_index,
         'stack_id': stack_id,
