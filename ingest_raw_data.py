@@ -102,6 +102,10 @@ def process_zip(gcp_bucket, zipped_stack):
         os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
                                                      os.path.join(gcp_bucket, 'processed-data/')))
 
+        print('\n Ingest Raw Data Metadata:')
+        print(metadata)
+        print('\n')
+
         shutil.rmtree(tmp_directory.as_posix())
 
 

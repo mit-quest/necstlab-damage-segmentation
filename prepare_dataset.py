@@ -365,6 +365,10 @@ def prepare_dataset(gcp_bucket, config_file):
 
     copy_dataset_to_remote_dest(prepared_dataset_local_dir, prepared_dataset_remote_dest, dataset_id)
 
+    print('\n Prepare Dataset Metadata:')
+    print(metadata)
+    print('\n')
+
     shutil.rmtree(tmp_directory.as_posix())
 
 

@@ -137,7 +137,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
     return stitched_pred
 
 
-def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_threshold,
+def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
          labels_output, pad_output):
 
     start_dt = datetime.now()
@@ -194,12 +194,12 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
                 optimized_class_thresholds.update({str('class_' + str(i)): None})
 
     # set threshold(s) used for inference
-    if user_specified_prediction_threshold:
-        if len(user_specified_prediction_threshold) == 1:
-            prediction_threshold = np.ones(num_classes) * user_specified_prediction_threshold
+    if user_specified_prediction_thresholds:
+        if len(user_specified_prediction_thresholds) == 1:
+            prediction_threshold = np.ones(num_classes) * user_specified_prediction_thresholds
         else:
-            assert len(user_specified_prediction_threshold) == num_classes
-            prediction_threshold = np.asarray(user_specified_prediction_threshold)
+            assert len(user_specified_prediction_thresholds) == num_classes
+            prediction_threshold = np.asarray(user_specified_prediction_thresholds)
     elif 'prediction_thresholds_optimized' in model_metadata:
         prediction_threshold = np.empty(num_classes)
         for i in range(num_classes):
@@ -243,20 +243,25 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
             image_file_ext = image_file.parts[-1].split('.')[-1]
             if labels_output and pad_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_pad_labels.' + image_file_ext)).as_posix())
+                    image_file.parts[-1].split('.')[0] + '_pad_labels_' +
+                    datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ.') + image_file_ext)).as_posix())
             elif labels_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_labels.' + image_file_ext)).as_posix())
+                    image_file.parts[-1].split('.')[0] + '_labels_' +
+                    datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ.') + image_file_ext)).as_posix())
             elif pad_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_pad.' + image_file_ext)).as_posix())
+                    image_file.parts[-1].split('.')[0] + '_pad_' +
+                    datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ.') + image_file_ext)).as_posix())
             else:
-                segmented_image.save(Path(output_dir, image_file.name).as_posix())
+                segmented_image.save(Path(output_dir, str(
+                    image_file.parts[-1].split('.')[0] + '_' +
+                    datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ.') + image_file_ext)).as_posix())
 
     metadata = {
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
-        'user_specified_prediction_threshold': user_specified_prediction_threshold,
+        'user_specified_prediction_thresholds': user_specified_prediction_thresholds,
         'loaded_optimized_class_thresholds': optimized_class_thresholds,
         'prediction_thresholds_used': str(prediction_threshold),
         'background_class_index': background_class_index,
@@ -273,6 +278,10 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         yaml.safe_dump(metadata, f)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'inferences').as_posix(), gcp_bucket))
+
+    print('\n Infer Metadata:')
+    print(metadata)
+    print('\n')
 
     shutil.rmtree(tmp_directory.as_posix())
 
@@ -305,10 +314,11 @@ if __name__ == "__main__":
         default=None,
         help='For these images, the corresponding stack ID (must already be processed).')
     argparser.add_argument(
-        '--user-specified-prediction-threshold',
+        '--user-specified-prediction-thresholds',
         type=float,
+        nargs='+',
         default=None,
-        help='Threshold to apply to the prediction to classify a pixel as part of a class.')
+        help='Threshold(s) to apply to the prediction to classify a pixel as part of a class. E.g., 0.5 or 0.5 0.3 0.6')
     argparser.add_argument(
         '--labels-output',
         type=str,

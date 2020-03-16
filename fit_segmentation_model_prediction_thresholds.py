@@ -99,6 +99,10 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
     os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(fit_id_dir).as_posix(),
                                                     os.path.join(gcp_bucket, 'models', model_id)))
 
+    print('\n Fit Prediction Thresholds Metadata:')
+    print(metadata)
+    print('\n')
+
     shutil.rmtree(tmp_directory.as_posix())
 
 
