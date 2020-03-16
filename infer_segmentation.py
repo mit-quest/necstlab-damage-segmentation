@@ -210,8 +210,6 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
                 prediction_threshold[i] = global_threshold
     else:
         prediction_threshold = np.ones(num_classes) * global_threshold
-    print(prediction_threshold)
-    input('enter')
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
@@ -260,7 +258,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'model_id': model_id,
         'user_specified_prediction_threshold': user_specified_prediction_threshold,
         'loaded_optimized_class_thresholds': optimized_class_thresholds,
-        'prediction_thresholds_used': prediction_threshold,
+        'prediction_thresholds_used': str(prediction_threshold),
         'background_class_index': background_class_index,
         'stack_id': stack_id,
         'image_ids': image_ids,

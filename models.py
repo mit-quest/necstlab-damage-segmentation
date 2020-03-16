@@ -110,20 +110,22 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
             break
 
     # use single class metric if fitting prediction threshold
-    if 'iou_score_1H' in optimizing_threshold_class_metric:
-        all_metrics = [OneHotIoUScore(name=str('class' + str(optimizing_class_id) + '_iou_score_1H'),
-                                      class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
-    elif 'f1_score_1H' in optimizing_threshold_class_metric:
-        all_metrics = [OneHotFBetaScore(name=str('class' + str(optimizing_class_id) + '_f1_score_1H'),
-                                        class_id=optimizing_class_id, beta=1, thresholds=optimizing_input_threshold)]
-    elif 'precision_1H' in optimizing_threshold_class_metric:
-        all_metrics = [OneHotPrecision(name=str('class' + str(optimizing_class_id) + '_precision_1H'),
-                                       class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
-    elif 'recall_1H' in optimizing_threshold_class_metric:
-        all_metrics = [OneHotRecall(name=str('class' + str(optimizing_class_id) + '_recall_1H'),
-                                    class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
-    elif optimizing_threshold_class_metric is not None:
-        AssertionError('use eligible single class metric if fitting prediction threshold - see models.py')
+    if optimizing_threshold_class_metric is not None:
+        if 'iou_score_1H' in optimizing_threshold_class_metric:
+            all_metrics = [OneHotIoUScore(name=str('class' + str(optimizing_class_id) + '_iou_score_1H'),
+                                          class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+        elif 'f1_score_1H' in optimizing_threshold_class_metric:
+            all_metrics = [OneHotFBetaScore(name=str('class' + str(optimizing_class_id) + '_f1_score_1H'),
+                                            class_id=optimizing_class_id, beta=1,
+                                            thresholds=optimizing_input_threshold)]
+        elif 'precision_1H' in optimizing_threshold_class_metric:
+            all_metrics = [OneHotPrecision(name=str('class' + str(optimizing_class_id) + '_precision_1H'),
+                                           class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+        elif 'recall_1H' in optimizing_threshold_class_metric:
+            all_metrics = [OneHotRecall(name=str('class' + str(optimizing_class_id) + '_recall_1H'),
+                                        class_id=optimizing_class_id, thresholds=optimizing_input_threshold)]
+        elif optimizing_threshold_class_metric is not None:
+            AssertionError('use eligible single class metric if fitting prediction threshold - see models.py')
 
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
