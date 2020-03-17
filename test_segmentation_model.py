@@ -11,7 +11,8 @@ from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 
 # test can be run multiple times (with or without optimized thresholds, global thresholds), create new each time
-metadata_file_name = 'metadata_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
+test_datetime = datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ')
+metadata_file_name = 'metadata_' + test_datetime + '.yaml'
 tmp_directory = Path('./tmp')
 
 
@@ -90,7 +91,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
     elif hasattr(compiled_model.loss, 'name'):
         metric_names = [compiled_model.loss.name] + [m.name for m in compiled_model.metrics]
 
-    with Path(test_dir, str('metrics_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.csv')).open('w') as f:
+    with Path(test_dir, str('metrics_' + test_datetime + '.csv')).open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))
 
