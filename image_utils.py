@@ -148,3 +148,13 @@ class ImagesAndMasksGenerator(Sequence):
         images = images * self.rescale
 
         return images, masks
+
+
+def str2bool(str2bool_flag):
+    if str2bool_flag in ['false', 'False']:
+        str2bool_flag = False
+    elif str2bool_flag in ['true', 'True']:
+        str2bool_flag = True
+    else:
+        raise AssertionError('`str2bool_flag` is not one of following strings: "true", "True", "false", or "False".')
+    return str2bool_flag
