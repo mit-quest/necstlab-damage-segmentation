@@ -58,6 +58,7 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
         rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
+        shuffle=True,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
     prediction_thresholds_optimized = {}
