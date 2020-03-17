@@ -100,7 +100,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
         'dataset_id': dataset_id,
         'model_id': model_id,
         'optimized_class_thresholds_used': optimized_class_thresholds,  # global thresh used if None
-        'current_global_threshold_for_reference': global_threshold,
+        'default_global_threshold_for_reference': global_threshold,
         'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
         'batch_size': batch_size,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),

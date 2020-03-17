@@ -272,6 +272,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'user_specified_prediction_thresholds': user_specified_prediction_thresholds,
         'loaded_optimized_class_thresholds': optimized_class_thresholds,
         'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
+        'default_global_threshold_for_reference': global_threshold,
         'prediction_thresholds_used': str(prediction_threshold),
         'background_class_index': background_class_index,
         'stack_id': stack_id,
