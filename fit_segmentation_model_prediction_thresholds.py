@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import git
-from gcp_utils import copy_folder_locally_if_missing, copy_folder_locally_if_missing2, copy_file_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
 from models import fit_prediction_thresholds
 
@@ -33,13 +33,13 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
     local_dataset_dir = Path(tmp_directory, 'datasets')
     local_model_dir = Path(tmp_directory, 'models')
 
-    copy_folder_locally_if_missing2(os.path.join(gcp_bucket, 'datasets', dataset_directory),
+    copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_directory),
                                     Path(local_dataset_dir, dataset_id))
 
     copy_file_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_id, 'config.yaml'),
                                  Path(local_dataset_dir, dataset_id, 'config.yaml'))
 
-    copy_folder_locally_if_missing2(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
+    copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
 
     fit_id = "{}_{}_{}".format(model_id, dataset_id, optimizing_class_metric)
     fit_id_dir = Path(tmp_directory, str('fit_thresholds_' + fit_id))
