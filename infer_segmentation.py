@@ -138,7 +138,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
-         labels_output, pad_output):
+         labels_output, pad_output, fit_metadata_root_path):
 
     start_dt = datetime.now()
 
@@ -176,6 +176,13 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     with Path(local_model_dir, 'metadata.yaml').open('r') as f:
         model_metadata = yaml.safe_load(f)
 
+    if fit_metadata_root_path is not None:
+        with Path(local_model_dir, fit_metadata_root_path).open('r') as f:
+            threshold_metadata = yaml.safe_load(f)
+    else:
+        with Path(local_model_dir, 'metadata.yaml').open('r') as f:
+            threshold_metadata = yaml.safe_load(f)
+
     image_folder = Path(local_processed_data_dir, 'images')
     assert model_metadata['target_size'][0] == model_metadata['target_size'][1]
     target_size_1d = model_metadata['target_size'][0]
@@ -183,12 +190,12 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
 
     # load optimized threshold(s) for either use or reference
     optimized_class_thresholds = {}
-    if 'prediction_thresholds_optimized' in model_metadata:
+    if 'prediction_thresholds_optimized' in threshold_metadata:
         for i in range(num_classes):
-            if ('x' in model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
+                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
                 optimized_class_thresholds.update(
-                    {str('class_' + str(i)): model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
+                    {str('class_' + str(i)): threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
                 )
             else:
                 optimized_class_thresholds.update({str('class_' + str(i)): None})
@@ -200,12 +207,12 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         else:
             assert len(user_specified_prediction_thresholds) == num_classes
             prediction_threshold = np.asarray(user_specified_prediction_thresholds)
-    elif 'prediction_thresholds_optimized' in model_metadata:
+    elif 'prediction_thresholds_optimized' in threshold_metadata:
         prediction_threshold = np.empty(num_classes)
         for i in range(num_classes):
-            if ('x' in model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
-                prediction_threshold[i] = model_metadata['prediction_thresholds_optimized'][str('class_'+str(i))]['x']
+            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
+                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+                prediction_threshold[i] = threshold_metadata['prediction_thresholds_optimized'][str('class_'+str(i))]['x']
             else:
                 prediction_threshold[i] = global_threshold
     else:
@@ -263,6 +270,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'model_id': model_id,
         'user_specified_prediction_thresholds': user_specified_prediction_thresholds,
         'loaded_optimized_class_thresholds': optimized_class_thresholds,
+        'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
         'prediction_thresholds_used': str(prediction_threshold),
         'background_class_index': background_class_index,
         'stack_id': stack_id,
@@ -277,7 +285,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     with Path(local_inferences_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'inferences').as_posix(), gcp_bucket))
+    os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(tmp_directory, 'inferences').as_posix(), gcp_bucket))
 
     print('\n Infer Metadata:')
     print(metadata)
@@ -329,5 +337,10 @@ if __name__ == "__main__":
         type=str,
         default='False',
         help='If false, will output inference identical to input image size.')
+    argparser.add_argument(
+        '--fit-metadata-root-path',
+        type=str,
+        default=None,
+        help='The GCP bucket path to specified fit metadata relative to model directory--priority over model metadata.')
 
     main(**argparser.parse_args().__dict__)
