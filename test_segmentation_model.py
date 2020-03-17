@@ -8,13 +8,14 @@ import git
 from gcp_utils import copy_folder_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
 from models import generate_compiled_segmentation_model
+from metrics_utils import global_threshold
 
-
-metadata_file_name = 'metadata.yaml'
+# test can be run multiple times (with or without optimized thresholds, global thresholds), create new each time
+metadata_file_name = 'metadata_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
 tmp_directory = Path('./tmp')
 
 
-def test(gcp_bucket, dataset_id, model_id, batch_size):
+def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
 
     start_dt = datetime.now()
 
@@ -34,7 +35,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
 
-    test_id = "{}_{}".format(model_id, dataset_id, datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
+    test_id = "{}_{}".format(model_id, dataset_id)
     test_dir = Path(tmp_directory, 'tests', test_id)
     test_dir.mkdir(parents=True)
 
@@ -44,8 +45,12 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
     with Path(local_model_dir, model_id, 'config.yaml').open('r') as f:
         train_config = yaml.safe_load(f)['train_config']
 
-    with Path(local_model_dir, model_id, metadata_file_name).open('r') as f:
-        model_metadata = yaml.safe_load(f)
+    if fit_metadata_root_path is not None:
+        with Path(local_model_dir, model_id, fit_metadata_root_path).open('r') as f:
+            threshold_metadata = yaml.safe_load(f)
+    else:
+        with Path(local_model_dir, model_id, 'metadata.yaml').open('r') as f:
+            threshold_metadata = yaml.safe_load(f)
 
     target_size = dataset_config['target_size']
 
@@ -56,18 +61,18 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         batch_size=batch_size,
         seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
 
-    class_optimized_thresholds = {}
-    if 'prediction_thresholds_optimized' in model_metadata:
+    optimized_class_thresholds = {}
+    if 'prediction_thresholds_optimized' in threshold_metadata:
         for i in range(len(test_generator.mask_filenames)):
-            if ('x' in model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
-                class_optimized_thresholds.update(
-                    {str('class_' + str(i)): model_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
+            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
+                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+                optimized_class_thresholds.update(
+                    {str('class_' + str(i)): threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
                 )
             else:
-                class_optimized_thresholds.update({str('class_' + str(i)) : None})
+                optimized_class_thresholds.update({str('class_' + str(i)): None})
     else:
-        class_optimized_thresholds = None
+        optimized_class_thresholds = None
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
@@ -76,7 +81,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         train_config['loss'],
         train_config['optimizer'],
         Path(local_model_dir, model_id, "model.hdf5").as_posix(),
-        class_optimized_thresholds=class_optimized_thresholds)
+        optimized_class_thresholds=optimized_class_thresholds)
 
     results = compiled_model.evaluate(test_generator)
 
@@ -85,7 +90,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
     elif hasattr(compiled_model.loss, 'name'):
         metric_names = [compiled_model.loss.name] + [m.name for m in compiled_model.metrics]
 
-    with Path(test_dir, 'metrics.csv').open('w') as f:
+    with Path(test_dir, str('metrics_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.csv')).open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))
 
@@ -93,7 +98,9 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
         'gcp_bucket': gcp_bucket,
         'dataset_id': dataset_id,
         'model_id': model_id,
-        'loaded_class_optimized_thresholds': class_optimized_thresholds,
+        'optimized_class_thresholds_used': optimized_class_thresholds,  # global thresh used if None
+        'current_global_threshold_for_reference': global_threshold,
+        'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
         'batch_size': batch_size,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
@@ -105,7 +112,11 @@ def test(gcp_bucket, dataset_id, model_id, batch_size):
     with Path(test_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
-    os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'tests').as_posix(), gcp_bucket))
+    os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(tmp_directory, 'tests').as_posix(), gcp_bucket))
+
+    print('\n Test Metadata:')
+    print(metadata)
+    print('\n')
 
     shutil.rmtree(tmp_directory.as_posix())
 
@@ -132,5 +143,10 @@ if __name__ == "__main__":
         type=int,
         default=16,
         help='The batch size to use during inference.')
+    argparser.add_argument(
+        '--fit-metadata-root-path',
+        type=str,
+        default=None,
+        help='The GCP bucket path to specified fit metadata relative to model directory--priority over model metadata.')
 
     test(**argparser.parse_args().__dict__)
