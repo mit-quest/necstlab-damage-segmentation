@@ -13,6 +13,7 @@ from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model, fit_prediction_thresholds
+from metrics_utils import global_threshold
 
 
 metadata_file_name = 'metadata.yaml'
@@ -118,7 +119,9 @@ def train(gcp_bucket, config_file):
     opt_config = []
     for i in range(len(train_generator.mask_filenames)):
         print('\n' + str('Fitting class ' + str(i) + ' prediction threshold...'))
-        prediction_threshold_optimized, opt_config = fit_prediction_thresholds(i, train_config, validation_generator,
+        prediction_threshold_optimized, opt_config = fit_prediction_thresholds(i, 'iou_score_1H', train_config,
+                                                                               validation_generator,
+                                                                               1.0,
                                                                                Path(model_dir, "model.hdf5").as_posix())
         prediction_thresholds_optimized.update({str('class_'+str(i)): {'x': float(prediction_threshold_optimized.x),
                                                                        'success': prediction_threshold_optimized.success,
@@ -192,6 +195,7 @@ def train(gcp_bucket, config_file):
         'original_config_filename': config_file,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
+        'current_global_threshold_for_reference': global_threshold,
         'threshold_optimization_configuration': opt_config,
         'prediction_thresholds_optimized': prediction_thresholds_optimized
     }
@@ -200,6 +204,10 @@ def train(gcp_bucket, config_file):
         yaml.safe_dump(metadata, f)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'models').as_posix(), gcp_bucket))
+
+    print('\n Train/Val Metadata:')
+    print(metadata)
+    print('\n')
 
     shutil.rmtree(tmp_directory.as_posix())
 
