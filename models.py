@@ -177,8 +177,10 @@ class EvaluateModelForInputThreshold:
             optimizing_input_threshold=input_threshold)
 
         all_results = optimizing_model.evaluate(self.dataset_generator,
-                                                steps=np.ceil(self.dataset_downsample_factor *
-                                                              len(self.dataset_generator)).astype(int))
+                                                steps=np.ceil(np.ceil(self.dataset_downsample_factor *
+                                                              len(self.dataset_generator) /
+                                                              self.dataset_generator.batch_size) *
+                                                              self.dataset_generator.batch_size).astype(int))
         assert len(all_results) == 2
 
         return 1 - all_results[-1]
