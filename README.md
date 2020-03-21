@@ -10,6 +10,7 @@ To accomplish this, there are five workflows that this repository supports. Befo
 * [**data ingestion**](docs/data_ingestion.md): copying the raw data into a cloud bucket and logically structuring it
 * [**dataset preparation**](docs/dataset_preparation.md): preparing a dataset for use in training and testing
 * [**training**](docs/training.md): training a damage segmentation model on a dataset
+* [**training prediction thresholds**](docs/training_thresholds.md): training prediction thresholds of a damage segmentation model on a dataset
 * [**testing**](docs/testing.md): testing the performance of a pretrained damage segmentation model on a dataset
 * [**inference**](docs/inference.md): segmenting the damage of an image stack
 

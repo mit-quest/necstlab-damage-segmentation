@@ -16,7 +16,7 @@ metadata_file_name = 'metadata_' + test_datetime + '.yaml'
 tmp_directory = Path('./tmp')
 
 
-def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
+def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id):
 
     start_dt = datetime.now()
 
@@ -46,12 +46,9 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
     with Path(local_model_dir, model_id, 'config.yaml').open('r') as f:
         train_config = yaml.safe_load(f)['train_config']
 
-    if fit_metadata_root_path is not None:
-        with Path(local_model_dir, model_id, fit_metadata_root_path).open('r') as f:
-            threshold_metadata = yaml.safe_load(f)
-    else:
-        with Path(local_model_dir, model_id, 'metadata.yaml').open('r') as f:
-            threshold_metadata = yaml.safe_load(f)
+    if trained_thresholds_id is not None:
+        with Path(local_model_dir, model_id, trained_thresholds_id).open('r') as f:
+            threshold_output_data = yaml.safe_load(f)
 
     target_size = dataset_config['target_size']
 
@@ -63,15 +60,15 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
         seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
 
     optimized_class_thresholds = {}
-    if 'prediction_thresholds_optimized' in threshold_metadata:
+    if trained_thresholds_id is not None and 'thresholds_training_output' in threshold_output_data['metadata']:
         for i in range(len(test_generator.mask_filenames)):
-            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+            if ('x' in threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))] and
+                    threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['success']):
                 optimized_class_thresholds.update(
-                    {str('class_' + str(i)): threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
+                    {str('class' + str(i)): threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['x']}
                 )
             else:
-                optimized_class_thresholds.update({str('class_' + str(i)): None})
+                AssertionError('Unsuccessfully trained threshold attempted to be loaded.')
     else:
         optimized_class_thresholds = None
 
@@ -99,9 +96,9 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, fit_metadata_root_path):
         'gcp_bucket': gcp_bucket,
         'dataset_id': dataset_id,
         'model_id': model_id,
-        'optimized_class_thresholds_used': optimized_class_thresholds,  # global thresh used if None
+        'trained_thresholds_id': trained_thresholds_id,
+        'trained_class_thresholds_loaded': optimized_class_thresholds,  # global thresh used if None
         'default_global_threshold_for_reference': global_threshold,
-        'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
         'batch_size': batch_size,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
@@ -145,9 +142,9 @@ if __name__ == "__main__":
         default=16,
         help='The batch size to use during inference.')
     argparser.add_argument(
-        '--fit-metadata-root-path',
+        '--trained-thresholds-id',
         type=str,
         default=None,
-        help='The GCP bucket path to specified fit metadata relative to model directory--priority over model metadata.')
+        help='The specified trained thresholds file id.')
 
     test(**argparser.parse_args().__dict__)

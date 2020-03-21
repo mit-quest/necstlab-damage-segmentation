@@ -7,15 +7,15 @@ import pytz
 import git
 from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
-from models import fit_prediction_thresholds
+from models import train_prediction_thresholds
 
-# can fit same model repeatedly with different optimization configurations
-metadata_file_name = 'metadata_fit_thresholds_output_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
+# can train same model repeatedly with different optimization configurations
+output_file_name = 'model_thresholds_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
 tmp_directory = Path('./tmp')
 
 
-def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, model_id, batch_size,
-                                                 optimizing_class_metric, dataset_downsample_factor):
+def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, model_id, batch_size,
+                                                   optimizing_class_metric, dataset_downsample_factor):
 
     start_dt = datetime.now()
 
@@ -34,16 +34,16 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
     local_model_dir = Path(tmp_directory, 'models')
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_directory),
-                                    Path(local_dataset_dir, dataset_id))
+                                   Path(local_dataset_dir, dataset_id))
 
     copy_file_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_id, 'config.yaml'),
                                  Path(local_dataset_dir, dataset_id, 'config.yaml'))
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
 
-    fit_id = "{}_{}_{}".format(model_id, dataset_id, optimizing_class_metric)
-    fit_id_dir = Path(tmp_directory, str('fit_thresholds_' + fit_id))
-    fit_id_dir.mkdir(parents=True)
+    train_thresh_id = "{}_{}_{}".format(model_id, dataset_id, optimizing_class_metric)
+    train_thresh_id_dir = Path(tmp_directory, str('train_thresholds_' + train_thresh_id))
+    train_thresh_id_dir.mkdir(parents=True)
 
     with Path(local_dataset_dir, dataset_id, 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
@@ -53,7 +53,7 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
 
     target_size = dataset_config['target_size']
 
-    fit_dataset_generator = ImagesAndMasksGenerator(
+    train_threshold_dataset_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_directory).as_posix(),
         rescale=1./255,
         target_size=target_size,
@@ -61,26 +61,31 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
         shuffle=True,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
-    prediction_thresholds_optimized = {}
+    trained_prediction_thresholds = {}
+    training_thresholds_output = {}
     opt_config = []
-    for i in range(len(fit_dataset_generator.mask_filenames)):
-        print('\n' + str('Fitting class ' + str(i) + ' prediction threshold...'))
-        prediction_threshold_optimized, opt_config = fit_prediction_thresholds(i, optimizing_class_metric, train_config,
-                                                                               fit_dataset_generator,
-                                                                               dataset_downsample_factor,
-                                                                               Path(local_model_dir, model_id,
-                                                                                    "model.hdf5").as_posix())
-        prediction_thresholds_optimized.update({str('class_'+str(i)): {'x': float(prediction_threshold_optimized.x),
-                                                                       'success': prediction_threshold_optimized.success,
-                                                                       'status': prediction_threshold_optimized.status,
-                                                                       'message': prediction_threshold_optimized.message,
-                                                                       'nfev': prediction_threshold_optimized.nfev,
-                                                                       'fun': float(prediction_threshold_optimized.fun)}})
+    for i in range(len(train_threshold_dataset_generator.mask_filenames)):
+        print('\n' + str('Training class' + str(i) + ' prediction threshold...'))
+        training_threshold_output, opt_config = train_prediction_thresholds(i, optimizing_class_metric, train_config,
+                                                                            train_threshold_dataset_generator,
+                                                                            dataset_downsample_factor,
+                                                                            Path(local_model_dir, model_id,
+                                                                                 "model.hdf5").as_posix())
+        if not training_threshold_output.success:
+            AssertionError("Training prediction thresholds has failed. See function minimization command line output.")
+
+        training_thresholds_output.update({str('class'+str(i)): {'x': float(training_threshold_output.x),
+                                                                 'success': training_threshold_output.success,
+                                                                 'status': training_threshold_output.status,
+                                                                 'message': training_threshold_output.message,
+                                                                 'nfev': training_threshold_output.nfev,
+                                                                 'fun': float(training_threshold_output.fun)}})
+        trained_prediction_thresholds.update({str('class' + str(i)): float(training_threshold_output.x)})
 
     metadata = {
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
-        'num_classes': len(fit_dataset_generator.mask_filenames),
+        'num_classes': len(train_threshold_dataset_generator.mask_filenames),
         'target_size': target_size,
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
@@ -89,18 +94,23 @@ def fit_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, 
         'batch_size': batch_size,
         'dataset_config': dataset_config,
         'train_config': train_config,
-        'threshold_optimization_configuration': opt_config,
-        'prediction_thresholds_optimized': prediction_thresholds_optimized
+        'thresholds_training_configuration': opt_config,
+        'thresholds_training_output': training_thresholds_output
     }
 
-    with Path(fit_id_dir, metadata_file_name).open('w') as f:
-        yaml.safe_dump(metadata, f)
+    output_data = {
+        'trained_prediction_thresholds': trained_prediction_thresholds,
+        'metadata': metadata
+    }
+
+    with Path(train_thresh_id_dir, output_file_name).open('w') as f:
+        yaml.safe_dump(output_data, f)
 
     # copy without overwrite
-    os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(fit_id_dir).as_posix(),
+    os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(train_thresh_id_dir, output_file_name).as_posix(),
                                                     os.path.join(gcp_bucket, 'models', model_id)))
 
-    print('\n Fit Prediction Thresholds Metadata:')
+    print('\n Train Prediction Thresholds Metadata:')
     print(metadata)
     print('\n')
 
@@ -133,11 +143,11 @@ if __name__ == "__main__":
         '--optimizing-class-metric',
         type=str,
         default='iou_score_1H',
-        help='Use single class metric if fitting prediction threshold.')
+        help='Use single class metric if training prediction threshold.')
     argparser.add_argument(
         '--dataset-downsample-factor',
         type=float,
         default=1.0,
         help='Accelerate optimization via using subset of dataset.')
 
-    fit_segmentation_model_prediction_thresholds(**argparser.parse_args().__dict__)
+    train_segmentation_model_prediction_thresholds(**argparser.parse_args().__dict__)

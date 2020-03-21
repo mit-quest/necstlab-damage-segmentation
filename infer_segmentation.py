@@ -139,7 +139,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
-         labels_output, pad_output, fit_metadata_root_path):
+         labels_output, pad_output, trained_thresholds_id):
 
     start_dt = datetime.now()
 
@@ -177,29 +177,27 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     with Path(local_model_dir, 'metadata.yaml').open('r') as f:
         model_metadata = yaml.safe_load(f)
 
-    if fit_metadata_root_path is not None:
-        with Path(local_model_dir, fit_metadata_root_path).open('r') as f:
-            threshold_metadata = yaml.safe_load(f)
-    else:
-        with Path(local_model_dir, 'metadata.yaml').open('r') as f:
-            threshold_metadata = yaml.safe_load(f)
+    if trained_thresholds_id is not None:
+        with Path(local_model_dir, trained_thresholds_id).open('r') as f:
+            threshold_output_data = yaml.safe_load(f)
 
     image_folder = Path(local_processed_data_dir, 'images')
     assert model_metadata['target_size'][0] == model_metadata['target_size'][1]
     target_size_1d = model_metadata['target_size'][0]
     num_classes = model_metadata['num_classes']
 
-    # load optimized threshold(s) for either use or reference
     optimized_class_thresholds = {}
-    if 'prediction_thresholds_optimized' in threshold_metadata:
+    if trained_thresholds_id is not None and 'thresholds_training_output' in threshold_output_data['metadata']:
         for i in range(num_classes):
-            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
+            if ('x' in threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))] and
+                    threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['success']):
                 optimized_class_thresholds.update(
-                    {str('class_' + str(i)): threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['x']}
+                    {str('class' + str(i)): threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['x']}
                 )
             else:
-                optimized_class_thresholds.update({str('class_' + str(i)): None})
+                AssertionError('Unsuccessfully trained threshold attempted to be loaded.')
+    else:
+        optimized_class_thresholds = None
 
     # set threshold(s) used for inference
     if user_specified_prediction_thresholds:
@@ -208,14 +206,14 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         else:
             assert len(user_specified_prediction_thresholds) == num_classes
             prediction_threshold = np.asarray(user_specified_prediction_thresholds)
-    elif 'prediction_thresholds_optimized' in threshold_metadata:
+    elif trained_thresholds_id is not None and 'thresholds_training_output' in threshold_output_data['metadata']:
         prediction_threshold = np.empty(num_classes)
         for i in range(num_classes):
-            if ('x' in threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))] and
-                    threshold_metadata['prediction_thresholds_optimized'][str('class_' + str(i))]['success']):
-                prediction_threshold[i] = threshold_metadata['prediction_thresholds_optimized'][str('class_'+str(i))]['x']
+            if ('x' in threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))] and
+                    threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['success']):
+                prediction_threshold[i] = threshold_output_data['metadata']['thresholds_training_output'][str('class'+str(i))]['x']
             else:
-                prediction_threshold[i] = global_threshold
+                AssertionError('Unsuccessfully trained threshold attempted to be loaded.')
     else:
         prediction_threshold = np.ones(num_classes) * global_threshold
 
@@ -270,8 +268,8 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
         'user_specified_prediction_thresholds': user_specified_prediction_thresholds,
-        'loaded_optimized_class_thresholds': optimized_class_thresholds,
-        'threshold_metadata_root_path': fit_metadata_root_path,  # if None, then opt thresh's in model metadata by default
+        'trained_thresholds_id': trained_thresholds_id,
+        'trained_class_thresholds_loaded': optimized_class_thresholds,
         'default_global_threshold_for_reference': global_threshold,
         'prediction_thresholds_used': str(prediction_threshold),
         'background_class_index': background_class_index,
@@ -340,9 +338,9 @@ if __name__ == "__main__":
         default='False',
         help='If false, will output inference identical to input image size.')
     argparser.add_argument(
-        '--fit-metadata-root-path',
+        '--trained-thresholds-id',
         type=str,
         default=None,
-        help='The GCP bucket path to specified fit metadata relative to model directory--priority over model metadata.')
+        help='The specified trained thresholds file id.')
 
     main(**argparser.parse_args().__dict__)
