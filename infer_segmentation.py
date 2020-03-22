@@ -163,7 +163,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     local_processed_data_dir.mkdir(parents=True)
     local_inferences_dir = Path(tmp_directory, 'inferences', run_name)
     local_inferences_dir.mkdir(parents=True)
-    output_dir = Path(local_inferences_dir, 'output')
+    output_dir = Path(local_inferences_dir, str('output_' + infer_datetime))
     output_dir.mkdir(parents=True)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'models', model_id),
@@ -249,19 +249,19 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
             image_file_ext = image_file.parts[-1].split('.')[-1]
             if labels_output and pad_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_pad_labels_' + infer_datetime + '.'
+                    image_file.parts[-1].split('.')[0] + '_pad_labels' + '.'
                     + image_file_ext)).as_posix())
             elif labels_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_labels_' + infer_datetime + '.'
+                    image_file.parts[-1].split('.')[0] + '_labels' + '.'
                     + image_file_ext)).as_posix())
             elif pad_output:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_pad_' + infer_datetime + '.'
+                    image_file.parts[-1].split('.')[0] + '_pad' + '.'
                     + image_file_ext)).as_posix())
             else:
                 segmented_image.save(Path(output_dir, str(
-                    image_file.parts[-1].split('.')[0] + '_' + infer_datetime + '.'
+                    image_file.parts[-1].split('.')[0] + '.'
                     + image_file_ext)).as_posix())
 
     metadata = {
