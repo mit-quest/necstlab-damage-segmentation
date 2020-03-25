@@ -271,7 +271,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'trained_thresholds_id': trained_thresholds_id,
         'trained_class_thresholds_loaded': optimized_class_thresholds,
         'default_global_threshold_for_reference': global_threshold,
-        'prediction_thresholds_used': str(prediction_threshold),
+        'prediction_thresholds_used': list(prediction_threshold),
         'background_class_index': background_class_index,
         'stack_id': stack_id,
         'image_ids': image_ids,
