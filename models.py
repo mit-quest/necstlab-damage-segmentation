@@ -19,6 +19,10 @@ from segmentation_models import Unet
 from segmentation_models.losses import CategoricalCELoss
 
 
+thresholds_training_history = {}
+train_thresholds_counter = 0
+
+
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
                                          weights_to_load=None, optimizing_threshold_class_metric=None,
                                          optimizing_class_id=None, optimizing_input_threshold=None,
@@ -184,6 +188,13 @@ class EvaluateModelForInputThreshold:
                                                                                              self.optimizing_threshold_class_metric,
                                                                                              optimizing_result)
         )
+        print('\n')
+
+        global train_thresholds_counter
+        if train_thresholds_counter == 0:
+            thresholds_training_history[str('class' + str(self.optimizing_class_id))] = {}
+        thresholds_training_history[str('class' + str(self.optimizing_class_id))][str(str(train_thresholds_counter) + '_threshold_metric')] = [float(input_threshold), float(optimizing_result)]
+        train_thresholds_counter += 1
 
         return 1 - optimizing_result
 
@@ -195,10 +206,13 @@ def train_prediction_thresholds(optimizing_class_id, optimizing_threshold_class_
     optimizing_compiled_model = EvaluateModelForInputThreshold(optimizing_class_id, optimizing_threshold_class_metric,
                                                                train_config, dataset_generator,
                                                                dataset_downsample_factor, model_path)
+    global train_thresholds_counter
+    train_thresholds_counter = 0
+
     opt_bounds = [0, 1]
     opt_method = 'bounded'
-    opt_tol = 0.1
-    opt_options = {'maxiter': 1000, 'disp': 3}
+    opt_tol = 1e-5
+    opt_options = {'maxiter': 500, 'disp': 3}
     optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
                                   'opt_options': opt_options, 'opt_class_metric': optimizing_threshold_class_metric,
                                   'opt_dataset_generator': dataset_generator.dataset_directory,

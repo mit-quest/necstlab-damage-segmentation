@@ -7,7 +7,7 @@ import pytz
 import git
 from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
-from models import train_prediction_thresholds
+from models import train_prediction_thresholds, thresholds_training_history
 
 # can train same model repeatedly with different optimization configurations
 output_file_name = 'model_thresholds_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
@@ -95,11 +95,12 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         'dataset_config': dataset_config,
         'train_config': train_config,
         'thresholds_training_configuration': opt_config,
-        'thresholds_training_output': training_thresholds_output
+        'thresholds_training_output': training_thresholds_output,
+        'thresholds_training_history': thresholds_training_history
     }
 
     output_data = {
-        'trained_prediction_thresholds': trained_prediction_thresholds,
+        'final_trained_prediction_thresholds': trained_prediction_thresholds,
         'metadata': metadata
     }
 
