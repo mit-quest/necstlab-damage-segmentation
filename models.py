@@ -90,30 +90,17 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
             all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
             all_metrics.append(ClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm'),
                                                      class_indexes=class_num - 1, threshold=class_threshold))
-            all_metrics.append(OneHotClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm_1H'),
-                                                           class_indexes=class_num - 1, threshold=class_threshold))
             all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras'),
                                                           class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(OneHotClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras_1H'),
-                                                                class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(IoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
                                         class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(OneHotIoUScore(name=str('class' + str(class_num - 1) + '_iou_score_1H'),
-                                              class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(FBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
                                           class_id=class_num - 1,
                                           beta=1, thresholds=class_threshold))
-            all_metrics.append(OneHotFBetaScore(name=str('class' + str(class_num - 1) + '_f1_score_1H'),
-                                                class_id=class_num - 1,
-                                                beta=1, thresholds=class_threshold))
             all_metrics.append(Precision(name=str('class' + str(class_num - 1) + '_precision'),
                                          class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(OneHotPrecision(name=str('class' + str(class_num - 1) + '_precision_1H'),
-                                               class_id=class_num - 1, thresholds=class_threshold))
             all_metrics.append(Recall(name=str('class' + str(class_num - 1) + '_recall'),
                                       class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(OneHotRecall(name=str('class' + str(class_num - 1) + '_recall_1H'),
-                                            class_id=class_num - 1, thresholds=class_threshold))
 
             if optimizing_threshold_class_metric is not None:
                 break
