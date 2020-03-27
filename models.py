@@ -198,7 +198,7 @@ def train_prediction_thresholds(optimizing_class_id, optimizing_threshold_class_
 
     opt_bounds = [0, 1]
     opt_method = 'bounded'
-    opt_tol = 1e-3
+    opt_tol = 1e-2
     opt_options = {'maxiter': 500, 'disp': 3}
     optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
                                   'opt_options': opt_options, 'opt_class_metric': optimizing_threshold_class_metric,
