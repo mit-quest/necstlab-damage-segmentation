@@ -227,7 +227,9 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         optimized_class_thresholds=optimized_class_thresholds)
 
     if image_ids is None:
-        images_list = list(Path(image_folder).iterdir())
+        images_list = []
+        for i in Path(image_folder).iterdir():
+            images_list.append(i.parts[-1])
     else:
         images_list = image_ids.split(',')
 
