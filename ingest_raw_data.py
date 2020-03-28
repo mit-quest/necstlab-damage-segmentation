@@ -124,7 +124,7 @@ if __name__ == "__main__":
         '--zipped-stack',
         type=str,
         default='',
-        help='The zipped stack to be processed.')
+        help='The zipped stack (.zip or .7z) to be processed.')
 
     kw_args = argparser.parse_args().__dict__
 

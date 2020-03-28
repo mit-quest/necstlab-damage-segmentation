@@ -29,6 +29,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
     tmp_directory.mkdir()
 
     dataset_id = dataset_directory.split('/')[0]
+    dataset_type = dataset_directory.split('/')[-1]
 
     local_dataset_dir = Path(tmp_directory, 'datasets')
     local_model_dir = Path(tmp_directory, 'models')
@@ -53,13 +54,20 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
 
     target_size = dataset_config['target_size']
 
+    if 'validation' in dataset_type:
+        gen_seed = None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed']
+    elif 'test' in dataset_type:
+        gen_seed = None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed']
+    else:
+        gen_seed = 1234
+
     train_threshold_dataset_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_directory).as_posix(),
         rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
-        seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
+        seed=gen_seed)
 
     trained_prediction_thresholds = {}
     training_thresholds_output = {}
@@ -111,6 +119,10 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
     os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(train_thresh_id_dir, output_file_name).as_posix(),
                                                     os.path.join(gcp_bucket, 'models', model_id)))
 
+    print('\n Train Prediction Thresholds Results:')
+    print(trained_prediction_thresholds)
+    print('\n')
+
     print('\n Train Prediction Thresholds Metadata:')
     print(metadata)
     print('\n')
@@ -143,7 +155,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         '--optimizing-class-metric',
         type=str,
-        default='iou_score_1H',
+        default='iou_score',
         help='Use single class metric if training prediction threshold.')
     argparser.add_argument(
         '--dataset-downsample-factor',
