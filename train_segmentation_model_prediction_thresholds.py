@@ -121,7 +121,6 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
 
     print('\n Train Prediction Thresholds Results:')
     print(trained_prediction_thresholds)
-    print('\n')
 
     print('\n Train Prediction Thresholds Metadata:')
     print(metadata)
