@@ -39,9 +39,12 @@ Infrastructure that will be used:
         
 ### Example command line inputs:
 
-* `python3 test_segmentation_model.py --gcp-bucket gs://sandbox --dataset-id dataset-composite_0123 --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16`
-* `python3 test_segmentation_model.py --gcp-bucket gs://sandbox --dataset-id dataset-composite_0123 --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16 --trained-thresholds-id model_thresholds_20200321T181016Z.yaml`
-   
+```
+python3 test_segmentation_model.py --gcp-bucket gs://sandbox --dataset-id dataset-composite_0123 --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16
+
+python3 test_segmentation_model.py --gcp-bucket gs://sandbox --dataset-id dataset-composite_0123 --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16 --trained-thresholds-id model_thresholds_20200321T181016Z.yaml
+``` 
+
 ### Notes:
 
 - Batch size of 16 works with P100 GPU (8 for K80), but batch size of 20 is too large for P100 GPU.

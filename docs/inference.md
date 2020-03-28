@@ -57,10 +57,15 @@ Infrastructure that will be used:
 
 ### Example command line inputs:
 
-* `python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --image-ids composite_1234-209.tif,composite_1234-2089.tif,composite_1234-2189.tif --labels-output False --pad-output False --trained-thresholds-id model_thresholds_20200321T181016Z.yaml`
-* `python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output False --user-specified-prediction-thresholds 0.5`
-* `python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output True --user-specified-prediction-thresholds 0.5 0.25 0.02` _(3-class example)_
-* `python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output True`
+```
+python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --image-ids composite_1234-209.tif,composite_1234-2089.tif,composite_1234-2189.tif --labels-output False --pad-output False --trained-thresholds-id model_thresholds_20200321T181016Z.yaml
+
+python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output False --user-specified-prediction-thresholds 0.5
+
+python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output True --user-specified-prediction-thresholds 0.5 0.25 0.02        (3-class example)
+
+python3 infer_segmentation.py --gcp-bucket gs://sandbox --stack-id composite_1234 --model-id segmentation-model-composite_0123_20200321T154533Z --labels-output True --pad-output True
+```
 
 ### Notes:
 

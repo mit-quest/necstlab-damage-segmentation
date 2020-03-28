@@ -30,7 +30,9 @@ Infrastructure that will be used:
         
 ### Example command line inputs:
 
-* `python3 prepare_dataset.py --gcp-bucket gs://sandbox --config-file configs/config_sandbox/dataset-composite_0123.yaml`
+```
+python3 prepare_dataset.py --gcp-bucket gs://sandbox --config-file configs/config_sandbox/dataset-composite_0123.yaml
+```
 
 ### Tips:
 

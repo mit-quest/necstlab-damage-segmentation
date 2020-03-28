@@ -29,7 +29,9 @@ Infrastructure that will be used:
         
 ### Example command line inputs:
 
-* `python3 train_segmentation_model.py  --gcp-bucket gs://sandbox --config-file configs/config_sandbox/train-composite_0123.yaml`
+```
+python3 train_segmentation_model.py  --gcp-bucket gs://sandbox --config-file configs/config_sandbox/train-composite_0123.yaml
+```
 
 ### Notes:
 

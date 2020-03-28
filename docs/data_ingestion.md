@@ -35,9 +35,13 @@ Infrastructure that will be used:
         
 ### Example command line inputs:
 
-* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_0123.zip`
-* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_1234.7z`
-* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox`
+```
+python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_0123.zip
+
+python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_1234.7z
+
+python3 ingest_raw_data.py --gcp-bucket gs://sandbox
+```
 
 ### Notes:
 
