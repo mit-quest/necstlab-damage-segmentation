@@ -1,6 +1,6 @@
 train_config:
-  model_id_prefix: 'segmentation-model-esrf16_segV1_study1_BinCE_CropCase5_TrnValCaseB'
-  dataset_id: 'dataset-esrf16_segV1_study1_CropCase5_TrnValCaseB'
+  model_id_prefix: 'segmentation-model-esrf16_segV1_study1_BinCE_CropCase2_TrnValCaseA_GVrev'
+  dataset_id: 'dataset-esrf16_segV1_study1_CropCase2_TrnValCaseA_GVrev'
   segmentation_model:
     model_name: 'Unet'
     model_parameters:
@@ -9,7 +9,7 @@ train_config:
   loss: 'cross_entropy'
   optimizer: 'adam'
   batch_size: 16    # p100
-  epochs: 200
+  epochs: 100
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
   test_data_shuffle_seed: 123456

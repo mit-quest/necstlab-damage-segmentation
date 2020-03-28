@@ -9,7 +9,7 @@ train_config:
   loss: 'cross_entropy'
   optimizer: 'adam'
   batch_size: 16    # p100
-  epochs: 100
+  epochs: 200
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
   test_data_shuffle_seed: 123456

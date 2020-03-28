@@ -1,7 +1,7 @@
 # Data Ingestion
 
 Prerequisite artifacts:
-* A stack of (zipped) images or annotations (tifs) that we wish to use in the other workflows on your local machine
+* A stack of (zipped) images or annotations (.tif's) that we wish to use in the other workflows on your local machine
 * The zip filename is expected to look like:
     ``` 
     <stack_id>.zip (for unsegmented images)
@@ -23,9 +23,30 @@ Infrastructure that will be used:
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/processed-data/<stack_ID>`.
 1. Use Terraform to terminate the appropriate GCP virtual machine (`terraform destroy`). Once Terraform finishes, you can check the GCP virtual machine console to ensure a virtual machine has been destroyed.
 
-Note:
+### Summary of command line arguments of `ingest_raw_data.py`:
+
+* `--gcp-bucket`:
+        type=str,
+        help='The GCP bucket where the raw data is located and to use to store the processed stacks.'
+* `--zipped-stack`:
+        type=str,
+        default='',
+        help='The zipped stack (.zip or .7z) to be processed.'
+        
+### Example command line inputs:
+
+* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_0123.zip`
+* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox --zipped-stack gs://sandbox/raw-data/composite_1234.7z`
+* `python3 ingest_raw_data.py --gcp-bucket gs://sandbox`
+
+### Notes:
+
 - `ingest_raw_data.py` assumes that if `dmg` appears in the zip filename, then that the zip file has annotations. If no `dmg` appears, then it assumes it contains images.
 - An identical `<stack_ID>` (image and/or annotations) existing in both `raw-data` and `processed-data` will be skipped by `ingest_raw_data.py`.
-- In VM SSH, use `nano` text editor to edit scripts previously uploaded to VM. E.g., `nano configs/dataset-medium.yaml` to edit text in `dataset-medium.yaml`
-- To create a VM without destroying others (assuming `terraform apply` seeks to create & destroy), use `target` flag: `terraform apply -lock=false -target=google_compute_instance.vm[<#>]` to create VM #
+
+### Tips:
+
+- In VM SSH, use `nano` text editor to edit scripts previously uploaded to VM. _E.g.,_ `nano configs/dataset-medium.yaml` to edit text in `dataset-medium.yaml`
+- To create a VM without destroying others (assuming `terraform apply` seeks to create & destroy), use `target` flag: `terraform apply -lock=false -target=google_compute_instance.vm[<#>]` to create VM #. Similar syntax with `terraform destroy` to specify target.
+
 

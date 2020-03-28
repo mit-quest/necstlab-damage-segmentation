@@ -18,6 +18,10 @@ def copy_folder_locally_if_missing(folder_remote_source, local_folder_dir):
         os.system("gsutil -m cp -r '{}' '{}'".format(folder_remote_source, local_folder_dir.as_posix()))
 
 
+def copy_file_locally_if_missing(file_remote_path, local_file_path):
+    os.system("gsutil cp -n '{}' '{}'".format(file_remote_path, local_file_path))
+
+
 def remote_folder_exists(remote_dest, folder_name):
     with Path('terraform.tfvars').open() as f:
         line = f.readline()

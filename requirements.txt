@@ -18,3 +18,4 @@ crcmod
 gitpython
 matplotlib
 ipykernel
+scipy

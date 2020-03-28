@@ -13,6 +13,7 @@ from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
+from metrics_utils import global_threshold
 
 
 metadata_file_name = 'metadata.yaml'
@@ -178,13 +179,18 @@ def train(gcp_bucket, config_file):
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
-        'dataset_config': dataset_config
+        'dataset_config': dataset_config,
+        'global_threshold_for_metrics': global_threshold,
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'models').as_posix(), gcp_bucket))
+
+    print('\n Train/Val Metadata:')
+    print(metadata)
+    print('\n')
 
     shutil.rmtree(tmp_directory.as_posix())
 
