@@ -45,8 +45,7 @@ Infrastructure that will be used:
 
 ```
 python3 train_segmentation_model_prediction_thresholds.py --gcp-bucket gs://sandbox --dataset-directory dataset-composite_0123/validation --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16 --optimizing-class-metric iou_score --dataset-downsample-factor 0.1
-```
-```
+
 python3 train_segmentation_model_prediction_thresholds.py --gcp-bucket gs://sandbox --dataset-directory dataset-composite_0123/test --model-id segmentation-model-composite_0123_20200321T154533Z --batch-size 16 --optimizing-class-metric f1_score --dataset-downsample-factor 0.5
 ```
         
