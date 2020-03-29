@@ -240,7 +240,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     n_images = len(list(Path(image_folder).iterdir()))
     for i, image_file in enumerate(sorted(Path(image_folder).iterdir())):
         if image_file.parts[-1] in images_list:
-            print('Segmenting image {} of {}...'.format(i, n_images))
+            print('Segmenting image index {} --- stack has {} images...'.format(i, n_images))
 
             image = Image.open(image_file)
 
