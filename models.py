@@ -51,29 +51,29 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                 all_metrics[1].name = str('categ_cross_entropy_sm')
             all_metrics.extend([
                 AccuracyTfKeras(),
-                OneHotAccuracyTfKeras(),  # `global_threshold` built-in
+                # OneHotAccuracyTfKeras(),  # `global_threshold` built-in
                 ClassBinaryAccuracyTfKeras(thresholds=global_threshold),
-                OneHotClassBinaryAccuracyTfKeras(thresholds=global_threshold),
+                # OneHotClassBinaryAccuracyTfKeras(thresholds=global_threshold),
                 ClassBinaryAccuracySM(threshold=global_threshold),
-                OneHotClassBinaryAccuracySM(threshold=global_threshold),
+                # OneHotClassBinaryAccuracySM(threshold=global_threshold),
                 BinaryAccuracy(threshold=global_threshold),
                 CategoricalAccuracy(),
                 FalseNegatives(name='false_neg', thresholds=global_threshold),
-                OneHotFalseNegatives(name='false_neg_1H', thresholds=global_threshold),
+                # OneHotFalseNegatives(name='false_neg_1H', thresholds=global_threshold),
                 TrueNegatives(name='true_neg', thresholds=global_threshold),
-                OneHotTrueNegatives(name='true_neg_1H', thresholds=global_threshold),
+                # OneHotTrueNegatives(name='true_neg_1H', thresholds=global_threshold),
                 FalsePositives(name='false_pos', thresholds=global_threshold),
-                OneHotFalsePositives(name='false_pos_1H', thresholds=global_threshold),
+                # OneHotFalsePositives(name='false_pos_1H', thresholds=global_threshold),
                 TruePositives(name='true_pos', thresholds=global_threshold),
-                OneHotTruePositives(name='true_pos_1H', thresholds=global_threshold),
+                # OneHotTruePositives(name='true_pos_1H', thresholds=global_threshold),
                 Recall(name='recall', thresholds=global_threshold),
-                OneHotRecall(name='recall_1H', thresholds=global_threshold),
+                # OneHotRecall(name='recall_1H', thresholds=global_threshold),
                 Precision(name='precision', thresholds=global_threshold),
-                OneHotPrecision(name='precision_1H', thresholds=global_threshold),
+                # OneHotPrecision(name='precision_1H', thresholds=global_threshold),
                 FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
-                OneHotFBetaScore(name='f1_score_1H', beta=1, thresholds=global_threshold),
+                # OneHotFBetaScore(name='f1_score_1H', beta=1, thresholds=global_threshold),
                 IoUScore(name='iou_score', thresholds=global_threshold),
-                OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
+                # OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
             ])
         elif class_num == 0 and optimizing_threshold_class_metric is not None:  # all class metrics
             continue
