@@ -22,7 +22,7 @@ def copy_file_locally_if_missing(file_remote_path, local_file_path):
     os.system("gsutil cp -n '{}' '{}'".format(file_remote_path, local_file_path))
 
 
-def remote_folder_exists(remote_dest, folder_name):
+def remote_folder_exists(remote_dest, folder_name, sample_file_name=None):
     with Path('terraform.tfvars').open() as f:
         line = f.readline()
         while line:
@@ -34,6 +34,16 @@ def remote_folder_exists(remote_dest, folder_name):
     bucket_name = remote_dest.split('/')[2]
     bucket = storage_client.get_bucket(bucket_name)
 
+    if sample_file_name is not None:
+        folder_name = '/'.join([folder_name] + [sample_file_name])
+
     blobs = bucket.list_blobs(prefix='/'.join(remote_dest.split('/')[3:] + [folder_name]),
-                              max_results=1)
-    return len(list(blobs)) >= 1
+                              max_results=None)
+
+    folder_exists = False
+    for blob in blobs:
+        if blob.name.split('/')[1] == folder_name.split('/')[0]:
+            folder_exists = True
+            break
+
+    return folder_exists
