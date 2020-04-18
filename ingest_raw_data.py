@@ -47,11 +47,13 @@ def process_zip(gcp_bucket, zipped_stack):
 
     stack_dir = Path(tmp_directory, stack_id)
 
-    if not is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data', stack_id), "images"):
+    if not is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
+                                                  '/'.join([stack_id] + ["images"])):
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "images")))
 
-    elif is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data', stack_id), "annotations"):
+    elif is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
+                                                '/'.join([stack_id] + ["annotations"])):
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "annotations")))
 
@@ -99,7 +101,7 @@ def process_zip(gcp_bucket, zipped_stack):
         with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:
             yaml.safe_dump(metadata, f)
 
-        os.system("gsutil -m cp -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
+        os.system("gsutil -m cp -n -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
                                                      os.path.join(gcp_bucket, 'processed-data/')))
 
         print('\n Ingest Raw Data Metadata:')

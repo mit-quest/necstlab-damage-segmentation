@@ -287,8 +287,8 @@ def split_prepared_data(data_prep_local_dir, prepared_dataset_local_dir, dataset
 
 def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remote_dest, dataset_id):
     print('Copying dataset {} to gcp bucket...'.format(dataset_id))
-    os.system("gsutil -m cp -r '{}' '{}'".format(prepared_dataset_location.as_posix(),
-                                                 os.path.join(prepared_dataset_remote_dest, dataset_id)))
+    os.system("gsutil -m cp -n -r '{}' '{}'".format(prepared_dataset_location.as_posix(),
+                                                    os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
 
 def prepare_dataset(gcp_bucket, config_file):
@@ -331,7 +331,7 @@ def prepare_dataset(gcp_bucket, config_file):
         all_scans += scans
     all_scans = sorted(set(all_scans))
 
-    assert not remote_folder_exists(prepared_dataset_remote_dest, dataset_id)
+    assert not remote_folder_exists(prepared_dataset_remote_dest, dataset_id, sample_file_name='config.yaml')
 
     copy_processed_data_locally_if_missing(all_scans, processed_data_remote_source, processed_data_local_dir)
 
