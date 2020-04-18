@@ -35,7 +35,7 @@ def remote_folder_exists(remote_dest, folder_name, sample_file_name=None):
     bucket = storage_client.get_bucket(bucket_name)
 
     if sample_file_name is not None:
-        folder_name = '/'.join([folder_name] + [sample_file_name])
+        folder_name = '/'.join([folder_name, sample_file_name])
 
     blobs = bucket.list_blobs(prefix='/'.join(remote_dest.split('/')[3:] + [folder_name]),
                               max_results=None)
