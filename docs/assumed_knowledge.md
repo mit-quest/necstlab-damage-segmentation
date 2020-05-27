@@ -1,5 +1,5 @@
 # Assumed knowledge
-
+what does this mean?
 The workflows contained in this repository assume:
 * You know how to check the status of GCP virtual machines using the GCP compute engine dashboard. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/compute/docs/instances) for instructions. 
 * You know how to SSH into a GCP virtual machine. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/compute/docs/instances/connecting-to-instance) for instructions to use local SSH client or [here](https://cloud.google.com/compute/docs/ssh-in-browser) for their browser client.
