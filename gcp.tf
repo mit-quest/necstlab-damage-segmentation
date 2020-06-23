@@ -51,7 +51,7 @@ resource "google_compute_instance" "vm" {
   }
 
   guest_accelerator{
-    type = "${var.gpu_type}" // Type of GPU attahced
+    type = "${var.gpu_type}" // Type of GPU attached
     count = "${var.number_of_gpus}" // Num of GPU attached
   }
 
