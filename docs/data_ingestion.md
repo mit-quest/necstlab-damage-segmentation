@@ -13,7 +13,7 @@ Infrastructure that will be used:
 * Your local machine to upload the raw zip files to a GCP bucket
 * A GCP machine to process the raw data
 
-## Workflow
+## Workflow 
 
 1. Copy the zip files of raw data into a GCP bucket: `gsutil -m cp <local_data_file> gs://<gcp_bucket_name>/raw-data` where `<gcp_bucket_name>` is the bucket where our artifacts will be stored. To copy an entire folder of zip files, `cd` into the directory and use the command: `gsutil -m cp -r . gs://<gcp_bucket_name>/raw-data`
 1. When this completes, you should see your stack in `gs://<gcp_bucket_name>/raw-data/<zip_file>`.
