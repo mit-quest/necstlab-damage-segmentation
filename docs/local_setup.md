@@ -1,4 +1,4 @@
-# Setting up your local machine
+# Setting up your local machine on a Windows Machine
 
 ## Terraform
 
