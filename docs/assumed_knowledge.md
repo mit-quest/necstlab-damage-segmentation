@@ -1,5 +1,4 @@
 # Assumed knowledge
-what does this mean?
 The workflows contained in this repository assume:
 * You know how to interact within terminal and use Git Commands. If you are unfamilair, see [here]() for a  reference/tutorial
 * You know how to check the status of GCP virtual machines using the GCP compute engine dashboard. If you are unfamiliar with how to do this, see [here](https://cloud.google.com/compute/docs/instances) for instructions. 
