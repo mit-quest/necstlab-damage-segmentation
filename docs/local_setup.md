@@ -12,7 +12,8 @@ This software easily allows integration with GitHub version control and seamless
 
 Git Bash is a terminal that we use to rectify Unix line endings within windows machines. Git should have been installed with GitHub Desktop. If not, follow the steps below.
 
-Follow the link here to download Git. Once GitBash is installed, use the following command: `git config --global core.autocrlf false`
+Follow the link here to download Git. Once GitBash is installed, use the following command within that console: `git config --global core.autocrlf false`
+Additionally open Github Desktop and enter the following lines: `git config core.eol lf', 'git config core.autocrlf "input"`.
 
 ## Python
 Python is the language used for scripts within the project. Install the latest Python SDK by following this [link](https://www.python.org/downloads/). During this download, ensure that the option to add Python to the PATH is enabled.
@@ -35,4 +36,12 @@ All of the workflows use Google Cloud Platform (GCP) for storage (buckets) and c
 To set up and destroy virtual machines, Terraform requires access to GCP. To access these credentials, open the service accounts section through IAM & Admin of your bucket. Create a new service account with your terraform account name. Create a key for the new account and add that json file to the "Keys" subfolder of the repository.
 
 Edit the `terraform.tfvars` file with your `username`, `gcp_key_file_location`, `public_ssh_key_location`, `private_ssh_key_location`. For more information on how to generate a public and private SSH key pair, see [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+
+## Testing
+
+To ensure that the local setup worked, use the Google Cloud SDK to create a Virtual Machine using the following commands
+  - `cd` into the necstlab-damage-segmentation repository.
+  - `terraform init`
+  - `terraform apply -lock=false`
+ If you are able to get to a success message after about 10 minutes, your local setup is fully functional.
 
