@@ -13,7 +13,7 @@ This software easily allows integration with GitHub version control and seamless
 Git Bash is a terminal that we use to rectify Unix line endings within windows machines. Git should have been installed with GitHub Desktop. If not, follow the steps below.
 
 Follow the link here to download Git. Once GitBash is installed, use the following command within that console: `git config --global core.autocrlf false`
-Additionally open Github Desktop and enter the following lines: `git config core.eol lf', 'git config core.autocrlf "input"`.
+If you used GitHub Desktop, open Github Desktop and open the text editor by following Repository -> Command Prompt and enter the following lines: `git config core.eol lf', 'git config core.autocrlf "input"`.
 
 ## Python
 Python is the language used for scripts within the project. Install the latest Python SDK by following this [link](https://www.python.org/downloads/). During this download, ensure that the option to add Python to the PATH is enabled.
