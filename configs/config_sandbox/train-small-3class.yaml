@@ -8,8 +8,10 @@ train_config:
       encoder_weights: Null
   loss: 'cross_entropy'
   optimizer: 'adam'
-  batch_size: 16
+  batch_size: 16    # p100
   epochs: 10
   training_data_shuffle_seed: 1234
+  validation_data_shuffle_seed: 12345
+  test_data_shuffle_seed: 123456
   data_augmentation:
     random_90-degree_rotations: True
