@@ -5,7 +5,7 @@ train_config:
     model_name: 'Unet'
     model_parameters:
       backbone_name: 'vgg16'
-      encoder_weights: Null
+      encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet)
   loss: 'cross_entropy'
   optimizer: 'adam'
   batch_size: 16    # p100
