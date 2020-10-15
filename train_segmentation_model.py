@@ -22,13 +22,13 @@ tmp_directory = Path('./tmp')
 
 def sample_image_and_mask_paths(generator, n_paths):
     random.seed(0)
-    rand_inds = [random.randint(0, len(generator.image_filenames)-1) for _ in range(n_paths)]
+    rand_inds = [random.randint(0, len(generator.image_filenames) - 1) for _ in range(n_paths)]
     image_paths = list(np.asarray(generator.image_filenames)[rand_inds])
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file):
+def train(gcp_bucket, config_file, model_id_start):
 
     start_dt = datetime.now()
 
@@ -51,7 +51,13 @@ def train(gcp_bucket, config_file):
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
+
     model_dir.mkdir(parents=True)
+
+    # copy the pretrained model to temp/models/model_id_start
+    if model_id_start is not None:
+        local_model_dir = Path(tmp_directory, 'models')
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id_start), local_model_dir)
 
     plots_dir = Path(model_dir, 'plots')
     plots_dir.mkdir(parents=True)
@@ -71,7 +77,7 @@ def train(gcp_bucket, config_file):
 
     train_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
@@ -81,7 +87,7 @@ def train(gcp_bucket, config_file):
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
              'validation').as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
@@ -92,6 +98,9 @@ def train(gcp_bucket, config_file):
         len(train_generator.mask_filenames),
         train_config['loss'],
         train_config['optimizer'])
+
+    if model_id_start is not None:
+        compiled_model.weights_to_load = Path(local_model_dir, model_id_start, "model.hdf5").as_posix()
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -146,7 +155,7 @@ def train(gcp_bucket, config_file):
     else:  # 1 row for all classes, 1 row for each of n classes
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
-    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
+    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25))
     counter_m = 0
     counter_n = 0
     for metric_name in metric_names:
@@ -209,4 +218,9 @@ if __name__ == "__main__":
         type=str,
         help='The location of the train configuration file.')
 
+    argparser.add_argument(
+        '--model_id_start',
+        type=str,
+        default=None,
+        help='The model ID with previously trained weights.')
     train(**argparser.parse_args().__dict__)
