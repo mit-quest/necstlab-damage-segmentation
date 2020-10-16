@@ -28,7 +28,7 @@ def sample_image_and_mask_paths(generator, n_paths):
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file, model_id_start):
+def train(gcp_bucket, config_file, pre_trained_weights):
 
     start_dt = datetime.now()
 
@@ -51,13 +51,12 @@ def train(gcp_bucket, config_file, model_id_start):
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
-
     model_dir.mkdir(parents=True)
 
-    # copy the pretrained model to temp/models/model_id_start
-    if model_id_start is not None:
+    # copy the pretrained model to temp/models/pre_trained_weights
+    if pre_trained_weights is not None:
         local_model_dir = Path(tmp_directory, 'models')
-        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id_start), local_model_dir)
+        os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'models', pre_trained_weights), local_model_dir))
 
     plots_dir = Path(model_dir, 'plots')
     plots_dir.mkdir(parents=True)
@@ -92,15 +91,21 @@ def train(gcp_bucket, config_file, model_id_start):
         batch_size=batch_size,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
-    compiled_model = generate_compiled_segmentation_model(
-        train_config['segmentation_model']['model_name'],
-        train_config['segmentation_model']['model_parameters'],
-        len(train_generator.mask_filenames),
-        train_config['loss'],
-        train_config['optimizer'])
-
-    if model_id_start is not None:
-        compiled_model.weights_to_load = Path(local_model_dir, model_id_start, "model.hdf5").as_posix()
+    if pre_trained_weights is None:
+        compiled_model = generate_compiled_segmentation_model(
+            train_config['segmentation_model']['model_name'],
+            train_config['segmentation_model']['model_parameters'],
+            len(train_generator.mask_filenames),
+            train_config['loss'],
+            train_config['optimizer'])
+    else:
+        compiled_model = generate_compiled_segmentation_model(
+            train_config['segmentation_model']['model_name'],
+            train_config['segmentation_model']['model_parameters'],
+            len(train_generator.mask_filenames),
+            train_config['loss'],
+            train_config['optimizer'],
+            Path(local_model_dir, pre_trained_weights, "model.hdf5").as_posix())
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -219,7 +224,7 @@ if __name__ == "__main__":
         help='The location of the train configuration file.')
 
     argparser.add_argument(
-        '--model_id_start',
+        '--pre-trained-weights',
         type=str,
         default=None,
         help='The model ID with previously trained weights.')
