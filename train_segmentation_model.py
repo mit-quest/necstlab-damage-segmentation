@@ -28,7 +28,7 @@ def sample_image_and_mask_paths(generator, n_paths):
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file, pre_trained_weights):
+def train(gcp_bucket, config_file, pre_trained_model_id):
 
     start_dt = datetime.now()
 
@@ -53,16 +53,21 @@ def train(gcp_bucket, config_file, pre_trained_weights):
     model_dir = Path(tmp_directory, 'models', model_id)
     model_dir.mkdir(parents=True)
 
-    # copy the pretrained model to temp/models/pre_trained_weights
-    if pre_trained_weights is not None:
-        local_model_dir = Path(tmp_directory, 'models')
-        os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'models', pre_trained_weights), local_model_dir))
-
     plots_dir = Path(model_dir, 'plots')
     plots_dir.mkdir(parents=True)
 
     logs_dir = Path(model_dir, 'logs')
     logs_dir.mkdir(parents=True)
+
+    # copy the pretrained model to temp/models/pre_trained_models
+    path_pre_trained_model = None
+    if pre_trained_model_id is not None:
+        local_pre_trained_model_dir = Path(tmp_directory, 'pre_trained_models')
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pre_trained_model_id), local_pre_trained_model_dir)
+        path_pre_trained_model = Path(local_pre_trained_model_dir, pre_trained_model_id, "model.hdf5").as_posix()
+
+        with Path(local_pre_trained_model_dir, pre_trained_model_id, 'config.yaml').open('r') as f:
+            pre_trained_model_config = yaml.safe_load(f)['train_config']
 
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
@@ -91,21 +96,13 @@ def train(gcp_bucket, config_file, pre_trained_weights):
         batch_size=batch_size,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
-    if pre_trained_weights is None:
-        compiled_model = generate_compiled_segmentation_model(
-            train_config['segmentation_model']['model_name'],
-            train_config['segmentation_model']['model_parameters'],
-            len(train_generator.mask_filenames),
-            train_config['loss'],
-            train_config['optimizer'])
-    else:
-        compiled_model = generate_compiled_segmentation_model(
-            train_config['segmentation_model']['model_name'],
-            train_config['segmentation_model']['model_parameters'],
-            len(train_generator.mask_filenames),
-            train_config['loss'],
-            train_config['optimizer'],
-            Path(local_model_dir, pre_trained_weights, "model.hdf5").as_posix())
+    compiled_model = generate_compiled_segmentation_model(
+        train_config['segmentation_model']['model_name'],
+        train_config['segmentation_model']['model_parameters'],
+        len(train_generator.mask_filenames),
+        train_config['loss'],
+        train_config['optimizer'],
+        path_pre_trained_model)
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -195,6 +192,8 @@ def train(gcp_bucket, config_file, pre_trained_weights):
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
         'global_threshold_for_metrics': global_threshold,
+        'pre_trained_model_id': pre_trained_model_id,
+        'pre_trained_model_config': pre_trained_model_config
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
@@ -224,7 +223,7 @@ if __name__ == "__main__":
         help='The location of the train configuration file.')
 
     argparser.add_argument(
-        '--pre-trained-weights',
+        '--pre-trained-model-id',
         type=str,
         default=None,
         help='The model ID with previously trained weights.')
