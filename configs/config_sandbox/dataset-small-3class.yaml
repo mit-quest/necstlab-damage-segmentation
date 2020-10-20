@@ -18,7 +18,6 @@ dataset_config:
   target_size: [512, 512]  # width, height
   image_cropping:
     type: 'class' # 'None' (downscale to target), 'linear' (def # crops), 'random' (def # crops), 'class' (def # crops), 'all' (all crops)
-    crop_location_seed: 123 # int >0 (yes seed, reproducible sets) or =0 (no seed), if type 'random' or 'class' (random)
     num_per_image: 1 # if type 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
     num_pos_per_class: 1 # if type 'class', then is num of random class-positive crops (of target sz) per img, >0
     num_neg_per_class: 1 # if type 'class', then is num of random class-negative crops (of target sz) per img, >=0
@@ -27,6 +26,7 @@ dataset_config:
       class_0_pos_px: 5 # '0-degree_damage'
       class_1_pos_px: 5 # '45-degree_damage'
       class_2_pos_px: 5  # '90-degree_damage'
+  random_seed: 123 # int >0 (yes seed, reproducible sets) or =0 (no seed); can have randomness in downsampling, cropping
   class_annotation_mapping:
 #    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
     class_0_annotation_GVs: [100]  # '0-degree_damage'

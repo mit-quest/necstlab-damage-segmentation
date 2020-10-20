@@ -301,10 +301,9 @@ def prepare_dataset(gcp_bucket, config_file):
         dataset_config = yaml.safe_load(f)['dataset_config']
 
     # controlled random seeding to support different use cases (use seed for reproducible sets via same config)
-    if ('crop_location_seed' in dataset_config['image_cropping'] and
-            dataset_config['image_cropping']['crop_location_seed']):
-        random.seed(dataset_config['image_cropping']['crop_location_seed'])
-        np.random.seed(dataset_config['image_cropping']['crop_location_seed'])
+    if 'random_seed' in dataset_config and dataset_config['random_seed']:
+        random.seed(dataset_config['random_seed'])
+        np.random.seed(dataset_config['random_seed'])
 
     dataset_id = Path(config_file).name.split('.')[0]
 
