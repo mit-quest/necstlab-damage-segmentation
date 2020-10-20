@@ -1,9 +1,9 @@
 import os
 import shutil
 import random
+import numpy as np
 import math
 import yaml
-import numpy as np
 from pathlib import Path
 from PIL import Image
 import git
@@ -299,6 +299,12 @@ def prepare_dataset(gcp_bucket, config_file):
 
     with Path(config_file).open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
+
+    # controlled random seeding to support different use cases
+    if ('crop_location_seed' in dataset_config['image_cropping'] and
+            dataset_config['image_cropping']['crop_location_seed']):
+        random.seed(dataset_config['image_cropping']['crop_location_seed'])
+        np.random.seed(dataset_config['image_cropping']['crop_location_seed'])
 
     dataset_id = Path(config_file).name.split('.')[0]
 
