@@ -25,7 +25,6 @@ tmp_directory = Path('./tmp')
 
 
 def sample_image_and_mask_paths(generator, n_paths):
-    random.seed(0)
     rand_inds = [random.randint(0, len(generator.image_filenames)-1) for _ in range(n_paths)]
     image_paths = list(np.asarray(generator.image_filenames)[rand_inds])
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
