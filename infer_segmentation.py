@@ -1,6 +1,11 @@
 import os
 import shutil
+import random
+random.seed(1)
 import numpy as np
+np.random.seed(12)
+from tensorflow import set_random_seed
+set_random_seed(123)
 import yaml
 from datetime import datetime
 import pytz
