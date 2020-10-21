@@ -28,12 +28,12 @@ def sample_image_and_mask_paths(generator, n_paths):
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file, python_random_global_seed, numpy_random_global_seed, tf_random_global_seed):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed):
 
     # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
-    if python_random_global_seed != 'None':
-        assert isinstance(int(python_random_global_seed), int)
-        random.seed(int(python_random_global_seed))
+    if random_module_global_seed != 'None':
+        assert isinstance(int(random_module_global_seed), int)
+        random.seed(int(random_module_global_seed))
     if numpy_random_global_seed != 'None':
         assert isinstance(int(numpy_random_global_seed), int)
         np.random.seed(int(numpy_random_global_seed))
@@ -192,7 +192,7 @@ def train(gcp_bucket, config_file, python_random_global_seed, numpy_random_globa
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
         'global_threshold_for_metrics': global_threshold,
-        'python_random_global_seed': python_random_global_seed,
+        'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed
     }
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         type=str,
         help='The location of the train configuration file.')
     argparser.add_argument(
-        '--python-random-global-seed',
+        '--random-module-global-seed',
         type=str,
         default='1',
         help='The  setting of random.seed(global seed), where global seed is int convertible or None.')

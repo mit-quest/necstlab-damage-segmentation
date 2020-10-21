@@ -19,13 +19,13 @@ metadata_file_name = 'metadata_' + test_datetime + '.yaml'
 tmp_directory = Path('./tmp')
 
 
-def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, python_random_global_seed,
+def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, random_module_global_seed,
          numpy_random_global_seed, tf_random_global_seed):
 
     # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
-    if python_random_global_seed != 'None':
-        assert isinstance(int(python_random_global_seed), int)
-        random.seed(int(python_random_global_seed))
+    if random_module_global_seed != 'None':
+        assert isinstance(int(random_module_global_seed), int)
+        random.seed(int(random_module_global_seed))
     if numpy_random_global_seed != 'None':
         assert isinstance(int(numpy_random_global_seed), int)
         np.random.seed(int(numpy_random_global_seed))
@@ -120,7 +120,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, py
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
         'train_config': train_config,
-        'python_random_global_seed': python_random_global_seed,
+        'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed
     }
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         default=None,
         help='The specified trained thresholds file id.')
     argparser.add_argument(
-        '--python-random-global-seed',
+        '--random-module-global-seed',
         type=str,
         default='1',
         help='The  setting of random.seed(global seed), where global seed is int convertible or None.')
