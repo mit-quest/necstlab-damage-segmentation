@@ -26,7 +26,7 @@ dataset_config:
       class_0_pos_px: 5 # '0-degree_damage'
       class_1_pos_px: 5 # '45-degree_damage'
       class_2_pos_px: 5  # '90-degree_damage'
-  random_seed: 123 # int >0 (yes seed, reproducible sets) or =0 (no seed); can have randomness in downsampling, cropping
+  random_seed: 123 # int >=0 (reproducible datasets) or Null (no seed); can have randomness in downsampling, cropping
   class_annotation_mapping:
 #    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
     class_0_annotation_GVs: [100]  # '0-degree_damage'

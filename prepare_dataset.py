@@ -301,7 +301,7 @@ def prepare_dataset(gcp_bucket, config_file):
         dataset_config = yaml.safe_load(f)['dataset_config']
 
     # controlled random seeding to support different use cases (use seed for reproducible sets via same config)
-    if 'random_seed' in dataset_config and dataset_config['random_seed']:
+    if 'random_seed' in dataset_config:
         random.seed(dataset_config['random_seed'])
         np.random.seed(dataset_config['random_seed'])
 
