@@ -30,8 +30,8 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, py
         assert isinstance(int(numpy_random_global_seed), int)
         np.random.seed(int(numpy_random_global_seed))
     if tf_random_global_seed != 'None':
-        assert isinstance(int(python_random_global_seed), int)
-        tf_random.set_seed(int(python_random_global_seed))
+        assert isinstance(int(tf_random_global_seed), int)
+        tf_random.set_seed(int(tf_random_global_seed))
 
     start_dt = datetime.now()
 

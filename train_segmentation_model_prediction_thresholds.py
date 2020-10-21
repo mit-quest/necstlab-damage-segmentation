@@ -30,8 +30,8 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         assert isinstance(int(numpy_random_global_seed), int)
         np.random.seed(int(numpy_random_global_seed))
     if tf_random_global_seed != 'None':
-        assert isinstance(int(python_random_global_seed), int)
-        tf_random.set_seed(int(python_random_global_seed))
+        assert isinstance(int(tf_random_global_seed), int)
+        tf_random.set_seed(int(tf_random_global_seed))
 
     start_dt = datetime.now()
 
