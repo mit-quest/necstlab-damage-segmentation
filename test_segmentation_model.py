@@ -1,11 +1,8 @@
 import shutil
 import os
 import random
-random.seed(1)
 import numpy as np
-np.random.seed(12)
 from tensorflow import set_random_seed
-set_random_seed(123)
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -23,6 +20,10 @@ tmp_directory = Path('./tmp')
 
 
 def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id):
+
+    random.seed(1)
+    np.random.seed(12)
+    set_random_seed(123)
 
     start_dt = datetime.now()
 

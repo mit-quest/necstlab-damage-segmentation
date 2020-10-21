@@ -1,11 +1,8 @@
 import shutil
 import os
 import random
-random.seed(1)
 import numpy as np
-np.random.seed(12)
 from tensorflow import set_random_seed
-set_random_seed(123)
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -32,6 +29,10 @@ def sample_image_and_mask_paths(generator, n_paths):
 
 
 def train(gcp_bucket, config_file):
+
+    random.seed(1)
+    np.random.seed(12)
+    set_random_seed(123)
 
     start_dt = datetime.now()
 

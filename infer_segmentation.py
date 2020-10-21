@@ -1,11 +1,8 @@
 import os
 import shutil
 import random
-random.seed(1)
 import numpy as np
-np.random.seed(12)
 from tensorflow import set_random_seed
-set_random_seed(123)
 import yaml
 from datetime import datetime
 import pytz
@@ -145,6 +142,10 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
          labels_output, pad_output, trained_thresholds_id):
+
+    random.seed(1)
+    np.random.seed(12)
+    set_random_seed(123)
 
     start_dt = datetime.now()
 
