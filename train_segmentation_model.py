@@ -15,6 +15,11 @@ from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 
+from numpy.random import seed
+seed(1)
+import tensorflow
+tensorflow.random.set_seed(2)
+
 
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
@@ -61,6 +66,7 @@ def train(gcp_bucket, config_file, pre_trained_model_id):
 
     # copy the pretrained model to temp/models/pre_trained_models
     path_pre_trained_model = None
+    pre_trained_model_config = None
     if pre_trained_model_id is not None:
         local_pre_trained_model_dir = Path(tmp_directory, 'pre_trained_models')
         copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pre_trained_model_id), local_pre_trained_model_dir)
