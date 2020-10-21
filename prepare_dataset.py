@@ -291,19 +291,23 @@ def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remo
                                                     os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
 
-def prepare_dataset(gcp_bucket, config_file):
+def prepare_dataset(gcp_bucket, config_file, python_random_global_seed, numpy_random_global_seed):
     """
     The ordering of the steps is important because it assumes a certain directory structure is progressively created!
     """
+
+    # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
+    if python_random_global_seed != 'None':
+        assert isinstance(int(python_random_global_seed), int)
+        random.seed(int(python_random_global_seed))
+    if numpy_random_global_seed != 'None':
+        assert isinstance(int(numpy_random_global_seed), int)
+        np.random.seed(int(numpy_random_global_seed))
+
     start_dt = datetime.now()
 
     with Path(config_file).open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
-
-    # controlled random seeding to support different use cases (use seed for reproducible sets via same config)
-    if 'random_seed' in dataset_config:
-        random.seed(dataset_config['random_seed'])
-        np.random.seed(dataset_config['random_seed'])
 
     dataset_id = Path(config_file).name.split('.')[0]
 
@@ -358,7 +362,9 @@ def prepare_dataset(gcp_bucket, config_file):
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
+        'python_random_global_seed': python_random_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
     }
     try:
         metadata['number_of_images']['test'] = len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir()))
@@ -390,5 +396,15 @@ if __name__ == "__main__":
         '--config-file',
         type=str,
         help='The location of the data preparation configuration file.')
+    argparser.add_argument(
+        '--python-random-global-seed',
+        type=str,
+        default='1',
+        help='The  setting of random.seed(global seed), where global seed is int convertible or None.')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=str,
+        default='12',
+        help='The setting of np.random.seed(global seed), where global seed is int convertible or None.')
 
     prepare_dataset(**argparser.parse_args().__dict__)

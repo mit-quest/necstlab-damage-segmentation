@@ -2,7 +2,7 @@ import shutil
 import os
 import random
 import numpy as np
-from tensorflow import set_random_seed
+from tensorflow import random as tf_random
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -19,11 +19,19 @@ metadata_file_name = 'metadata_' + test_datetime + '.yaml'
 tmp_directory = Path('./tmp')
 
 
-def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id):
+def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, python_random_global_seed,
+         numpy_random_global_seed, tf_random_global_seed):
 
-    random.seed(1)
-    np.random.seed(12)
-    set_random_seed(123)
+    # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
+    if python_random_global_seed != 'None':
+        assert isinstance(int(python_random_global_seed), int)
+        random.seed(int(python_random_global_seed))
+    if numpy_random_global_seed != 'None':
+        assert isinstance(int(numpy_random_global_seed), int)
+        np.random.seed(int(numpy_random_global_seed))
+    if tf_random_global_seed != 'None':
+        assert isinstance(int(python_random_global_seed), int)
+        tf_random.set_seed(int(python_random_global_seed))
 
     start_dt = datetime.now()
 
@@ -111,7 +119,10 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id):
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
-        'train_config': train_config
+        'train_config': train_config,
+        'python_random_global_seed': python_random_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
+        'tf_random_global_seed': tf_random_global_seed
     }
 
     with Path(test_dir, metadata_file_name).open('w') as f:
@@ -153,5 +164,20 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='The specified trained thresholds file id.')
+    argparser.add_argument(
+        '--python-random-global-seed',
+        type=str,
+        default='1',
+        help='The  setting of random.seed(global seed), where global seed is int convertible or None.')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=str,
+        default='12',
+        help='The setting of np.random.seed(global seed), where global seed is int convertible or None.')
+    argparser.add_argument(
+        '--tf-random-global-seed',
+        type=str,
+        default='123',
+        help='The setting of (from tensorflow) set_random_seed(global seed), where global seed is int convertible or None.')
 
     test(**argparser.parse_args().__dict__)

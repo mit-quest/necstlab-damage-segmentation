@@ -2,7 +2,7 @@ import os
 import shutil
 import random
 import numpy as np
-from tensorflow import set_random_seed
+from tensorflow import random as tf_random
 import yaml
 from datetime import datetime
 import pytz
@@ -141,11 +141,19 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
-         labels_output, pad_output, trained_thresholds_id):
+         labels_output, pad_output, trained_thresholds_id, python_random_global_seed, numpy_random_global_seed,
+         tf_random_global_seed):
 
-    random.seed(1)
-    np.random.seed(12)
-    set_random_seed(123)
+    # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
+    if python_random_global_seed != 'None':
+        assert isinstance(int(python_random_global_seed), int)
+        random.seed(int(python_random_global_seed))
+    if numpy_random_global_seed != 'None':
+        assert isinstance(int(numpy_random_global_seed), int)
+        np.random.seed(int(numpy_random_global_seed))
+    if tf_random_global_seed != 'None':
+        assert isinstance(int(python_random_global_seed), int)
+        tf_random.set_seed(int(python_random_global_seed))
 
     start_dt = datetime.now()
 
@@ -287,7 +295,10 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'pad_output': pad_output,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
+        'python_random_global_seed': python_random_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
+        'tf_random_global_seed': tf_random_global_seed
     }
 
     with Path(local_inferences_dir, metadata_file_name).open('w') as f:
@@ -350,5 +361,20 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='The specified trained thresholds file id.')
+    argparser.add_argument(
+        '--python-random-global-seed',
+        type=str,
+        default='1',
+        help='The  setting of random.seed(global seed), where global seed is int convertible or None.')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=str,
+        default='12',
+        help='The setting of np.random.seed(global seed), where global seed is int convertible or None.')
+    argparser.add_argument(
+        '--tf-random-global-seed',
+        type=str,
+        default='123',
+        help='The setting of (from tensorflow) set_random_seed(global seed), where global seed is int convertible or None.')
 
     main(**argparser.parse_args().__dict__)
