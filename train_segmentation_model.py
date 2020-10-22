@@ -202,7 +202,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'global_threshold_for_metrics': global_threshold,
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
-        'tf_random_global_seed': tf_random_global_seed
+        'tf_random_global_seed': tf_random_global_seed,
         'pre_trained_model_id': pre_trained_model_id,
         'pre_trained_model_config': pre_trained_model_config
     }
