@@ -22,13 +22,13 @@ tmp_directory = Path('./tmp')
 
 
 def sample_image_and_mask_paths(generator, n_paths):
-    rand_inds = [random.randint(0, len(generator.image_filenames)-1) for _ in range(n_paths)]
+    rand_inds = [random.randint(0, len(generator.image_filenames) - 1) for _ in range(n_paths)]
     image_paths = list(np.asarray(generator.image_filenames)[rand_inds])
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pre_trained_model_id):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -67,6 +67,16 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     logs_dir = Path(model_dir, 'logs')
     logs_dir.mkdir(parents=True)
 
+    path_pre_trained_model = None
+    pre_trained_model_config = None
+    if pre_trained_model_id is not None:
+        local_pre_trained_model_dir = Path(tmp_directory, 'pre_trained_models')
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pre_trained_model_id), local_pre_trained_model_dir)
+        path_pre_trained_model = Path(local_pre_trained_model_dir, pre_trained_model_id, "model.hdf5").as_posix()
+
+        with Path(local_pre_trained_model_dir, pre_trained_model_id, 'config.yaml').open('r') as f:
+            pre_trained_model_config = yaml.safe_load(f)['train_config']
+
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
 
@@ -79,7 +89,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
     train_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
@@ -89,7 +99,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
              'validation').as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
@@ -99,7 +109,8 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         train_config['segmentation_model']['model_parameters'],
         len(train_generator.mask_filenames),
         train_config['loss'],
-        train_config['optimizer'])
+        train_config['optimizer'],
+        path_pre_trained_model)
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -154,7 +165,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     else:  # 1 row for all classes, 1 row for each of n classes
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
-    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols*3.25, num_rows*3.25))
+    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25))
     counter_m = 0
     counter_n = 0
     for metric_name in metric_names:
@@ -192,6 +203,8 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed
+        'pre_trained_model_id': pre_trained_model_id,
+        'pre_trained_model_config': pre_trained_model_config
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
@@ -234,5 +247,10 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--pre-trained-model-id',
+        type=str,
+        default=None,
+        help='The model ID with previously trained weights.')
 
     train(**argparser.parse_args().__dict__)
