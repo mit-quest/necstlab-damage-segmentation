@@ -7,8 +7,6 @@ import pytz
 import gcp_utils
 import yaml
 import git
-from gcp_utils import remote_folder_exists
-
 
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
@@ -47,13 +45,13 @@ def process_zip(gcp_bucket, zipped_stack):
 
     stack_dir = Path(tmp_directory, stack_id)
 
-    if not is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
-                                                  '/'.join([stack_id] + ["images"])):
+    if not is_annotation and gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
+                                                            '/'.join([stack_id] + ["images"])):
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "images")))
 
-    elif is_annotation and remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
-                                                '/'.join([stack_id] + ["annotations"])):
+    elif is_annotation and gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
+                                                          '/'.join([stack_id] + ["annotations"])):
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "annotations")))
 

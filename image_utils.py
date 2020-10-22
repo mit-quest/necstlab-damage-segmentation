@@ -105,8 +105,8 @@ class ImagesAndMasksGenerator(Sequence):
         self.seed = seed
         self.random_rotation = random_rotation
         self.indexes = None
-        random.seed(self.seed)
-        np.random.seed(self.seed)
+        self.random_rng = random.Random(self.seed)  # random number generator instance
+        self.numpy_rng = np.random.default_rng(self.seed)  # np random number generator instance
         self.on_epoch_end()
 
     def __len__(self):
@@ -131,7 +131,7 @@ class ImagesAndMasksGenerator(Sequence):
         'Updates indexes after each epoch'
         self.indexes = np.arange(len(self.image_filenames))
         if self.shuffle:
-            np.random.shuffle(self.indexes)
+            self.numpy_rng.shuffle(self.indexes)
 
     def __data_generation(self, batch_image_filenames, batch_mask_filenames):
         images = np.empty((self.batch_size, *self.target_size, 1))
@@ -140,7 +140,7 @@ class ImagesAndMasksGenerator(Sequence):
         for i in range(len(batch_image_filenames)):
             rotation = 0
             if self.random_rotation:
-                rotation = random.sample([0, 90, 180, 270], k=1)[0]
+                rotation = self.random_rng.sample([0, 90, 180, 270], k=1)[0]
             images[i, :, :, 0] = np.asarray(Image.open(batch_image_filenames[i]).rotate(rotation))
             for j, c in enumerate(self.mask_filenames):
                 masks[i, :, :, j] = np.asarray(Image.open(batch_mask_filenames[c][i]).rotate(rotation))

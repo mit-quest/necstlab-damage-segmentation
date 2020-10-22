@@ -2,6 +2,7 @@ import shutil
 import os
 import random
 import numpy as np
+from tensorflow import random as tf_random
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -21,14 +22,21 @@ tmp_directory = Path('./tmp')
 
 
 def sample_image_and_mask_paths(generator, n_paths):
-    random.seed(0)
     rand_inds = [random.randint(0, len(generator.image_filenames)-1) for _ in range(n_paths)]
     image_paths = list(np.asarray(generator.image_filenames)[rand_inds])
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed):
+
+    # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
+    if random_module_global_seed is not None:
+        random.seed(random_module_global_seed)
+    if numpy_random_global_seed is not None:
+        np.random.seed(numpy_random_global_seed)
+    if tf_random_global_seed is not None:
+        tf_random.set_seed(tf_random_global_seed)
 
     start_dt = datetime.now()
 
@@ -181,6 +189,9 @@ def train(gcp_bucket, config_file):
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'dataset_config': dataset_config,
         'global_threshold_for_metrics': global_threshold,
+        'random-module-global-seed': random_module_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
+        'tf_random_global_seed': tf_random_global_seed
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
@@ -208,5 +219,20 @@ if __name__ == "__main__":
         '--config-file',
         type=str,
         help='The location of the train configuration file.')
+    argparser.add_argument(
+        '--random-module-global-seed',
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--tf-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
 
     train(**argparser.parse_args().__dict__)
