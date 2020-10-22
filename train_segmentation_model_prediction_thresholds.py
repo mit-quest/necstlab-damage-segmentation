@@ -1,5 +1,8 @@
 import shutil
 import os
+import random
+import numpy as np
+from tensorflow import random as tf_random
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -15,7 +18,17 @@ tmp_directory = Path('./tmp')
 
 
 def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, model_id, batch_size,
-                                                   optimizing_class_metric, dataset_downsample_factor):
+                                                   optimizing_class_metric, dataset_downsample_factor,
+                                                   random_module_global_seed, numpy_random_global_seed,
+                                                   tf_random_global_seed):
+
+    # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
+    if random_module_global_seed is not None:
+        random.seed(random_module_global_seed)
+    if numpy_random_global_seed is not None:
+        np.random.seed(numpy_random_global_seed)
+    if tf_random_global_seed is not None:
+        tf_random.set_seed(tf_random_global_seed)
 
     start_dt = datetime.now()
 
@@ -104,7 +117,10 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         'train_config': train_config,
         'thresholds_training_configuration': opt_config,
         'thresholds_training_output': training_thresholds_output,
-        'thresholds_training_history': thresholds_training_history
+        'thresholds_training_history': thresholds_training_history,
+        'random-module-global-seed': random_module_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
+        'tf_random_global_seed': tf_random_global_seed
     }
 
     output_data = {
@@ -161,5 +177,20 @@ if __name__ == "__main__":
         type=float,
         default=1.0,
         help='Accelerate optimization via using subset of dataset.')
+    argparser.add_argument(
+        '--random-module-global-seed',
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--tf-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
 
     train_segmentation_model_prediction_thresholds(**argparser.parse_args().__dict__)
