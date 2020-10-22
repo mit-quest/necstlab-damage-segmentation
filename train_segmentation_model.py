@@ -30,16 +30,13 @@ def sample_image_and_mask_paths(generator, n_paths):
 
 def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed):
 
-    # seed global random generators if specified; global random seeds here must be convertible to int or exactly 'None'
-    if random_module_global_seed != 'None':
-        assert isinstance(int(random_module_global_seed), int)
-        random.seed(int(random_module_global_seed))
-    if numpy_random_global_seed != 'None':
-        assert isinstance(int(numpy_random_global_seed), int)
-        np.random.seed(int(numpy_random_global_seed))
-    if tf_random_global_seed != 'None':
-        assert isinstance(int(tf_random_global_seed), int)
-        tf_random.set_seed(int(tf_random_global_seed))
+    # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
+    if random_module_global_seed is not None:
+        random.seed(random_module_global_seed)
+    if numpy_random_global_seed is not None:
+        np.random.seed(numpy_random_global_seed)
+    if tf_random_global_seed is not None:
+        tf_random.set_seed(tf_random_global_seed)
 
     start_dt = datetime.now()
 
@@ -224,18 +221,18 @@ if __name__ == "__main__":
         help='The location of the train configuration file.')
     argparser.add_argument(
         '--random-module-global-seed',
-        type=str,
-        default='1',
-        help='The  setting of random.seed(global seed), where global seed is int convertible or None.')
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
     argparser.add_argument(
         '--numpy-random-global-seed',
-        type=str,
-        default='12',
-        help='The setting of np.random.seed(global seed), where global seed is int convertible or None.')
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
     argparser.add_argument(
         '--tf-random-global-seed',
-        type=str,
-        default='123',
-        help='The setting of (from tensorflow) set_random_seed(global seed), where global seed is int convertible or None.')
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
 
     train(**argparser.parse_args().__dict__)
