@@ -68,20 +68,20 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     logs_dir.mkdir(parents=True)
 
     if pretrained_model_id is not None:
-        local_pre_trained_model_dir = Path(tmp_directory, 'pre_trained_models')
-        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pre_trained_model_dir)
-        path_pre_trained_model = Path(local_pre_trained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
+        local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
+        path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
 
-        with Path(local_pre_trained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
-            pre_trained_model_config = yaml.safe_load(f)['train_config']
+        with Path(local_pretrained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
+            pretrained_model_config = yaml.safe_load(f)['train_config']
 
-        with Path(local_pre_trained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
-            pre_trained_model_metadata = yaml.safe_load(f)
+        with Path(local_pretrained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
+            pretrained_model_metadata = yaml.safe_load(f)
 
-        pretrained_model_info = {'pretrained_id': pretrained_model_id, 'pretrained_config': pre_trained_model_config, 'pretrained_meta': pre_trained_model_metadata}
+        pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
 
     else:
-        pretrained_model_info = None
+        pretrained_info = None
 
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
@@ -116,7 +116,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         len(train_generator.mask_filenames),
         train_config['loss'],
         train_config['optimizer'],
-        path_pre_trained_model)
+        path_pretrained_model)
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor='loss', verbose=1, save_best_only=True)
@@ -209,7 +209,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed,
-        'pretrained_model_info': pretrained_model_info
+        'pretrained_model_info': pretrained_info
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
