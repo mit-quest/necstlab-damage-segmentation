@@ -18,7 +18,7 @@ dataset_config:
   target_size: [512, 512]  # width, height
   image_cropping:
     type: 'class' # 'None' (downscale to target), 'linear' (def # crops), 'random' (def # crops), `class` (def # crops), 'all' (all crops)
-    num_per_image: None # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
+    num_per_image: 1 # if 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
     num_pos_per_class: 1 # if `class` selected, then is num of random class-positive crops (of target sz) per img, >0
     num_neg_per_class: 1 # if `class` selected, then is num of random class-negative crops (of target sz) per img, >=0
     min_num_class_pos_px: # if `class` selected, then is min num of class-pos pixels required in given class-pos crop, >0

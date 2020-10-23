@@ -28,7 +28,7 @@ def sample_image_and_mask_paths(generator, n_paths):
     return list(zip(image_paths, mask_paths))
 
 
-def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pre_trained_model_id):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -67,15 +67,21 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     logs_dir = Path(model_dir, 'logs')
     logs_dir.mkdir(parents=True)
 
-    path_pre_trained_model = None
-    pre_trained_model_config = None
-    if pre_trained_model_id is not None:
+    if pretrained_model_id is not None:
         local_pre_trained_model_dir = Path(tmp_directory, 'pre_trained_models')
-        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pre_trained_model_id), local_pre_trained_model_dir)
-        path_pre_trained_model = Path(local_pre_trained_model_dir, pre_trained_model_id, "model.hdf5").as_posix()
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pre_trained_model_dir)
+        path_pre_trained_model = Path(local_pre_trained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
 
-        with Path(local_pre_trained_model_dir, pre_trained_model_id, 'config.yaml').open('r') as f:
+        with Path(local_pre_trained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
             pre_trained_model_config = yaml.safe_load(f)['train_config']
+
+        with Path(local_pre_trained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
+            pre_trained_model_metadata = yaml.safe_load(f)
+
+        pretrained_model_info = {'pretrained_id': pretrained_model_id, 'pretrained_config': pre_trained_model_config, 'pretrained_meta': pre_trained_model_metadata}
+
+    else:
+        pretrained_model_info = None
 
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
@@ -203,8 +209,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed,
-        'pre_trained_model_id': pre_trained_model_id,
-        'pre_trained_model_config': pre_trained_model_config
+        'pretrained_model_info': pretrained_model_info
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
@@ -248,7 +253,7 @@ if __name__ == "__main__":
         default=None,
         help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
     argparser.add_argument(
-        '--pre-trained-model-id',
+        '--pretrained-model-id',
         type=str,
         default=None,
         help='The model ID with previously trained weights.')

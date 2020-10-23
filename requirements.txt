@@ -1,5 +1,5 @@
 numpy
-tensorflow-gpu==2.1.0
+tensorflow-gpu
 opencv-python
 scikit-image
 sklearn
@@ -8,7 +8,7 @@ Keras
 ipython
 segmentation-models
 pytz
-tensorboard==2.1.0
+tensorboard
 pillow
 pandas
 google-cloud-storage
