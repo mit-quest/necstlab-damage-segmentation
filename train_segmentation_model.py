@@ -67,23 +67,6 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     logs_dir = Path(model_dir, 'logs')
     logs_dir.mkdir(parents=True)
 
-    if pretrained_model_id is not None:
-        local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
-        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
-        path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
-
-        with Path(local_pretrained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
-            pretrained_model_config = yaml.safe_load(f)['train_config']
-
-        with Path(local_pretrained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
-            pretrained_model_metadata = yaml.safe_load(f)
-
-        pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
-
-    else:
-        path_pretrained_model = None
-        pretrained_info = None
-
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
         dataset_config = yaml.safe_load(f)['dataset_config']
 
@@ -110,6 +93,38 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         target_size=target_size,
         batch_size=batch_size,
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
+
+    if pretrained_model_id is not None:
+        local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
+        copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
+        path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
+
+        with Path(local_pretrained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
+            pretrained_model_config = yaml.safe_load(f)['train_config']
+
+        with Path(local_pretrained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
+            pretrained_model_metadata = yaml.safe_load(f)
+
+        pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
+
+        # confirm that the same model and backbone are used from pretrain and train
+        print(pretrained_model_config['segmentation_model']['model_name'], train_config['segmentation_model']['model_name'])
+        assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
+        print(pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'], train_config['segmentation_model']['model_parameters']['backbone_name'])
+        assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
+        # same loss function
+        print(pretrained_model_config['loss'], train_config['loss'])
+        assert pretrained_model_config['loss'] == train_config['loss']
+        # confirm that the number of classes in pretrain is the same as train
+        print(pretrained_model_metadata['num_classes'], len(train_generator.mask_filenames))
+        assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
+        # same target size
+        print(pretrained_model_metadata['dataset_config']['target_size'], dataset_config['target_size'])
+        assert pretrained_model_metadata['dataset_config']['target_size'] == dataset_config['target_size']
+        input('done asserts')
+    else:
+        path_pretrained_model = None
+        pretrained_info = None
 
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
