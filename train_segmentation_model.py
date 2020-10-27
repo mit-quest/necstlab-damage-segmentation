@@ -81,6 +81,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
 
     else:
+        path_pretrained_model = None
         pretrained_info = None
 
     with Path(local_dataset_dir, train_config['dataset_id'], 'config.yaml').open('r') as f:
