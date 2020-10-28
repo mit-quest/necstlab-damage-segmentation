@@ -107,21 +107,16 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
         pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
 
-        # confirm that the same model and backbone are used from pretrain and train
-        print(pretrained_model_config['segmentation_model']['model_name'], train_config['segmentation_model']['model_name'])
+        # confirm that the current model and pretrained model configurations are compatible
         assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
-        print(pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'], train_config['segmentation_model']['model_parameters']['backbone_name'])
         assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
         # same loss function
-        print(pretrained_model_config['loss'], train_config['loss'])
         assert pretrained_model_config['loss'] == train_config['loss']
         # confirm that the number of classes in pretrain is the same as train
-        print(pretrained_model_metadata['num_classes'], len(train_generator.mask_filenames))
         assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
         # same target size
-        print(pretrained_model_metadata['dataset_config']['target_size'], dataset_config['target_size'])
         assert pretrained_model_metadata['dataset_config']['target_size'] == dataset_config['target_size']
-        input('done asserts')
+
     else:
         path_pretrained_model = None
         pretrained_info = None
