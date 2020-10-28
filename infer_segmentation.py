@@ -1,6 +1,8 @@
 import os
 import shutil
+import random
 import numpy as np
+from tensorflow import random as tf_random
 import yaml
 from datetime import datetime
 import pytz
@@ -139,7 +141,16 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
-         labels_output, pad_output, trained_thresholds_id):
+         labels_output, pad_output, trained_thresholds_id, random_module_global_seed, numpy_random_global_seed,
+         tf_random_global_seed):
+
+    # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
+    if random_module_global_seed is not None:
+        random.seed(random_module_global_seed)
+    if numpy_random_global_seed is not None:
+        np.random.seed(numpy_random_global_seed)
+    if tf_random_global_seed is not None:
+        tf_random.set_seed(tf_random_global_seed)
 
     start_dt = datetime.now()
 
@@ -281,7 +292,10 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'pad_output': pad_output,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
+        'random-module-global-seed': random_module_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
+        'tf_random_global_seed': tf_random_global_seed
     }
 
     with Path(local_inferences_dir, metadata_file_name).open('w') as f:
@@ -344,5 +358,20 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='The specified trained thresholds file id.')
+    argparser.add_argument(
+        '--random-module-global-seed',
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--tf-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
 
     main(**argparser.parse_args().__dict__)

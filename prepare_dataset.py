@@ -1,9 +1,9 @@
 import os
 import shutil
 import random
+import numpy as np
 import math
 import yaml
-import numpy as np
 from pathlib import Path
 from PIL import Image
 import git
@@ -291,10 +291,17 @@ def copy_dataset_to_remote_dest(prepared_dataset_location, prepared_dataset_remo
                                                     os.path.join(prepared_dataset_remote_dest, dataset_id)))
 
 
-def prepare_dataset(gcp_bucket, config_file):
+def prepare_dataset(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed):
     """
     The ordering of the steps is important because it assumes a certain directory structure is progressively created!
     """
+
+    # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
+    if random_module_global_seed is not None:
+        random.seed(random_module_global_seed)
+    if numpy_random_global_seed is not None:
+        np.random.seed(numpy_random_global_seed)
+
     start_dt = datetime.now()
 
     with Path(config_file).open('r') as f:
@@ -353,7 +360,9 @@ def prepare_dataset(gcp_bucket, config_file):
         },
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
-        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
+        'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
+        'random-module-global-seed': random_module_global_seed,
+        'numpy_random_global_seed': numpy_random_global_seed,
     }
     try:
         metadata['number_of_images']['test'] = len(list(Path(prepared_dataset_local_dir, 'test', 'images').iterdir()))
@@ -385,5 +394,15 @@ if __name__ == "__main__":
         '--config-file',
         type=str,
         help='The location of the data preparation configuration file.')
+    argparser.add_argument(
+        '--random-module-global-seed',
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+    argparser.add_argument(
+        '--numpy-random-global-seed',
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
 
     prepare_dataset(**argparser.parse_args().__dict__)
