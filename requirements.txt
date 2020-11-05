@@ -19,5 +19,5 @@ gitpython
 matplotlib
 ipykernel
 scipy
-psutils
+psutil
 GPUtil
