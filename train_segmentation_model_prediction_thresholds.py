@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import git
-from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing, getSystemInfo, getLibVersions
 from image_utils import ImagesAndMasksGenerator
 from models import train_prediction_thresholds, thresholds_training_history
 
@@ -20,7 +20,7 @@ tmp_directory = Path('./tmp')
 def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory, model_id, batch_size,
                                                    optimizing_class_metric, dataset_downsample_factor,
                                                    random_module_global_seed, numpy_random_global_seed,
-                                                   tf_random_global_seed):
+                                                   tf_random_global_seed, message):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -104,6 +104,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         trained_prediction_thresholds.update({str('class' + str(i)): float(training_threshold_output.x)})
 
     metadata = {
+        'message': message,
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'num_classes': len(train_threshold_dataset_generator.mask_filenames),
@@ -123,9 +124,15 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         'tf_random_global_seed': tf_random_global_seed
     }
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     output_data = {
         'final_trained_prediction_thresholds': trained_prediction_thresholds,
-        'metadata': metadata
+        'metadata': metadata,
+        'metadata_sys': metadata_sys
     }
 
     with Path(train_thresh_id_dir, output_file_name).open('w') as f:
@@ -192,5 +199,9 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
-
+    argparser.add_argument(
+        '--message',
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
     train_segmentation_model_prediction_thresholds(**argparser.parse_args().__dict__)

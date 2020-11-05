@@ -12,10 +12,14 @@ import git
 from models import generate_compiled_segmentation_model
 from image_utils import str2bool
 from metrics_utils import global_threshold
+from gcp_utils import getSystemInfo, getLibVersions
+
 
 # infer can be run multiple times (labels, overlay), create new metadata each time
 infer_datetime = datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ')
 metadata_file_name = 'metadata_' + infer_datetime + '.yaml'
+metadata_sys_file_name = 'metadata_sys_' + infer_datetime + '.yaml'
+
 tmp_directory = Path('./tmp')
 
 # rgb
@@ -38,13 +42,13 @@ def stitch_preds_together(tiles, target_size_1d, labels_output, pad_output, imag
     for i in range(n_tile_rows):
         for j in range(n_tile_cols):
             if not pad_output and i == n_tile_rows - 1 and j == n_tile_cols - 1:
-                stitched_array[image.size[1]-target_size_1d:image.size[1], image.size[0]-target_size_1d:image.size[0], :] = tiles[i][j]
+                stitched_array[image.size[1] - target_size_1d:image.size[1], image.size[0] - target_size_1d:image.size[0], :] = tiles[i][j]
             elif not pad_output and i == n_tile_rows - 1:
                 stitched_array[image.size[1] - target_size_1d:image.size[1], j * target_size_1d:(j + 1) * target_size_1d, :] = tiles[i][j]
             elif not pad_output and j == n_tile_cols - 1:
                 stitched_array[i * target_size_1d:(i + 1) * target_size_1d, image.size[0] - target_size_1d:image.size[0], :] = tiles[i][j]
             else:
-                stitched_array[i*target_size_1d:(i+1)*target_size_1d, j*target_size_1d:(j+1)*target_size_1d, :] = tiles[i][j]
+                stitched_array[i * target_size_1d:(i + 1) * target_size_1d, j * target_size_1d:(j + 1) * target_size_1d, :] = tiles[i][j]
 
     if labels_output:
         stitched_image = Image.fromarray(np.mean(stitched_array, -1).astype('uint8'))
@@ -72,22 +76,22 @@ def prepare_image(image, target_size_1d, pad_output):
         for j in range(np.ceil(padded_image.shape[1] / target_size_1d).astype(int)):
             if (not pad_output and i == np.ceil(padded_image.shape[0] / target_size_1d).astype(int) - 1
                     and j == np.ceil(padded_image.shape[1] / target_size_1d).astype(int) - 1):
-                tiles[i].append(padded_image[image.size[1]-target_size_1d:image.size[1],
-                                image.size[0]-target_size_1d:image.size[0]].copy())
+                tiles[i].append(padded_image[image.size[1] - target_size_1d:image.size[1],
+                                             image.size[0] - target_size_1d:image.size[0]].copy())
             elif not pad_output and i == np.ceil(padded_image.shape[0] / target_size_1d).astype(int) - 1:
                 tiles[i].append(padded_image[image.size[1] - target_size_1d:image.size[1],
-                                j * target_size_1d:(j + 1) * target_size_1d].copy())
+                                             j * target_size_1d:(j + 1) * target_size_1d].copy())
             elif not pad_output and j == np.ceil(padded_image.shape[1] / target_size_1d).astype(int) - 1:
                 tiles[i].append(padded_image[i * target_size_1d:(i + 1) * target_size_1d,
-                                image.size[0] - target_size_1d:image.size[0]].copy())
+                                             image.size[0] - target_size_1d:image.size[0]].copy())
             else:
-                tiles[i].append(padded_image[i*target_size_1d:(i+1)*target_size_1d,
-                                j*target_size_1d:(j+1)*target_size_1d].copy())
+                tiles[i].append(padded_image[i * target_size_1d:(i + 1) * target_size_1d,
+                                             j * target_size_1d:(j + 1) * target_size_1d].copy())
 
     # scale the images to be between 0 and 1 if GV
     for i in range(len(tiles)):
         for j in range(len(tiles[i])):
-            tiles[i][j] = tiles[i][j] * 1./255
+            tiles[i][j] = tiles[i][j] * 1. / 255
     return tiles
 
 
@@ -110,7 +114,7 @@ def overlay_predictions(prepared_tiles, preds, prediction_threshold, background_
                     continue
                 if labels_output:
                     prediction_tiles[i][j][rel_above_threshold_and_best_class] = int((color_counter + 1) *
-                                                                                     np.floor(255/preds[i][j].shape[-1]))
+                                                                                     np.floor(255 / preds[i][j].shape[-1]))
                 else:
                     prediction_tiles[i][j][rel_above_threshold_and_best_class] = class_colors[color_counter]
                 color_counter = (color_counter + 1) % len(class_colors)
@@ -142,7 +146,7 @@ def segment_image(model, image, prediction_threshold, target_size_1d, background
 
 def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user_specified_prediction_thresholds,
          labels_output, pad_output, trained_thresholds_id, random_module_global_seed, numpy_random_global_seed,
-         tf_random_global_seed):
+         tf_random_global_seed, message):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -222,7 +226,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         for i in range(num_classes):
             if ('x' in threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))] and
                     threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['success']):
-                prediction_threshold[i] = threshold_output_data['metadata']['thresholds_training_output'][str('class'+str(i))]['x']
+                prediction_threshold[i] = threshold_output_data['metadata']['thresholds_training_output'][str('class' + str(i))]['x']
             else:
                 AssertionError('Unsuccessfully trained threshold attempted to be loaded.')
     else:
@@ -278,6 +282,7 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
                     + image_file_ext)).as_posix())
 
     metadata = {
+        'message': message,
         'gcp_bucket': gcp_bucket,
         'model_id': model_id,
         'user_specified_prediction_thresholds': user_specified_prediction_thresholds,
@@ -298,8 +303,16 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'tf_random_global_seed': tf_random_global_seed
     }
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     with Path(local_inferences_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
+
+    with Path(local_inferences_dir, metadata_sys_file_name).open('w') as f:
+        yaml.safe_dump(metadata_sys, f, default_flow_style=False)
 
     os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(tmp_directory, 'inferences').as_posix(), gcp_bucket))
 
@@ -373,5 +386,9 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
-
+    argparser.add_argument(
+        '--message',
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
     main(**argparser.parse_args().__dict__)

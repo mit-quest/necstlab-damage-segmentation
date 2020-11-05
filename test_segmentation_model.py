@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import git
-from gcp_utils import copy_folder_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing, getSystemInfo, getLibVersions
 from image_utils import ImagesAndMasksGenerator
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
@@ -16,11 +16,13 @@ from metrics_utils import global_threshold
 # test can be run multiple times (with or without optimized thresholds, global thresholds), create new each time
 test_datetime = datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ')
 metadata_file_name = 'metadata_' + test_datetime + '.yaml'
+metadata_sys_file_name = 'metadata_sys_' + test_datetime + '.yaml'
+
 tmp_directory = Path('./tmp')
 
 
 def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, random_module_global_seed,
-         numpy_random_global_seed, tf_random_global_seed):
+         numpy_random_global_seed, tf_random_global_seed, message):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -101,6 +103,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
         f.write(','.join(map(str, results)))
 
     metadata = {
+        'message': message,
         'gcp_bucket': gcp_bucket,
         'dataset_id': dataset_id,
         'model_id': model_id,
@@ -118,8 +121,16 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
         'tf_random_global_seed': tf_random_global_seed
     }
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     with Path(test_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
+
+    with Path(test_dir, metadata_sys_file_name).open('w') as f:
+        yaml.safe_dump(metadata_sys, f, default_flow_style=False)
 
     os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(tmp_directory, 'tests').as_posix(), gcp_bucket))
 
@@ -172,5 +183,9 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
-
+    argparser.add_argument(
+        '--message',
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
     test(**argparser.parse_args().__dict__)

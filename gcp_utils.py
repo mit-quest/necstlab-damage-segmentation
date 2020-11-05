@@ -78,7 +78,7 @@ def getSystemInfo():
         info['GPU']['nr'] = len(gpus)
         gpu = gpus[0]  # assumes all are the same
         info['GPU']['name'] = gpu.name
-        info['GPU']['memory'] = str(round(gpu.memoryTotal)) + " MB"
+        info['GPU']['memory'] = str(round(gpu.memoryTotal / (1024.0))) + " GB"
         return info
     except IOError:
         return None
