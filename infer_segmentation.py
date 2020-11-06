@@ -18,7 +18,6 @@ from gcp_utils import getSystemInfo, getLibVersions
 # infer can be run multiple times (labels, overlay), create new metadata each time
 infer_datetime = datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ')
 metadata_file_name = 'metadata_' + infer_datetime + '.yaml'
-metadata_sys_file_name = 'metadata_sys_' + infer_datetime + '.yaml'
 
 tmp_directory = Path('./tmp')
 
@@ -281,6 +280,11 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
                     image_file.parts[-1].split('.')[0] + '.'
                     + image_file_ext)).as_posix())
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     metadata = {
         'message': message,
         'gcp_bucket': gcp_bucket,
@@ -300,19 +304,12 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
-        'tf_random_global_seed': tf_random_global_seed
-    }
-
-    metadata_sys = {
-        'System_info': getSystemInfo(),
-        'Lib_versions_info': getLibVersions()
+        'tf_random_global_seed': tf_random_global_seed,
+        'metadata_system': metadata_sys
     }
 
     with Path(local_inferences_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
-
-    with Path(local_inferences_dir, metadata_sys_file_name).open('w') as f:
-        yaml.safe_dump(metadata_sys, f, default_flow_style=False)
 
     os.system("gsutil -m cp -n -r '{}' '{}'".format(Path(tmp_directory, 'inferences').as_posix(), gcp_bucket))
 

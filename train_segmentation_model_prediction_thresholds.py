@@ -132,7 +132,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
     output_data = {
         'final_trained_prediction_thresholds': trained_prediction_thresholds,
         'metadata': metadata,
-        'metadata_sys': metadata_sys
+        'metadata_system': metadata_sys
     }
 
     with Path(train_thresh_id_dir, output_file_name).open('w') as f:

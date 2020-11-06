@@ -17,7 +17,6 @@ from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 
 metadata_file_name = 'metadata.yaml'
-metadata_sys_file_name = 'metadata_sys.yaml'
 
 tmp_directory = Path('./tmp')
 
@@ -208,6 +207,11 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
     plt.close()
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     metadata = {
         'message': message,
         'gcp_bucket': gcp_bucket,
@@ -222,19 +226,12 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed,
-        'pretrained_model_info': pretrained_info
-    }
-
-    metadata_sys = {
-        'System_info': getSystemInfo(),
-        'Lib_versions_info': getLibVersions()
+        'pretrained_model_info': pretrained_info,
+        'metadata_system': metadata_sys
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
         yaml.safe_dump(metadata, f)
-
-    with Path(model_dir, metadata_sys_file_name).open('w') as f:
-        yaml.safe_dump(metadata_sys, f, default_flow_style=False)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(Path(tmp_directory, 'models').as_posix(), gcp_bucket))
 
