@@ -1,5 +1,5 @@
 numpy
-tensorflow-gpu
+tensorflow-gpu # use version >= 2.2
 opencv-python
 scikit-image
 sklearn
