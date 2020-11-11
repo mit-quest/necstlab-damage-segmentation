@@ -16,6 +16,9 @@ from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFa
                            global_threshold)
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet
+from segmentation_models import FPN
+from segmentation_models import Linknet
+
 from segmentation_models.losses import CategoricalCELoss
 
 
@@ -28,10 +31,9 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-    # These are the only model, loss, and optimizer currently supported
-    assert model_name == 'Unet'
-    assert loss == 'cross_entropy'
+    # this is the only optimizer currently in use
     assert optimizer == 'adam'
+    assert loss == 'cross_entropy'
 
     loss_fn = BinaryCrossentropyL()
 
@@ -110,7 +112,14 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
-    model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+    if model_name == "Unet":
+        model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+    elif model_name == "FPN":
+        model = FPN(classes=num_classes, **model_parameters)
+    elif model_name == "Linknet":
+        model = Linknet(classes=num_classes, **model_parameters)
+    else:
+        raise NameError("Error, model name not Unet, FPN, or Linknet.")
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
                   metrics=all_metrics)
