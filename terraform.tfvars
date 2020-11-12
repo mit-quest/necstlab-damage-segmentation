@@ -8,8 +8,8 @@ hard_drive_size_gp = "1500"
 ram_size_mb = "25600"
 number_of_cpus = "4"
 number_of_machines = 1
-//gpu_type = "nvidia-tesla-p100"
-gpu_type = "nvidia-tesla-k80"
+gpu_type = "nvidia-tesla-p100"
+//gpu_type = "nvidia-tesla-k80"
 number_of_gpus = 1
 // cd C:\Users\Intel\Documents\Github\necstlab-damage-segmentation
 // terraform init
