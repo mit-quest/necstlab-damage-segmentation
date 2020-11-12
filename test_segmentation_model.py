@@ -66,7 +66,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
 
     test_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_id, 'test').as_posix(),
-        rescale=1. / 255,
+        rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
         seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
@@ -95,7 +95,11 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
 
     results = compiled_model.evaluate(test_generator)
 
-    metric_names = [m.name for m in compiled_model.metrics]
+    if hasattr(compiled_model.loss, '__name__'):
+        metric_names = [compiled_model.loss.__name__] + [m.name for m in compiled_model.metrics]
+    elif hasattr(compiled_model.loss, 'name'):
+        metric_names = [compiled_model.loss.name] + [m.name for m in compiled_model.metrics]
+
     with Path(test_dir, str('metrics_' + test_datetime + '.csv')).open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))

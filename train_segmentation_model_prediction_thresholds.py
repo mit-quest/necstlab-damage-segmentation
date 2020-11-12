@@ -76,7 +76,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
 
     train_threshold_dataset_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_directory).as_posix(),
-        rescale=1. / 255,
+        rescale=1./255,
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
@@ -95,12 +95,12 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         if not training_threshold_output.success:
             AssertionError("Training prediction thresholds has failed. See function minimization command line output.")
 
-        training_thresholds_output.update({str('class' + str(i)): {'x': float(training_threshold_output.x),
-                                                                   'success': training_threshold_output.success,
-                                                                   'status': training_threshold_output.status,
-                                                                   'message': training_threshold_output.message,
-                                                                   'nfev': training_threshold_output.nfev,
-                                                                   'fun': float(training_threshold_output.fun)}})
+        training_thresholds_output.update({str('class'+str(i)): {'x': float(training_threshold_output.x),
+                                                                 'success': training_threshold_output.success,
+                                                                 'status': training_threshold_output.status,
+                                                                 'message': training_threshold_output.message,
+                                                                 'nfev': training_threshold_output.nfev,
+                                                                 'fun': float(training_threshold_output.fun)}})
         trained_prediction_thresholds.update({str('class' + str(i)): float(training_threshold_output.x)})
 
     metadata = {
