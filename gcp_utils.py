@@ -71,11 +71,11 @@ def getSystemInfo():
         info['Processor'] = platform.processor()
         info['Ram'] = str(round(psutil.virtual_memory().total / (1024.0 ** 3))) + " GB"
         info['CPU'] = {}
-        info['CPU']['nr'] = psutil.cpu_count(logical=True)
+        info['CPU']['number'] = psutil.cpu_count(logical=True)
 
         gpus = GPUtil.getGPUs()
         info['GPU'] = {}
-        info['GPU']['nr'] = len(gpus)
+        info['GPU']['number'] = len(gpus)
         gpu = gpus[0]  # assumes all are the same
         info['GPU']['name'] = gpu.name
         info['GPU']['memory'] = str(round(gpu.memoryTotal / (1024.0))) + " GB"
