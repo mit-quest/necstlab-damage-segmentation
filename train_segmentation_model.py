@@ -270,4 +270,3 @@ if __name__ == "__main__":
         help='The model ID with previously trained weights.')
 
     train(**argparser.parse_args().__dict__)
-    
