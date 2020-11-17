@@ -41,9 +41,3 @@ pip3 install --upgrade pyasn1
 cd necstlab-damage-segmentation && pip3 install -r requirements.txt
 
 
-## allow monitoring gpu performance
-cd ..
-git clone https://github.com/b0noI/gcp-gpu-utilization-metrics.git
-cd gcp-gpu-utilization-metrics && pip3 install -r ./requirenments.txt
-python3 ./report_gpu_metrics.py &
-cd ../necstlab-damage-segmentation
