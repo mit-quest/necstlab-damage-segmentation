@@ -31,6 +31,9 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
+    # alter input_shape due to inability of yaml to accept tupples!
+    model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+
     # this is the only optimizer currently in use
     # These are the only model, loss, and optimizer currently supported
     assert optimizer == 'adam'
@@ -114,11 +117,11 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
     if model_name == "Unet":
-        model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        model = Unet(classes=num_classes, **model_parameters)
     elif model_name == "FPN":
-        model = FPN(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        model = FPN(classes=num_classes, **model_parameters)
     elif model_name == "Linknet":
-        model = Linknet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        model = Linknet(classes=num_classes, **model_parameters)
     else:
         raise NameError("Error, model name not Unet, FPN, or Linknet.")
     model.compile(optimizer=Adam(),
