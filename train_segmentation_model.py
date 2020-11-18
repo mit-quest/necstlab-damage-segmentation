@@ -27,7 +27,6 @@ def sample_image_and_mask_paths(generator, n_paths):
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
-
 def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id, message):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
@@ -110,8 +109,16 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         # confirm that the current model and pretrained model configurations are compatible
         assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
         assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
-        assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
-        assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
+
+        if 'activation' in pretrained_model_config['segmentation_model']['model_parameters']:
+            assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
+        else:
+            print('Activation function compatibility was not checked! model_parameters: activation does not exist in the pretrained model config file. ')
+
+        if 'input_shape' in pretrained_model_config['segmentation_model']['model_parameters']:
+            assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
+        else:
+            print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
 
         # same loss function
         assert pretrained_model_config['loss'] == train_config['loss']

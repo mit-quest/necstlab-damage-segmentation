@@ -32,7 +32,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimized_class_thresholds=None):
 
     # alter input_shape due to inability of yaml to accept tupples!
-    model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+    if 'input_shape' in model_parameters:
+        model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+    else:  # to guarantee the old config files still work
+        model_parameters['input_shape'] = (None, None, 1)
 
     # this is the only optimizer currently in use
     # These are the only model, loss, and optimizer currently supported
