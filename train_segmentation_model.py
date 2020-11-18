@@ -110,6 +110,9 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         # confirm that the current model and pretrained model configurations are compatible
         assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
         assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
+        assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
+        assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
+
         # same loss function
         assert pretrained_model_config['loss'] == train_config['loss']
         # confirm that the number of classes in pretrain is the same as train
