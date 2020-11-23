@@ -38,6 +38,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     loss_fn = BinaryCrossentropyL()
 
+    Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+    FPN_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+    Linknet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
+
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
     if isinstance(loss_fn, BinaryCrossentropyL):
@@ -114,11 +118,20 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
     if model_name == "Unet":
-        model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        if model_parameters['backbone_name'] in Unet_backbones:
+            model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
     elif model_name == "FPN":
-        model = FPN(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        if model_parameters['backbone_name'] in FPN_backbones:
+            model = FPN(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
     elif model_name == "Linknet":
-        model = Linknet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        if model_parameters['backbone_name'] in Linknet_backbones:
+            model = Linknet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
     else:
         raise NameError("Error, model name not Unet, FPN, or Linknet.")
     model.compile(optimizer=Adam(),
