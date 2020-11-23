@@ -31,11 +31,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-    # this is the only optimizer currently in use
-    # These are the only model, loss, and optimizer currently supported
-    assert optimizer == 'adam'
-    assert loss == 'cross_entropy'
-
     loss_fn = BinaryCrossentropyL()
 
     Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
