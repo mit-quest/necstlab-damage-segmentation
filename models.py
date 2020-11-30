@@ -31,6 +31,18 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
+
+    # alter input_shape due to inability of yaml to accept tupples!
+    if 'input_shape' in model_parameters:
+        model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+    else:  # to guarantee the old config files still work
+        model_parameters['input_shape'] = (None, None, 1)
+
+    # this is the only optimizer currently in use
+    # These are the only model, loss, and optimizer currently supported
+    assert optimizer == 'adam'
+    assert loss == 'cross_entropy'
+
     loss_fn = BinaryCrossentropyL()
 
     Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
@@ -127,6 +139,12 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
             model = Linknet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
         else:
             raise NameError("Error, model and backbone are not compatible.")
+        model = Unet(classes=num_classes, **model_parameters)
+    elif model_name == "FPN":
+        model = FPN(classes=num_classes, **model_parameters)
+    elif model_name == "Linknet":
+        model = Linknet(classes=num_classes, **model_parameters)
+
     else:
         raise NameError("Error, model name not Unet, FPN, or Linknet.")
     model.compile(optimizer=Adam(),
