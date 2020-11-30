@@ -31,7 +31,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-
     # alter input_shape due to inability of yaml to accept tupples!
     if 'input_shape' in model_parameters:
         model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
@@ -126,27 +125,22 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # with strategy.scope():
     if model_name == "Unet":
         if model_parameters['backbone_name'] in Unet_backbones:
-            model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+            model = Unet(classes=num_classes, **model_parameters)
         else:
             raise NameError("Error, model and backbone are not compatible.")
     elif model_name == "FPN":
         if model_parameters['backbone_name'] in FPN_backbones:
-            model = FPN(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+            model = FPN(classes=num_classes, **model_parameters)
         else:
             raise NameError("Error, model and backbone are not compatible.")
     elif model_name == "Linknet":
         if model_parameters['backbone_name'] in Linknet_backbones:
-            model = Linknet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
+            model = Linknet(classes=num_classes, **model_parameters)
         else:
             raise NameError("Error, model and backbone are not compatible.")
-        model = Unet(classes=num_classes, **model_parameters)
-    elif model_name == "FPN":
-        model = FPN(classes=num_classes, **model_parameters)
-    elif model_name == "Linknet":
-        model = Linknet(classes=num_classes, **model_parameters)
-
     else:
         raise NameError("Error, model name not Unet, FPN, or Linknet.")
+
     model.compile(optimizer=Adam(),
                   loss=loss_fn,
                   metrics=all_metrics)
