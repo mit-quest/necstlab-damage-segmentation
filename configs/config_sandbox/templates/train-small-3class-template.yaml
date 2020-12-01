@@ -8,8 +8,8 @@ train_config:
       encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
       input_shape: [Null, Null, 1]
       activation: 'sigmoid'
-  loss: 'cross_entropy'
-  optimizer: 'adam'
+  loss: 'cross_entropy' #'cross_entropy' 'cat_cross_entropy'
+  optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
   batch_size: 16    # p100
   epochs: 10
   training_data_shuffle_seed: 1234
