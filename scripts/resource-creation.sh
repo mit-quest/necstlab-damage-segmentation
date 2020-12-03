@@ -33,76 +33,6 @@ sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 #    tree \
 #    p7zip-full
 
-
-# install python 3.8.1
-#sudo apt-get install zlib1g-dev
-#cd ~
-#mkdir tmp
-#cd tmp
-#wget https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tgz
-#tar zxvf Python-3.8.1.tgz
-#cd Python-3.8.1
-#./configure --prefix=$HOME/opt/python-3.8.1
-#make
-#make install
-#cd ~
-#echo 'export PATH=$HOME/opt/python-3.8.1/bin:$PATH' >> .bash_profile
-#. ~/.bash_profile
-#cd ~
-
-
-
-## install python 3.7.9
-#sudo apt-get install -y zlib1g-dev
-#cd ~
-#mkdir tmp
-#cd tmp
-#wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-#tar zxvf Python-3.7.9.tgz
-#cd Python-3.7.9
-#./configure --prefix=$HOME/opt/python-3.7.9
-#make
-#make install
-#cd ~
-#echo 'export PATH=$HOME/opt/python-3.7.9/bin:$PATH' >> .bash_profile
-#. ~/.bash_profile
-#cd ~
-
-
-#sudo apt-get remove -y 'python3.*'
-
-## install python 3.6.3
-#sudo apt-get install -y zlib1g-dev
-#cd ~
-#mkdir tmp
-#cd tmp
-#wget https://www.python.org/ftp/python/3.6.3/Python-3.6.3.tgz
-#tar zxvf Python-3.6.3.tgz
-#cd Python-3.6.3
-#./configure --prefix=$HOME/opt/python-3.6.3
-#make
-#make install
-#cd ~
-#echo 'export PATH=$HOME/opt/python-3.6.3/bin:$PATH' >> .bash_profile
-#. ~/.bash_profile
-#cd ~
-
-#3.6.12
-#sudo apt-get install -y zlib1g-dev
-#cd ~
-#mkdir tmp
-#cd tmp
-#wget https://www.python.org/ftp/python/3.6.12/Python-3.6.12.tgz
-#tar zxvf Python-3.6.12.tgz
-#cd Python-3.6.12
-#./configure --prefix=$HOME/opt/python-3.6.12
-#make
-#make install
-#cd ~
-#echo 'export PATH=$HOME/opt/python-3.6.12/bin:$PATH' >> .bash_profile
-#. ~/.bash_profile
-#cd ~
-
 # Install requirements
 sudo apt-get install -y \
     checkinstall\
@@ -128,10 +58,7 @@ sudo apt-get install -y cmake \
 	htop \
 	tmux \
 	tree \
-	p7zip-full\
-#    python3-setuptools\
-#    python3-dev\
-#    python3-pip
+	p7zip-full
 
 sudo apt-get install -y zlib1g-dev
 cd ~
@@ -148,19 +75,7 @@ echo 'export PATH=$HOME/opt/python-3.7.9/bin:$PATH' >> .bash_profile
 . ~/.bash_profile
 cd ~
 
-
-#curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
-#python3 get-pip.py
-
-#sudo apt-get install -y cmake python3-pip
-
-#sudo apt-get install libffi-dev #????????????
-
-#sudo apt-get install -y cmake python3-pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
-
 pip3 install -U pip
-
-#pip3 install --upgrade pip # --trusted-host pypi.org --trusted-host files.pythonhosted.org
 pip3 install --upgrade setuptools
 pip3 uninstall crcmod -y
 pip3 install --no-cache-dir crcmod
