@@ -37,6 +37,7 @@ sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 sudo apt-get install -y \
     checkinstall\
     libreadline-gplv2-dev\
+    liblzma-dev\
     libncursesw5-dev\
     libssl-dev\
     libsqlite3-dev\
@@ -49,7 +50,8 @@ sudo apt-get install -y \
     libffi-dev\
     python3-dev\
     python3-setuptools\
-    wget
+    wget\
+    zlib1g-dev
 
 # install needed packages
 sudo apt-get install -y cmake \
@@ -60,7 +62,6 @@ sudo apt-get install -y cmake \
 	tree \
 	p7zip-full
 
-sudo apt-get install -y zlib1g-dev
 cd ~
 mkdir tmp
 cd tmp
@@ -77,7 +78,7 @@ cd ~
 
 pip3 install -U pip
 pip3 install --upgrade setuptools
-pip3 uninstall crcmod -y
+#pip3 uninstall crcmod -y
 pip3 install --no-cache-dir crcmod
 pip3 install --upgrade pyasn1
 cd necstlab-damage-segmentation && pip3 install -r requirements.txt
