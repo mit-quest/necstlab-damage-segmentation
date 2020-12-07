@@ -60,7 +60,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if loss == 'cross_entropy':
         loss_fn = BinaryCrossentropyL()
     elif loss == 'cat_cross_entropy':
-        loss_fn == CategoricalCrossentropyL()
+        loss_fn = CategoricalCrossentropyL()
     else:
         raise NameError("Loss function not supported")
 
