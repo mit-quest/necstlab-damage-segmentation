@@ -120,8 +120,6 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         else:
             print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
 
-        # same loss function
-        assert pretrained_model_config['loss'] == train_config['loss']
         # confirm that the number of classes in pretrain is the same as train
         assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
         # same target size
