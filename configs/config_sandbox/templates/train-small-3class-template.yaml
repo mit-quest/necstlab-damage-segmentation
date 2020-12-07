@@ -1,6 +1,6 @@
 train_config:
   model_id_prefix: 'segmentation-model-small-3class-template'
-  dataset_id: 'dataset-small-3class_tfversion_debug'
+  dataset_id: 'dataset-small-3class-template'
   segmentation_model:
     model_name: 'Unet'
     model_parameters:
@@ -11,7 +11,7 @@ train_config:
   loss: 'cross_entropy' #'cross_entropy' 'cat_cross_entropy'
   optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
   batch_size: 16    # p100
-  epochs: 10
+  epochs: 2
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
   test_data_shuffle_seed: 123456
