@@ -2,13 +2,14 @@ import os
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, Adagrad, Adamax, Ftrl, Nadam, RMSprop
 from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccuracy, CategoricalAccuracy,
                                       BinaryCrossentropy as BinaryCrossentropyM,
                                       CategoricalCrossentropy as CategoricalCrossentropyM,
                                       FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
 from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
                                      CategoricalCrossentropy as CategoricalCrossentropyL)
+
 from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFalsePositives,
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
@@ -37,13 +38,33 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     else:  # to guarantee the old config files still work
         model_parameters['input_shape'] = (None, None, 1)
 
-    # this is the only optimizer currently in use
-    # These are the only model, loss, and optimizer currently supported
-    assert optimizer == 'adam'
-    assert loss == 'cross_entropy'
+    # These are the only optimizer currently supported
+    if optimizer.lower() == 'adam':
+        opt_fn = Adam()
+    elif optimizer.lower() == 'sdg':
+        opt_fn = SGD()
+    elif optimizer.lower() == 'adagrad':
+        opt_fn = Adagrad()
+    elif optimizer.lower() == 'adamax':
+        opt_fn = Adamax()
+    elif optimizer.lower() == 'ftrl':
+        opt_fn = Ftrl()
+    elif optimizer.lower() == 'nadam':
+        opt_fn = Nadam()
+    elif optimizer.lower() == 'rmsprop':
+        opt_fn = RMSprop()
+    else:
+        raise NameError("Optimizer not supported")
 
-    loss_fn = BinaryCrossentropyL()
+    # These are the only loss currently supported
+    if loss == 'cross_entropy':
+        loss_fn = BinaryCrossentropyL()
+    elif loss == 'cat_cross_entropy':
+        loss_fn == CategoricalCrossentropyL()
+    else:
+        raise NameError("Loss function not supported")
 
+    # These are the only model and backbones currently supported
     Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
     FPN_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
     Linknet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
@@ -141,7 +162,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     else:
         raise NameError("Error, model name not Unet, FPN, or Linknet.")
 
-    model.compile(optimizer=Adam(),
+    model.compile(optimizer=opt_fn,
                   loss=loss_fn,
                   metrics=all_metrics)
 
