@@ -57,8 +57,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # These are the only loss currently supported
     if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
         loss_fn = BinaryCrossentropyL()
+        assert model_parameters['activation'] == 'sigmoid'
     elif loss == 'categorical_cross_entropy':
         loss_fn = CategoricalCrossentropyL()
+        assert model_parameters['activation'] == 'softmax'
     elif loss == 'mean_squared_error':
         loss_fn = MeanSquaredError()
     elif loss == 'mean_absolute_error':
