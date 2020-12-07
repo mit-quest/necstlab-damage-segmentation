@@ -1,12 +1,39 @@
 dataset_config:
   dataset_split:
     train: [
+      "8bit_AS4_S1_P1_L1_2560_1800_2160",
+      "8bit_AS4_S1_P1_L3_2560_1800_2160",
+      "8bit_AS4_S1_P1_L5_2540_1720_2160",
+      "8bit_AS4_CNT_S2_P1_L0_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L5_2560_1800_2160",
+      "8bit_AS4_CNT_S1_P1_L2_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L4_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L6_2560_1750_2160",
+      "THIN_REF_S2_P1_L1_2434_1547_2159",
       "THIN_REF_S2_P1_L3_2496_1563_2159"
     ]
     validation: [
-      "THIN_CNT_S2_P1_L4_2334_1578_2159",
+      "8bit_AS4_S1_P1_L0_2560_1800_2160",
+      "8bit_AS4_S1_P1_L2_2560_1800_2160",
+      "8bit_AS4_S1_P1_L4_2560_1800_2160",
+      "8bit_AS4_S1_P1_L6_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L4_2560_1800_2160",
+      "8bit_AS4_CNT_S2_P1_L6_2560_1800_2160",
+      "8bit_AS4_CNT_S1_P1_L3_2560_1750_2160",
+      "8bit_AS4_CNT_S1_P1_L5_2560_1750_2160",
+      "THIN_REF_S2_P1_L0_2508_1551_2159",
+      "THIN_REF_S2_P1_L2_2484_1524_2159",
+      "THIN_REF_S2_P1_L4_2433_1533_2159"
     ]
     test: [
+      "THIN_CNT_S2_P1_L0_2349_1578_2159",
+      "THIN_CNT_S2_P1_L2_2293_1581_2159",
+      "THIN_CNT_S2_P1_L3_2292_1566_2159",
+      "THIN_CNT_S2_P1_L4_2334_1578_2159",
+      "THIN_CNT_S2_P1_L5_2316_1542_2159",
+      "8bit_AS4_S2_P1_L0_2560_1750_2160",
+      "8bit_AS4_S2_P1_L4_2560_1750_2160",
+      "8bit_AS4_S2_P1_L5_2560_1750_2160",
       "8bit_AS4_S2_P1_L6_2560_1750_2160",
     ]
   stack_downsampling:
@@ -18,7 +45,7 @@ dataset_config:
   target_size: [512, 512]  # width, height
   image_cropping:
     type: 'class' # 'None' (downscale to target), 'linear' (def # crops), 'random' (def # crops), 'class' (def # crops), 'all' (all crops)
-    num_per_image: 1 # if type 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
+    num_per_image: None # if type 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
     num_pos_per_class: 1 # if type 'class', then is num of random class-positive crops (of target sz) per img, >0
     num_neg_per_class: 1 # if type 'class', then is num of random class-negative crops (of target sz) per img, >=0
     min_num_class_pos_px: # if type 'class', then is min num of class-pos pixels required in given class-pos crop, >0
