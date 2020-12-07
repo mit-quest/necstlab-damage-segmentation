@@ -9,7 +9,6 @@ from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccurac
                                       FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
 from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
                                      CategoricalCrossentropy as CategoricalCrossentropyL)
-
 from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFalsePositives,
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
@@ -19,7 +18,6 @@ os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use 
 from segmentation_models import Unet
 from segmentation_models import FPN
 from segmentation_models import Linknet
-
 from segmentation_models.losses import CategoricalCELoss
 
 
@@ -32,10 +30,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-    # alter input_shape due to inability of yaml to accept tupples!
+    # alter input_shape due to inability of yaml to accept tuples!
     if 'input_shape' in model_parameters:
         model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
-    else:  # to guarantee the old config files still work
+    else:  # to guarantee the V1 config files still work
         model_parameters['input_shape'] = (None, None, 1)
 
     # These are the only optimizer currently supported
@@ -57,10 +55,14 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         raise NameError("Optimizer not supported")
 
     # These are the only loss currently supported
-    if loss == 'cross_entropy':
+    if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
         loss_fn = BinaryCrossentropyL()
-    elif loss == 'cat_cross_entropy':
+    elif loss == 'categorical_cross_entropy':
         loss_fn = CategoricalCrossentropyL()
+    elif loss == 'mean_squared_error':
+        loss_fn = MeanSquaredError()
+    elif loss == 'mean_absolute_error':
+        loss_fn = MeanAbsoluteError()
     else:
         raise NameError("Loss function not supported")
 
