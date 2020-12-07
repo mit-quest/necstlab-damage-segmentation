@@ -39,7 +39,7 @@ dataset_config:
   stack_downsampling:
     type: 'linear' # 'None', 'random', 'linear', 'from_start', 'from_end'
 #    frac: 1.0  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
-    number_of_images: 100  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
+    number_of_images: 500  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
     num_skip_beg_slices: 50 # trims n slices off of beginning of stack with N total slices. Slice n+1 becomes new Slice 1
     num_skip_end_slices: 50 # trims m slices off of end of stack with N total slices. Slice N-(m+1) becomes new last slice
   target_size: [512, 512]  # width, height
