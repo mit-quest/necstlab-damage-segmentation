@@ -1,6 +1,6 @@
 train_config:
   model_id_prefix: 'segmentation-model-linknet-vgg16-study2'
-  dataset_id: 'dataset-esrf16_study2_CropCase5_TrnValCaseB'
+  dataset_id: 'dataset-esrf16_altmodels_study2_CropCase5_TrnValCaseB'
   segmentation_model:
     model_name: 'Linknet' # see models.py for supported versions: 'Unet' 'FPN' 'Linknet'
     model_parameters:
