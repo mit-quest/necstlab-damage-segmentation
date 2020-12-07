@@ -1,0 +1,19 @@
+train_config:
+  model_id_prefix: 'segmentation-model-small-3class-template'
+  dataset_id: 'dataset-small-3class_tfversion_debug'
+  segmentation_model:
+    model_name: 'Linknet'
+    model_parameters:
+      backbone_name: 'vgg16'
+      encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
+      input_shape: [Null, Null, 1]
+      activation: 'sigmoid'
+  loss: 'cross_entropy'
+  optimizer: 'adam'
+  batch_size: 16    # p100
+  epochs: 10
+  training_data_shuffle_seed: 1234
+  validation_data_shuffle_seed: 12345
+  test_data_shuffle_seed: 123456
+  data_augmentation:
+    random_90-degree_rotations: True
