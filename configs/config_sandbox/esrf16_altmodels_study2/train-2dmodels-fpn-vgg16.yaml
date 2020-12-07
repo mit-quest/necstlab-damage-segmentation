@@ -10,7 +10,7 @@ train_config:
       activation: 'sigmoid' #tf.keras.activations e.g 'sigmoid', 'softmax', 'linear'
   loss: 'binary_cross_entropy' #'binary_cross_entropy' 'categorical_cross_entropy' 'mean_squared_error' 'mean_absolute_error'
   optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
-  batch_size: 8    # p100
+  batch_size: 8   # FPN model requires batch size of 8 for 1 p100 GPU
   epochs: 10
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
