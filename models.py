@@ -16,20 +16,32 @@ from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFa
                            OneHotClassBinaryAccuracySM, FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore,
                            global_threshold)
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
-from segmentation_models import Unet
-from segmentation_models import FPN
-from segmentation_models import Linknet
+from segmentation_models import Unet, FPN, Linknet
 from segmentation_models.losses import CategoricalCELoss
 
 
 thresholds_training_history = {}
 train_thresholds_counter = 0
 
+# These are the only model and backbones currently supported
+models_compatability={}
+models_compatability['names'] = ['Unet', 'FPN', 'Linknet']
+models_compatability['Unet'] = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+models_compatability['FPN'] = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+models_compatability['Linknet'] = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
+
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
                                          weights_to_load=None, optimizing_threshold_class_metric=None,
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
+    #Check Model Name:
+    if model_name not in models_compatability['names']:
+        raise NameError("Error, model name not Unet, FPN, or Linknet.")
+
+    #Check Check Model and Backbone compatabiltiy
+    if model_parameters['backbone_name'] not in models_compatability[model_name]:
+        raise NameError("Error, model and backbone are not compatible.")
 
     # alter input_shape due to inability of yaml to accept tuples!
     if 'input_shape' in model_parameters:
@@ -68,11 +80,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         loss_fn = MeanAbsoluteError()
     else:
         raise NameError("Loss function not supported")
-
-    # These are the only model and backbones currently supported
-    Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
-    FPN_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
-    Linknet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
@@ -150,22 +157,11 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
     if model_name == "Unet":
-        if model_parameters['backbone_name'] in Unet_backbones:
-            model = Unet(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
-    elif model_name == "FPN":
-        if model_parameters['backbone_name'] in FPN_backbones:
-            model = FPN(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
-    elif model_name == "Linknet":
-        if model_parameters['backbone_name'] in Linknet_backbones:
-            model = Linknet(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
-    else:
-        raise NameError("Error, model name not Unet, FPN, or Linknet.")
+        model = Unet(classes=num_classes, **model_parameters)
+    if model_name == "FPN":
+        model = FPN(classes=num_classes, **model_parameters)
+    if model_name == "Linknet":
+        model = Linknet(classes=num_classes, **model_parameters)
 
     model.compile(optimizer=opt_fn,
                   loss=loss_fn,
