@@ -12,12 +12,12 @@ import ipykernel    # needed when using many metrics, to avoid automatic verbose
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
-from gcp_utils import copy_folder_locally_if_missing
+from gcp_utils import copy_folder_locally_if_missing, getSystemInfo, getLibVersions
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 
-
 metadata_file_name = 'metadata.yaml'
+
 tmp_directory = Path('./tmp')
 
 
@@ -27,8 +27,7 @@ def sample_image_and_mask_paths(generator, n_paths):
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
-
-def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id, message):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -110,8 +109,17 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         # confirm that the current model and pretrained model configurations are compatible
         assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
         assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
-        # same loss function
-        assert pretrained_model_config['loss'] == train_config['loss']
+
+        if 'activation' in pretrained_model_config['segmentation_model']['model_parameters']:
+            assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
+        else:
+            print('Activation function compatibility was not checked! model_parameters: activation does not exist in the pretrained model config file. ')
+
+        if 'input_shape' in pretrained_model_config['segmentation_model']['model_parameters']:
+            assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
+        else:
+            print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
+
         # confirm that the number of classes in pretrain is the same as train
         assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
         # same target size
@@ -207,7 +215,13 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
     plt.close()
 
+    metadata_sys = {
+        'System_info': getSystemInfo(),
+        'Lib_versions_info': getLibVersions()
+    }
+
     metadata = {
+        'message': message,
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
         'num_classes': len(train_generator.mask_filenames),
@@ -220,7 +234,8 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed,
-        'pretrained_model_info': pretrained_info
+        'pretrained_model_info': pretrained_info,
+        'metadata_system': metadata_sys
     }
 
     with Path(model_dir, metadata_file_name).open('w') as f:
@@ -268,5 +283,9 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='The model ID with previously trained weights.')
-
+    argparser.add_argument(
+        '--message',
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
     train(**argparser.parse_args().__dict__)
