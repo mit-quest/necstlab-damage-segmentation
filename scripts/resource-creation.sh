@@ -21,17 +21,6 @@ sudo dpkg -i libcudnn7_7.6.5.32-1+cuda10.1_amd64.deb
 wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda10.1_amd64.deb
 
-## install ubuntu default python
-#sudo apt-get install -y cmake \
-#    git \
-#   python3-setuptools \
-#   python3-dev \
-#   python3-pip \
-#    libopencv-dev \
-#    htop \
-#    tmux \
-#    tree \
-#    p7zip-full
 
 # Install requirements
 sudo apt-get install -y \
@@ -78,7 +67,6 @@ cd ~
 
 pip3 install -U pip
 pip3 install --upgrade setuptools
-#pip3 uninstall crcmod -y
 pip3 install --no-cache-dir crcmod
 pip3 install --upgrade pyasn1
 cd necstlab-damage-segmentation && pip3 install -r requirements.txt
