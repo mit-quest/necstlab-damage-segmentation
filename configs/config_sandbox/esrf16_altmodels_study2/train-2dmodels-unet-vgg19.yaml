@@ -1,16 +1,16 @@
 train_config:
-  model_id_prefix: 'segmentation-model-Unet-vgg19-study2'
+  model_id_prefix: 'segmentation-model-esrf16_altmodels_study2_unet_vgg19'
   dataset_id: 'dataset-esrf16_altmodels_study2_CropCase5_TrnValCaseB'
   segmentation_model:
-    model_name: 'Unet' # see models.py for supported versions: 'Unet' 'FPN' 'Linknet'
+    model_name: 'Unet' # see models.py for supported versions: 'Unet', 'FPN', 'Linknet'
     model_parameters:
       backbone_name: 'vgg19' #see models.py for supported versions:  'vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0'
       encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
       input_shape: [Null, Null, 1] # [Null, Null, 1] for GV and [Null, Null, 3] for RGB
-      activation: 'sigmoid' #tf.keras.activations e.g 'sigmoid', 'softmax', 'linear'
-  loss: 'binary_cross_entropy'  #'binary_cross_entropy' 'categorical_cross_entropy' 'mean_squared_error' 'mean_absolute_error'
+      activation: 'sigmoid' #tf.keras.activations e.g. 'sigmoid', 'softmax', 'linear'
+  loss: 'binary_cross_entropy'  #'binary_cross_entropy', 'categorical_cross_entropy', 'mean_squared_error', 'mean_absolute_error'
   optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
-  batch_size: 16    # FPN model requires batch size of 8 for 1 p100 GPU
+  batch_size: 16    # for 1x p100 GPU: FPN max batch size is 8; Unet and Linknet max batch size is 16
   epochs: 100
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345

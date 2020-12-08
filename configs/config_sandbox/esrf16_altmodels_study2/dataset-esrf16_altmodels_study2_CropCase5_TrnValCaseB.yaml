@@ -1,7 +1,5 @@
 dataset_config:
   dataset_split:
-dataset_config:
-  dataset_split:
 #    train: [   # copied from dataset-esrf16_segV1_study1_CropCase5_TrnValCaseB/train
 #      "8bit_AS4_S1_P1_L1_2560_1800_2160",
 #      "8bit_AS4_S1_P1_L3_2560_1800_2160",
