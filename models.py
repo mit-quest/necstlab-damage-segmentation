@@ -9,6 +9,7 @@ from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccurac
                                       FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
 from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
                                      CategoricalCrossentropy as CategoricalCrossentropyL)
+from tensorflow.keras.losses import (MeanSquaredError, MeanAbsoluteError)
 from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFalsePositives,
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
