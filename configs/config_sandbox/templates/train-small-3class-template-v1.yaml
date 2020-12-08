@@ -1,6 +1,6 @@
 train_config:
-  model_id_prefix: 'segmentation-model-small-3class-template'
-  dataset_id: 'dataset-small-3class-template'
+  model_id_prefix: 'segmentation-model-small-3class-template-v1'
+  dataset_id: 'dataset-small-3class-template-v1'
   segmentation_model:
     model_name: 'Unet'
     model_parameters:
