@@ -4,7 +4,7 @@ train_config:
   segmentation_model:
     model_name: 'FPN' # see models.py for supported versions: 'Unet', 'FPN', 'Linknet'
     model_parameters:
-      backbone_name: 'resnet50' #see models.py for supported versions:  'vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0'
+      backbone_name: 'resnext50' #see models.py for supported versions:  'vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0'
       encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
       input_shape: [Null, Null, 1] # [Null, Null, 1] for GV and [Null, Null, 3] for RGB
       activation: 'sigmoid'  #tf.keras.activations e.g. 'sigmoid', 'softmax', 'linear'
