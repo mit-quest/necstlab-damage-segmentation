@@ -25,6 +25,24 @@ from segmentation_models.losses import CategoricalCELoss
 thresholds_training_history = {}
 train_thresholds_counter = 0
 
+# These are the only optimizer currently supported
+opt_fn_dic = {'adam': Adam(),
+              'sdg': SGD(),
+              'adagrad': Adagrad(),
+              'adamax': Adamax(),
+              'ftrl': Ftrl(),
+              'nadam': Nadam(),
+              'rmsprop': RMSprop()
+              }
+
+# These are the only loss currently supported
+loss_fn_dic = {'binary_cross_entropy': BinaryCrossentropyL(),
+               'cross_entropy': BinaryCrossentropyL(),
+               'categorical_cross_entropy': CategoricalCrossentropyL(),
+               'mean_squared_error': MeanSquaredError(),
+               'mean_absolute_error': MeanAbsoluteError()
+               }
+
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
                                          weights_to_load=None, optimizing_threshold_class_metric=None,
@@ -37,42 +55,28 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     else:  # to guarantee the V1 config files still work
         model_parameters['input_shape'] = (None, None, 1)
 
+    # this one has to be inside because of the arguments inside the class: num_classes=num_classes, **model_parameters
+    models_dic = {'Unet': {
+        'model_class': Unet(num_classes=num_classes, **model_parameters),
+        'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
+        'FPN': {
+        'model_class': FPN(num_classes=num_classes, **model_parameters),
+        'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
+        'Linknet': {
+        'model_class': Linknet(num_classes=num_classes, **model_parameters),
+        'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']}
+    }
+
     # These are the only optimizer currently supported
-    if optimizer.lower() == 'adam':
-        opt_fn = Adam()
-    elif optimizer.lower() == 'sdg':
-        opt_fn = SGD()
-    elif optimizer.lower() == 'adagrad':
-        opt_fn = Adagrad()
-    elif optimizer.lower() == 'adamax':
-        opt_fn = Adamax()
-    elif optimizer.lower() == 'ftrl':
-        opt_fn = Ftrl()
-    elif optimizer.lower() == 'nadam':
-        opt_fn = Nadam()
-    elif optimizer.lower() == 'rmsprop':
-        opt_fn = RMSprop()
-    else:
-        raise NameError("Optimizer not supported")
+    opt_fn = opt_fn_dic[optimizer.lower()]
 
     # These are the only loss currently supported
+    loss_fn = loss_fn_dic[loss.lower()]
+
     if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
-        loss_fn = BinaryCrossentropyL()
         assert model_parameters['activation'] == 'sigmoid'
     elif loss == 'categorical_cross_entropy':
-        loss_fn = CategoricalCrossentropyL()
         assert model_parameters['activation'] == 'softmax'
-    elif loss == 'mean_squared_error':
-        loss_fn = MeanSquaredError()
-    elif loss == 'mean_absolute_error':
-        loss_fn = MeanAbsoluteError()
-    else:
-        raise NameError("Loss function not supported")
-
-    # These are the only model and backbones currently supported
-    Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
-    FPN_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
-    Linknet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
@@ -149,23 +153,10 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
-    if model_name == "Unet":
-        if model_parameters['backbone_name'] in Unet_backbones:
-            model = Unet(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
-    elif model_name == "FPN":
-        if model_parameters['backbone_name'] in FPN_backbones:
-            model = FPN(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
-    elif model_name == "Linknet":
-        if model_parameters['backbone_name'] in Linknet_backbones:
-            model = Linknet(classes=num_classes, **model_parameters)
-        else:
-            raise NameError("Error, model and backbone are not compatible.")
+    if model_parameters['backbone_name'] in models_dic[model_name]['compatible_backbones']:
+        model = models_dic[model_name]['model_class']
     else:
-        raise NameError("Error, model name not Unet, FPN, or Linknet.")
+        raise NameError("Error, model and backbone are not compatible.")
 
     model.compile(optimizer=opt_fn,
                   loss=loss_fn,
