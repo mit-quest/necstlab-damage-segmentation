@@ -10,7 +10,7 @@ train_config:
       activation: 'sigmoid' #tf.keras.activations e.g. 'sigmoid', 'softmax', 'linear'
   loss: 'binary_cross_entropy' #'binary_cross_entropy', 'categorical_cross_entropy', 'mean_squared_error', 'mean_absolute_error'
   optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
-  batch_size: 16    # for 1x p100 GPU: FPN max batch size is 8; Unet and Linknet max batch size is 16
+  batch_size: 8    # for 1x p100 GPU: FPN max batch size is 8; Unet and Linknet max batch size is 16
   epochs: 100
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
