@@ -11,6 +11,44 @@ import git
 metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
+def check_files(remote_folder, remote_folder_name):
+
+    local_processed_data_dir = Path(tmp_directory, 'check_metadata')
+
+    if gcp_utils.remote_folder_exists(remote_folder, remote_folder_name, sample_file_name=metadata_file_name):  # if metadata file exists, then it finished
+        file_remote_path = os.path.join(remote_folder, remote_folder_name, metadata_file_name)
+        local_file_path = os.path.join(local_processed_data_dir, metadata_file_name)
+
+        # copy matadata file locally
+        copy_file_locally_if_missing(file_remote_path, local_file_path)
+
+        # load metadata file
+        with local_file_path.open('r') as f:
+            processed_data_metadata = yaml.safe_load(f)
+
+        # compare the number of images on the raw data and processed data folders
+        if processed_data_metadata['annotations']['number_of_images'] = processed_data_metadata['annotations']['original_number_of_files_in_zip']
+            check_metadata_file = True
+
+        # add line to yaml saying that the file was checked
+#        new_metadata = {processed_data_metadata
+#                        'checked_metadata': check_metadata_file}
+
+
+#        with local_file_path.open('w') as f:
+#            yaml.safe_dump(new_metadata, f)
+
+#        os.system("gsutil cp '{}' '{}'".format(local_file_path.as_posix(), file_remote_path))
+
+        else:  # the number of images dont match
+            check_metadata_file = False
+
+        shutil.rmtree(local_processed_data_dir.as_posix())  # remove folder
+
+    else:  # no metadata file was found
+        check_metadata_file = False
+
+    return check_metadata_file
 
 def process_zips(gcp_bucket):
 
@@ -45,13 +83,13 @@ def process_zip(gcp_bucket, zipped_stack):
 
     stack_dir = Path(tmp_directory, stack_id)
 
-    if not is_annotation and gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
-                                                            '/'.join([stack_id] + ["images"])):
+    check_metadata_file = check_files(os.path.join(gcp_bucket, 'processed-data'), stack_id)
+
+    if not is_annotation and check_metadata_file:
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "images")))
 
-    elif is_annotation and gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
-                                                          '/'.join([stack_id] + ["annotations"])):
+    elif is_annotation and check_metadata_file:
 
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "annotations")))
 
@@ -100,7 +138,7 @@ def process_zip(gcp_bucket, zipped_stack):
             yaml.safe_dump(metadata, f)
 
         os.system("gsutil -m cp -n -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
-                                                     os.path.join(gcp_bucket, 'processed-data/')))
+                                                        os.path.join(gcp_bucket, 'processed-data/')))
 
         print('\n Ingest Raw Data Metadata:')
         print(metadata)
