@@ -21,16 +21,20 @@ metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
 
-def gen_plots(metric_names, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
+def gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
     if num_rows == 1 and num_cols == 1:
         is_individual_plot = True  # just one plot
     else:
         is_individual_plot = False  # multiple plots
+        fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25), squeeze=False)
 
-    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25))
     counter_rows = 0
     counter_col = 0
     for metric_name in metric_names:
+
+        if is_individual_plot == True:
+            fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
+
         # plot the train and validation curves
         for split in ['train', 'validate']:
             key_name = metric_name
@@ -53,6 +57,7 @@ def gen_plots(metric_names, compiled_model, results, plots_dir, num_rows=1, num_
             axes[counter_rows, counter_col].set_ylabel(metric_name)
 
         # save if this is a single plot
+        fig2.tight_layout()
         if is_individual_plot:
             if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
                 fig2.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
@@ -60,18 +65,18 @@ def gen_plots(metric_names, compiled_model, results, plots_dir, num_rows=1, num_
                 fig2.savefig(Path(plots_dir, compiled_model.loss.name + '.png').as_posix())
             else:
                 fig2.savefig(Path(plots_dir, metric_name + '.png').as_posix())
-        counter_col += 1
-        if counter_col == num_cols:  # plots per row
-            counter_rows += 1
-            counter_col = 0
+            plt.close()
+        else:
+            counter_col += 1
+            if counter_col == num_cols:  # plots per row
+                counter_rows += 1
+                counter_col = 0
 
     # save if this is a mosaic plot
     if not is_individual_plot:
         fig2.tight_layout()
         fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
         plt.close()
-
-    plt.close()
 
 
 def asserts_pretrained_model(pretrained_model_config, train_config, dataset_config, train_generator):
@@ -236,10 +241,10 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
 
     # generate individual plots
-    gen_plots(metric_names, compiled_model, results, plots_dir, num_rows=1, num_cols=1)
+    gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1)
 
     # generate mosaic plot
-    gen_plots(metric_names, compiled_model, results, plots_dir, num_rows=num_rows, num_cols=num_cols)
+    gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=num_rows, num_cols=num_cols)
 
     metadata_sys = {
         'System_info': getSystemInfo(),
