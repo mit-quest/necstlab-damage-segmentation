@@ -55,6 +55,14 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
 
+    # check if the dataset was copied
+    if os.listdir(Path(local_dataset_dir, dataset_id)) == []:
+        raise FileNotFoundError('There are no files in dataset folder. Confirm that the dataset ' + dataset_directory + ' exists.')
+
+    # check if the model was copied
+    if os.listdir(Path(local_model_dir)) == []:
+        raise FileNotFoundError('There are no files in model folder. Confirm that the model ' + model_id + ' exists.')
+
     train_thresh_id = "{}_{}_{}".format(model_id, dataset_id, optimizing_class_metric)
     train_thresh_id_dir = Path(tmp_directory, str('train_thresholds_' + train_thresh_id))
     train_thresh_id_dir.mkdir(parents=True)
@@ -76,7 +84,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
 
     train_threshold_dataset_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_directory).as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         shuffle=True,
@@ -95,12 +103,12 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         if not training_threshold_output.success:
             AssertionError("Training prediction thresholds has failed. See function minimization command line output.")
 
-        training_thresholds_output.update({str('class'+str(i)): {'x': float(training_threshold_output.x),
-                                                                 'success': training_threshold_output.success,
-                                                                 'status': training_threshold_output.status,
-                                                                 'message': training_threshold_output.message,
-                                                                 'nfev': training_threshold_output.nfev,
-                                                                 'fun': float(training_threshold_output.fun)}})
+        training_thresholds_output.update({str('class' + str(i)): {'x': float(training_threshold_output.x),
+                                                                   'success': training_threshold_output.success,
+                                                                   'status': training_threshold_output.status,
+                                                                   'message': training_threshold_output.message,
+                                                                   'nfev': training_threshold_output.nfev,
+                                                                   'fun': float(training_threshold_output.fun)}})
         trained_prediction_thresholds.update({str('class' + str(i)): float(training_threshold_output.x)})
 
     metadata = {

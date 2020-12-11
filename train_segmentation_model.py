@@ -130,6 +130,9 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', train_config['dataset_id']),
                                    local_dataset_dir)
 
+    if os.listdir(local_dataset_dir) == []:
+        raise FileNotFoundError('There are no files in dataset folder. Confirm that the dataset ' + train_config['dataset_id'] + ' exists.')
+
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
     model_dir.mkdir(parents=True)
@@ -171,6 +174,10 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         # load pretrained metadata
         local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
         copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
+
+        if os.listdir(local_pretrained_model_dir) == []:
+            raise FileNotFoundError('There are no files in pre_trained models folder. Confirm that the model ' + pretrained_model_id + ' exists.')
+
         path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
 
         with Path(local_pretrained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:

@@ -49,6 +49,14 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
 
+    # check if the dataset was copied
+    if os.listdir(Path(local_dataset_dir, dataset_id)) == []:
+        raise FileNotFoundError('There are no files in dataset folder. Confirm that the dataset ' + dataset_directory + ' exists.')
+
+    # check if the model was copied
+    if os.listdir(Path(local_model_dir)) == []:
+        raise FileNotFoundError('There are no files in model folder. Confirm that the model ' + model_id + ' exists.')
+
     test_id = "{}_{}".format(model_id, dataset_id)
     test_dir = Path(tmp_directory, 'tests', test_id)
     test_dir.mkdir(parents=True)
@@ -67,7 +75,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
 
     test_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, dataset_id, 'test').as_posix(),
-        rescale=1./255,
+        rescale=1. / 255,
         target_size=target_size,
         batch_size=batch_size,
         seed=None if 'test_data_shuffle_seed' not in train_config else train_config['test_data_shuffle_seed'])
