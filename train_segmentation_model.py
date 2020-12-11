@@ -160,7 +160,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     )
 
     # individual plots
-    metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
+    metric_names = [m.name for m in compiled_model.metrics]
     for metric_name in metric_names:
         fig, ax = plt.subplots()
         for split in ['train', 'validate']:

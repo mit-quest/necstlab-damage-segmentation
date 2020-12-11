@@ -216,10 +216,9 @@ class EvaluateModelForInputThreshold:
         all_results = optimizing_model.evaluate(self.dataset_generator,
                                                 steps=np.ceil(self.dataset_downsample_factor *
                                                               len(self.dataset_generator)).astype(int))
-        if hasattr(optimizing_model.loss, '__name__'):
-            metric_names = [optimizing_model.loss.__name__] + [m.name for m in optimizing_model.metrics]
-        elif hasattr(optimizing_model.loss, 'name'):
-            metric_names = [optimizing_model.loss.name] + [m.name for m in optimizing_model.metrics]
+
+        metric_names = [m.name for m in optimizing_model.metrics]
+
         dict_results = dict(zip(metric_names, all_results))
 
         optimizing_result = dict_results[str('class' + str(self.optimizing_class_id) + '_'
