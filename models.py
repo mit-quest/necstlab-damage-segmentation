@@ -55,13 +55,13 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
   # this one has to be inside because of the arguments inside the class: num_classes=num_classes, **model_parameters
   models_dic = {'Unet': {
-      'model_class': Unet(num_classes=num_classes, **model_parameters),
+      'model_class': Unet(classes=num_classes, **model_parameters),
       'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
       'FPN': {
-      'model_class': FPN(num_classes=num_classes, **model_parameters),
+      'model_class': FPN(classes=num_classes, **model_parameters),
       'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
       'Linknet': {
-      'model_class': Linknet(num_classes=num_classes, **model_parameters),
+      'model_class': Linknet(classes=num_classes, **model_parameters),
       'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']}
   }
 
@@ -151,6 +151,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
   # strategy = tf.distribute.MirroredStrategy()
   # with strategy.scope():
+
   if model_parameters['backbone_name'] in models_dic[model_name]['compatible_backbones']:
     model = models_dic[model_name]['model_class']
   else:
@@ -205,10 +206,9 @@ class EvaluateModelForInputThreshold:
     all_results = optimizing_model.evaluate(self.dataset_generator,
                                             steps=np.ceil(self.dataset_downsample_factor *
                                                           len(self.dataset_generator)).astype(int))
-    if hasattr(optimizing_model.loss, '__name__'):
-      metric_names = [optimizing_model.loss.__name__] + [m.name for m in optimizing_model.metrics]
-    elif hasattr(optimizing_model.loss, 'name'):
-      metric_names = [optimizing_model.loss.name] + [m.name for m in optimizing_model.metrics]
+
+    metric_names = [m.name for m in optimizing_model.metrics]
+
     dict_results = dict(zip(metric_names, all_results))
 
     optimizing_result = dict_results[str('class' + str(self.optimizing_class_id) + '_'
