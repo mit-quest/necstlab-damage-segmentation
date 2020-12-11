@@ -8,10 +8,12 @@ from pathlib import Path
 from datetime import datetime
 import pytz
 import git
-from gcp_utils import copy_folder_locally_if_missing, getSystemInfo, getLibVersions
+from gcp_utils import copy_folder_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
+from local_utils import folder_has_files, getSystemInfo, getLibVersions
+
 
 # test can be run multiple times (with or without optimized thresholds, global thresholds), create new each time
 test_datetime = datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ')
@@ -46,16 +48,10 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
     local_model_dir = Path(tmp_directory, 'models')
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_id), local_dataset_dir)
+    folder_has_files(local_dataset_dir, dataset_id)
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
-
-    # check if the dataset was copied
-    if os.listdir(Path(local_dataset_dir, dataset_id)) == []:
-        raise FileNotFoundError('There are no files in dataset folder. Confirm that the dataset ' + dataset_directory + ' exists.')
-
-    # check if the model was copied
-    if os.listdir(Path(local_model_dir)) == []:
-        raise FileNotFoundError('There are no files in model folder. Confirm that the model ' + model_id + ' exists.')
+    folder_has_files(local_model_dir, model_id)
 
     test_id = "{}_{}".format(model_id, dataset_id)
     test_dir = Path(tmp_directory, 'tests', test_id)

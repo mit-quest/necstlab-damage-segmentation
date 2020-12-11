@@ -12,9 +12,10 @@ import ipykernel    # needed when using many metrics, to avoid automatic verbose
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
-from gcp_utils import copy_folder_locally_if_missing, getSystemInfo, getLibVersions
+from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
+from local_utils import folder_has_files, getSystemInfo, getLibVersions
 
 metadata_file_name = 'metadata.yaml'
 
@@ -31,7 +32,6 @@ def gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows
     counter_rows = 0
     counter_col = 0
     for metric_name in metric_names:
-
         if is_individual_plot == True:
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
@@ -79,7 +79,7 @@ def gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows
         plt.close()
 
 
-def asserts_pretrained_model(pretrained_model_config, train_config, dataset_config, train_generator):
+def asserts_pretrained_model(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator):
     # confirm that the current model and pretrained model configurations are compatible
     assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
     assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
@@ -135,8 +135,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', train_config['dataset_id']),
                                    local_dataset_dir)
 
-    if os.listdir(local_dataset_dir) == []:
-        raise FileNotFoundError('There are no files in dataset folder. Confirm that the dataset ' + train_config['dataset_id'] + ' exists.')
+    folder_has_files(local_dataset_dir, train_config['dataset_id'])
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
@@ -180,8 +179,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
         copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
 
-        if os.listdir(local_pretrained_model_dir) == []:
-            raise FileNotFoundError('There are no files in pre_trained models folder. Confirm that the model ' + pretrained_model_id + ' exists.')
+        folder_has_files(local_pretrained_model_dir, pretrained_model_id)
 
         path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
 
@@ -195,7 +193,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
                            'pretrained_config': pretrained_model_config,
                            'pretrained_metadata': pretrained_model_metadata}
 
-        asserts_pretrained_model(pretrained_model_config, train_config, dataset_config, train_generator)
+        asserts_pretrained_model(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator)
 
     else:
         path_pretrained_model = None
@@ -231,7 +229,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
     )
 
-    metric_names = ['loss'] + [m.name for m in compiled_model.metrics]
+    metric_names = [m.name for m in compiled_model.metrics]
 
     # define number of columns and rows for the mosaic plot
     if len(train_generator.mask_filenames) == 1:
