@@ -15,12 +15,22 @@ metadata_file_name_images = 'metadata_images.yaml'
 
 tmp_directory = Path('./tmp')
 
+
+# def was_checked():
+
+#    return result_check
+
+# def was_processed():
+
+#    return result_processed
+
+
 def process_zips(gcp_bucket):
 
-    files = gcp_utils.list_files(gcp_bucket.split('gs://')[1], 'raw-data')
+    files = gcp_utils.list_files(gcp_bucket.split('gs://')[1], 'raw-data-trial')
 
     for zipped_stack in files:
-        if zipped_stack == 'raw-data/':
+        if zipped_stack == 'raw-data-trial/':
             continue
         process_zip(gcp_bucket, os.path.join(gcp_bucket, zipped_stack))
 
@@ -49,9 +59,13 @@ def process_zip(gcp_bucket, zipped_stack):
     stack_dir = Path(tmp_directory, stack_id)
 
     metadata_file_name = metadata_file_name_annotations if is_annotation else metadata_file_name_images
-    check_metadata_file = gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data'),
+
+    check_metadata_file = gcp_utils.remote_folder_exists(os.path.join(gcp_bucket, 'processed-data-trial'),
                                                          '/'.join([stack_id]),
-                                                         sample_file_name=metadata_file_name):
+                                                         sample_file_name=metadata_file_name)
+
+    print(check_metadata_file)
+    input('enter')
 
     if not is_annotation and check_metadata_file:
         print("{} has already been processed! Skipping...".format(os.path.join(stack_id, "images")))
@@ -81,19 +95,17 @@ def process_zip(gcp_bucket, zipped_stack):
                     Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
 
         # get metadata file, if exists
-        os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data/', stack_id, metadata_file_name),
+        os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data-trial/', stack_id, metadata_file_name),
                                                      Path(tmp_directory, stack_id).as_posix()))
 
         number_of_images = len(list(Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').iterdir()))
 
-        if original_number_of_files_in_zip == number_of_images:  # this guarantees that the images were all copied localy
-            try:
-                with Path(tmp_directory, stack_id, metadata_file_name).open('r') as f:
-                    metadata = yaml.safe_load(f)
-            except FileNotFoundError:
-                metadata = {}
+        print(original_number_of_files_in_zip, number_of_images)
+        input('enter')
 
-            metadata.update({'annotations' if is_annotation else 'images': {
+        if original_number_of_files_in_zip == number_of_images:  # this guarantees that the images were all copied localy
+
+            metadata = {'annotations' if is_annotation else 'images': {
                 'gcp_bucket': gcp_bucket,
                 'zipped_stack_file': zipped_stack,
                 'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
@@ -101,7 +113,7 @@ def process_zip(gcp_bucket, zipped_stack):
                 'number_of_images': number_of_images,
                 'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha},
                 'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1)
-            })
+            }
 
             with Path(tmp_directory, stack_id, metadata_file_name).open('w') as f:
                 yaml.safe_dump(metadata, f)
@@ -109,9 +121,13 @@ def process_zip(gcp_bucket, zipped_stack):
             # os.system("gsutil -m cp -n -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
             #                                                os.path.join(gcp_bucket, 'processed-data/')))
 
+            print(unzipped_dir.parent.as_posix(), '/')
+            print(os.path.join(gcp_bucket, 'processed-data-trial/'))
+            input('enter')
+
             # instead of copying it, we should sync it
-            os.system("gsutil -m rsync -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
-                                                            os.path.join(gcp_bucket, 'processed-data/')))
+            os.system("gsutil -m rsync -r '{}' '{}'".format(os.path.join(unzipped_dir.parent.as_posix(), '/'),
+                                                            os.path.join(gcp_bucket, 'processed-data-trial/')))
 
             print('\n Ingest Raw Data Metadata:')
             print(metadata)
