@@ -41,6 +41,18 @@ loss_fn_dic = {'binary_cross_entropy': BinaryCrossentropyL(),
                'mean_absolute_error': MeanAbsoluteError()
                }
 
+# this one has to be inside because of the arguments inside the class: num_classes=num_classes, **model_parameters
+models_dic = {'Unet': {
+    'model_class': Unet,
+    'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
+    'FPN': {
+    'model_class': FPN,
+    'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
+    'Linknet': {
+    'model_class': Linknet,
+    'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']}
+}
+
 
 def generate_compiled_segmentation_model(model_name, model_parameters, num_classes, loss, optimizer,
                                          weights_to_load=None, optimizing_threshold_class_metric=None,
@@ -52,18 +64,6 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
   else:  # to guarantee the V1 config files still work
     model_parameters['input_shape'] = (None, None, 1)
-
-  # this one has to be inside because of the arguments inside the class: num_classes=num_classes, **model_parameters
-  models_dic = {'Unet': {
-      'model_class': Unet(classes=num_classes, **model_parameters),
-      'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
-      'FPN': {
-      'model_class': FPN(classes=num_classes, **model_parameters),
-      'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']},
-      'Linknet': {
-      'model_class': Linknet(classes=num_classes, **model_parameters),
-      'compatible_backbones': ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']}
-  }
 
   # Select the optimizer as a function of the name in the config file
   opt_fn = opt_fn_dic[optimizer.lower()]
@@ -153,7 +153,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
   # with strategy.scope():
 
   if model_parameters['backbone_name'] in models_dic[model_name]['compatible_backbones']:
-    model = models_dic[model_name]['model_class']
+    model = models_dic[model_name]['model_class'](classes=num_classes, **model_parameters)
   else:
     raise NameError("Error, model and backbone are not compatible.")
 
