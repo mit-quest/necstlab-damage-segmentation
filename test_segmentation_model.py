@@ -97,6 +97,7 @@ def test(gcp_bucket, dataset_id, model_id, batch_size, trained_thresholds_id, ra
     results = compiled_model.evaluate(test_generator)
 
     metric_names = [m.name for m in compiled_model.metrics]
+
     with Path(test_dir, str('metrics_' + test_datetime + '.csv')).open('w') as f:
         f.write(','.join(metric_names) + '\n')
         f.write(','.join(map(str, results)))

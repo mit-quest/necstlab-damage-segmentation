@@ -2,13 +2,14 @@ import os
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, Adagrad, Adamax, Ftrl, Nadam, RMSprop
 from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccuracy, CategoricalAccuracy,
                                       BinaryCrossentropy as BinaryCrossentropyM,
                                       CategoricalCrossentropy as CategoricalCrossentropyM,
                                       FalsePositives, TruePositives, TrueNegatives, FalseNegatives, Precision, Recall)
 from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
                                      CategoricalCrossentropy as CategoricalCrossentropyL)
+from tensorflow.keras.losses import (MeanSquaredError, MeanAbsoluteError)
 from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFalsePositives,
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
@@ -16,6 +17,8 @@ from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFa
                            global_threshold)
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet
+from segmentation_models import FPN
+from segmentation_models import Linknet
 from segmentation_models.losses import CategoricalCELoss
 
 
@@ -28,12 +31,48 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-    # These are the only model, loss, and optimizer currently supported
-    assert model_name == 'Unet'
-    assert loss == 'cross_entropy'
-    assert optimizer == 'adam'
+    # alter input_shape due to inability of yaml to accept tuples!
+    if 'input_shape' in model_parameters:
+        model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+    else:  # to guarantee the V1 config files still work
+        model_parameters['input_shape'] = (None, None, 1)
 
-    loss_fn = BinaryCrossentropyL()
+    # These are the only optimizer currently supported
+    if optimizer.lower() == 'adam':
+        opt_fn = Adam()
+    elif optimizer.lower() == 'sdg':
+        opt_fn = SGD()
+    elif optimizer.lower() == 'adagrad':
+        opt_fn = Adagrad()
+    elif optimizer.lower() == 'adamax':
+        opt_fn = Adamax()
+    elif optimizer.lower() == 'ftrl':
+        opt_fn = Ftrl()
+    elif optimizer.lower() == 'nadam':
+        opt_fn = Nadam()
+    elif optimizer.lower() == 'rmsprop':
+        opt_fn = RMSprop()
+    else:
+        raise NameError("Optimizer not supported")
+
+    # These are the only loss currently supported
+    if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
+        loss_fn = BinaryCrossentropyL()
+        assert model_parameters['activation'] == 'sigmoid'
+    elif loss == 'categorical_cross_entropy':
+        loss_fn = CategoricalCrossentropyL()
+        assert model_parameters['activation'] == 'softmax'
+    elif loss == 'mean_squared_error':
+        loss_fn = MeanSquaredError()
+    elif loss == 'mean_absolute_error':
+        loss_fn = MeanAbsoluteError()
+    else:
+        raise NameError("Loss function not supported")
+
+    # These are the only model and backbones currently supported
+    Unet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+    FPN_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0']
+    Linknet_backbones = ['vgg16', 'vgg19', 'resnet18', 'seresnet18', 'inceptionv3', 'mobilenet']
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
@@ -110,8 +149,25 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
-    model = Unet(input_shape=(None, None, 1), classes=num_classes, **model_parameters)
-    model.compile(optimizer=Adam(),
+    if model_name == "Unet":
+        if model_parameters['backbone_name'] in Unet_backbones:
+            model = Unet(classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
+    elif model_name == "FPN":
+        if model_parameters['backbone_name'] in FPN_backbones:
+            model = FPN(classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
+    elif model_name == "Linknet":
+        if model_parameters['backbone_name'] in Linknet_backbones:
+            model = Linknet(classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
+    else:
+        raise NameError("Error, model name not Unet, FPN, or Linknet.")
+
+    model.compile(optimizer=opt_fn,
                   loss=loss_fn,
                   metrics=all_metrics)
 
@@ -162,6 +218,7 @@ class EvaluateModelForInputThreshold:
                                                               len(self.dataset_generator)).astype(int))
 
         metric_names = [m.name for m in optimizing_model.metrics]
+
         dict_results = dict(zip(metric_names, all_results))
 
         optimizing_result = dict_results[str('class' + str(self.optimizing_class_id) + '_'
