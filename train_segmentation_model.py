@@ -49,22 +49,12 @@ def gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows
         axes[counter_rows, counter_col].set_xlabel('epochs')
 
         # set y axis labels
-        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
-            axes[counter_rows, counter_col].set_ylabel(compiled_model.loss.__name__)
-        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-            axes[counter_rows, counter_col].set_ylabel(compiled_model.loss.name)
-        else:
-            axes[counter_rows, counter_col].set_ylabel(metric_name)
+        axes[counter_rows, counter_col].set_ylabel(metric_name)
 
         # save if this is a single plot
         fig2.tight_layout()
         if is_individual_plot:
-            if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
-                fig2.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
-            elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-                fig2.savefig(Path(plots_dir, compiled_model.loss.name + '.png').as_posix())
-            else:
-                fig2.savefig(Path(plots_dir, metric_name + '.png').as_posix())
+            fig2.savefig(Path(plots_dir, metric_name + '.png').as_posix())
             plt.close()
         else:
             counter_col += 1
