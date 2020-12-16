@@ -44,16 +44,14 @@ def gen_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows
 
         # set legend
         axes[counter_rows, counter_col].legend()
-
         # set x axis labels
         axes[counter_rows, counter_col].set_xlabel('epochs')
-
         # set y axis labels
         axes[counter_rows, counter_col].set_ylabel(metric_name)
 
         # save if this is a single plot
-        fig2.tight_layout()
         if is_individual_plot:
+            fig2.tight_layout()
             fig2.savefig(Path(plots_dir, metric_name + '.png').as_posix())
             plt.close()
         else:
