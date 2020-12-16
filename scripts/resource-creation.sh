@@ -15,11 +15,11 @@ sudo apt-get -y install cuda
 export PATH=/usr/local/cuda-11.0/bin${PATH:+:${PATH}}
 
 # install cudnn
-wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn8-dev_8.0.4.30-1+cuda11.0_amd64.deb
-sudo dpkg -i libcudnn8-dev_8.0.4.30-1+cuda11.0_amd64.deb
+wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn8_8.0.2.39-1+cuda11.0_amd64.deb
+sudo dpkg -i libcudnn8_8.0.2.39-1+cuda11.0_amd64.deb
 
-wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn8_8.0.4.30-1+cuda11.0_amd64.deb
-sudo dpkg -i libcudnn8_8.0.4.30-1+cuda11.0_amd64.deb
+wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn8-dev_8.0.2.39-1+cuda11.0_amd64.deb
+sudo dpkg -i libcudnn8-dev_8.0.2.39-1+cuda11.0_amd64.deb
 
 # Install requirements
 sudo apt-get install -y \
