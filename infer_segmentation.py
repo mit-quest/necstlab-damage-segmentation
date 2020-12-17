@@ -12,7 +12,7 @@ import git
 from models import generate_compiled_segmentation_model
 from image_utils import str2bool
 from metrics_utils import global_threshold
-from local_utils import folder_has_files, getSystemInfo, getLibVersions
+from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 
 
 # infer can be run multiple times (labels, overlay), create new metadata each time
@@ -183,12 +183,12 @@ def main(gcp_bucket, model_id, background_class_index, stack_id, image_ids, user
     os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'models', model_id),
                                                  Path(tmp_directory, 'models').as_posix()))
 
-    folder_has_files(local_model_dir, model_id)
+    local_folder_has_files(local_model_dir, model_id)
 
     os.system("gsutil -m cp -r '{}' '{}'".format(os.path.join(gcp_bucket, 'processed-data', stack_id),
                                                  Path(tmp_directory, 'processed-data').as_posix()))
 
-    folder_has_files(local_processed_data_dir, stack_id)
+    local_folder_has_files(local_processed_data_dir, stack_id)
 
     with Path(local_model_dir, 'config.yaml').open('r') as f:
         train_config = yaml.safe_load(f)['train_config']

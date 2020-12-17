@@ -11,7 +11,7 @@ import git
 from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
 from image_utils import ImagesAndMasksGenerator
 from models import train_prediction_thresholds, thresholds_training_history
-from local_utils import folder_has_files, getSystemInfo, getLibVersions
+from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 
 
 # can train same model repeatedly with different optimization configurations
@@ -52,13 +52,13 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_directory),
                                    Path(local_dataset_dir, dataset_id))
 
-    folder_has_files(local_dataset_dir, dataset_id)
+    local_folder_has_files(local_dataset_dir, dataset_id)
 
     copy_file_locally_if_missing(os.path.join(gcp_bucket, 'datasets', dataset_id, 'config.yaml'),
                                  Path(local_dataset_dir, dataset_id, 'config.yaml'))
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', model_id), local_model_dir)
-    folder_has_files(local_model_dir, model_id)
+    local_folder_has_files(local_model_dir, model_id)
 
     train_thresh_id = "{}_{}_{}".format(model_id, dataset_id, optimizing_class_metric)
     train_thresh_id_dir = Path(tmp_directory, str('train_thresholds_' + train_thresh_id))
