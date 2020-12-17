@@ -24,14 +24,14 @@ thresholds_training_history = {}
 train_thresholds_counter = 0
 
 # These are the only optimizer currently supported
-optimzer_dict = {'adam': Adam(),
-                 'sdg': SGD(),
-                 'adagrad': Adagrad(),
-                 'adamax': Adamax(),
-                 'ftrl': Ftrl(),
-                 'nadam': Nadam(),
-                 'rmsprop': RMSprop()
-                 }
+optimizer_dict = {'adam': Adam(),
+                  'sdg': SGD(),
+                  'adagrad': Adagrad(),
+                  'adamax': Adamax(),
+                  'ftrl': Ftrl(),
+                  'nadam': Nadam(),
+                  'rmsprop': RMSprop()
+                  }
 
 # These are the only loss currently supported
 loss_dict = {'binary_cross_entropy': BinaryCrossentropyL(),
@@ -66,10 +66,16 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         model_parameters['input_shape'] = (None, None, 1)
 
     # Select the optimizer as a function of the name in the config file
-    optimizer_fn = optimzer_dict[optimizer.lower()]
+    if optimizer.lower() in optimizer_dict:
+        optimizer_fn = optimizer_dict[optimizer.lower()]
+    else:
+        raise NameError("Error, the optimizer selected" + optimizer + " is currently not supported.")
 
     # Select the loss function  as a function of the name in the config file
-    loss_fn = loss_dict[loss.lower()]
+    if loss.lower() in loss_dict:
+        loss_fn = loss_dict[loss.lower()]
+    else:
+        raise NameError("Error, the loss function selected" + loss + " is currently not supported.")
 
     if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
         assert model_parameters['activation'] == 'sigmoid'
@@ -152,10 +158,14 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
 
-    if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
-        model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
+
+    if model_name in models_dict:
+        if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
+            model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
+        else:
+            raise NameError("Error, model and backbone are not compatible.")
     else:
-        raise NameError("Error, model and backbone are not compatible.")
+        raise NameError("Error, the selected model" + model_name +" is not currently supported.")
 
     model.compile(optimizer=optimizer_fn,
                   loss=loss_fn,
