@@ -152,7 +152,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     # strategy = tf.distribute.MirroredStrategy()
     # with strategy.scope():
 
-    if model_parameters['backbone_name'] in models_dic[model_name]['compatible_backbones']:
+    if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
         model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
     else:
         raise NameError("Error, model and backbone are not compatible.")
