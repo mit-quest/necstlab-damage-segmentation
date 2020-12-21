@@ -77,10 +77,13 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     else:
         raise NameError("Error, the loss function selected" + loss + " is currently not supported.")
 
-    if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
-        assert model_parameters['activation'] == 'sigmoid'
-    elif loss == 'categorical_cross_entropy':
-        assert model_parameters['activation'] == 'softmax'
+    if 'activation' in model_parameters:
+        if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
+            assert model_parameters['activation'] == 'sigmoid'
+        elif loss == 'categorical_cross_entropy':
+            assert model_parameters['activation'] == 'softmax'
+    else:
+        print('Activation function and loss compatibility was not checked because model_parameters: activation does not exist in the model config file. ')
 
     all_metrics = []    # one-hot versions are generally preferred for given metric
     # make first metric a copy of loss, to continually verify `val_loss` is correct
