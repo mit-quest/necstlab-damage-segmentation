@@ -12,13 +12,80 @@ import ipykernel    # needed when using many metrics, to avoid automatic verbose
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
-from gcp_utils import copy_folder_locally_if_missing, getSystemInfo, getLibVersions
+from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
+from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 
 metadata_file_name = 'metadata.yaml'
 
 tmp_directory = Path('./tmp')
+
+
+def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
+    if num_rows == 1 and num_cols == 1:
+        is_individual_plot = True  # just one plot
+    else:
+        is_individual_plot = False  # multiple plots
+        fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25), squeeze=False)
+
+    counter_rows = 0
+    counter_col = 0
+    for metric_name in metric_names:
+        if is_individual_plot == True:
+            fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
+
+        # plot the train and validation curves
+        for split in ['train', 'validate']:
+            key_name = metric_name
+            if split == 'validate':
+                key_name = 'val_' + key_name
+            axes[counter_rows, counter_col].plot(range(epochs), results.history[key_name], label=split)
+
+        # set legend
+        axes[counter_rows, counter_col].legend()
+        # set x axis labels
+        axes[counter_rows, counter_col].set_xlabel('epochs')
+        # set y axis labels
+        axes[counter_rows, counter_col].set_ylabel(metric_name)
+
+        # save if this is a single plot
+        if is_individual_plot:
+            fig2.tight_layout()
+            fig2.savefig(Path(plots_dir, metric_name + '.png').as_posix())
+            plt.close()
+        else:
+            counter_col += 1
+            if counter_col == num_cols:  # plots per row
+                counter_rows += 1
+                counter_col = 0
+
+    # save if this is a mosaic plot
+    if not is_individual_plot:
+        fig2.tight_layout()
+        fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
+        plt.close()
+
+
+def check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator):
+    # confirm that the current model and pretrained model configurations are compatible
+    assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
+    assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
+
+    if 'activation' in pretrained_model_config['segmentation_model']['model_parameters']:
+        assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
+    else:
+        print('Activation function compatibility was not checked! model_parameters: activation does not exist in the pretrained model config file. ')
+
+    if 'input_shape' in pretrained_model_config['segmentation_model']['model_parameters']:
+        assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
+    else:
+        print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
+
+    # confirm that the number of classes in pretrain is the same as train
+    assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
+    # same target size
+    assert pretrained_model_metadata['dataset_config']['target_size'] == dataset_config['target_size']
 
 
 def sample_image_and_mask_paths(generator, n_paths):
@@ -55,6 +122,8 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', train_config['dataset_id']),
                                    local_dataset_dir)
+
+    local_folder_has_files(local_dataset_dir, train_config['dataset_id'])
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
     model_dir = Path(tmp_directory, 'models', model_id)
@@ -94,8 +163,12 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
 
     if pretrained_model_id is not None:
+        # load pretrained metadata
         local_pretrained_model_dir = Path(tmp_directory, 'pretrained_models')
         copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'models', pretrained_model_id), local_pretrained_model_dir)
+
+        local_folder_has_files(local_pretrained_model_dir, pretrained_model_id)
+
         path_pretrained_model = Path(local_pretrained_model_dir, pretrained_model_id, "model.hdf5").as_posix()
 
         with Path(local_pretrained_model_dir, pretrained_model_id, 'config.yaml').open('r') as f:
@@ -104,26 +177,11 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         with Path(local_pretrained_model_dir, pretrained_model_id, 'metadata.yaml').open('r') as f:
             pretrained_model_metadata = yaml.safe_load(f)
 
-        pretrained_info = {'pretrained_model_id': pretrained_model_id, 'pretrained_config': pretrained_model_config, 'pretrained_metadata': pretrained_model_metadata}
+        pretrained_info = {'pretrained_model_id': pretrained_model_id,
+                           'pretrained_config': pretrained_model_config,
+                           'pretrained_metadata': pretrained_model_metadata}
 
-        # confirm that the current model and pretrained model configurations are compatible
-        assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
-        assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
-
-        if 'activation' in pretrained_model_config['segmentation_model']['model_parameters']:
-            assert pretrained_model_config['segmentation_model']['model_parameters']['activation'] == train_config['segmentation_model']['model_parameters']['activation']
-        else:
-            print('Activation function compatibility was not checked! model_parameters: activation does not exist in the pretrained model config file. ')
-
-        if 'input_shape' in pretrained_model_config['segmentation_model']['model_parameters']:
-            assert pretrained_model_config['segmentation_model']['model_parameters']['input_shape'] == train_config['segmentation_model']['model_parameters']['input_shape']
-        else:
-            print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
-
-        # confirm that the number of classes in pretrain is the same as train
-        assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
-        # same target size
-        assert pretrained_model_metadata['dataset_config']['target_size'] == dataset_config['target_size']
+        check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator)
 
     else:
         path_pretrained_model = None
@@ -159,61 +217,20 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
     )
 
-    # individual plots
     metric_names = [m.name for m in compiled_model.metrics]
-    for metric_name in metric_names:
-        fig, ax = plt.subplots()
-        for split in ['train', 'validate']:
-            key_name = metric_name
-            if split == 'validate':
-                key_name = 'val_' + key_name
-            ax.plot(range(epochs), results.history[key_name], label=split)
-        ax.set_xlabel('epochs')
-        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
-            ax.set_ylabel(compiled_model.loss.__name__)
-        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-            ax.set_ylabel(compiled_model.loss.name)
-        else:
-            ax.set_ylabel(metric_name)
-        ax.legend()
-        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
-            fig.savefig(Path(plots_dir, compiled_model.loss.__name__ + '.png').as_posix())
-        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-            fig.savefig(Path(plots_dir, compiled_model.loss.name + '.png').as_posix())
-        else:
-            fig.savefig(Path(plots_dir, metric_name + '.png').as_posix())
-    plt.close()
 
-    # mosaic of subplot
+    # define number of columns and rows for the mosaic plot
     if len(train_generator.mask_filenames) == 1:
         num_rows = 2
     else:  # 1 row for all classes, 1 row for each of n classes
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
-    fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(num_cols * 3.25, num_rows * 3.25))
-    counter_m = 0
-    counter_n = 0
-    for metric_name in metric_names:
-        for split in ['train', 'validate']:
-            key_name = metric_name
-            if split == 'validate':
-                key_name = 'val_' + key_name
-            axes[counter_m, counter_n].plot(range(epochs), results.history[key_name], label=split)
-        axes[counter_m, counter_n].set_xlabel('epochs')
-        if metric_name == 'loss' and hasattr(compiled_model.loss, '__name__'):
-            axes[counter_m, counter_n].set_ylabel(compiled_model.loss.__name__)
-        elif metric_name == 'loss' and hasattr(compiled_model.loss, 'name'):
-            axes[counter_m, counter_n].set_ylabel(compiled_model.loss.name)
-        else:
-            axes[counter_m, counter_n].set_ylabel(metric_name)
-        axes[counter_m, counter_n].legend()
-        counter_n += 1
-        if counter_n == num_cols:  # plots per row
-            counter_m += 1
-            counter_n = 0
-    fig2.tight_layout()
-    fig2.savefig(Path(plots_dir, 'metrics_mosaic.png').as_posix())
-    plt.close()
+
+    # generate individual plots
+    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1)
+
+    # generate mosaic plot
+    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=num_rows, num_cols=num_cols)
 
     metadata_sys = {
         'System_info': getSystemInfo(),
