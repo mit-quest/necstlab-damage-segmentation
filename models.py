@@ -158,21 +158,19 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
         if num_classes == 1:
             break
 
-    # strategy = tf.distribute.MirroredStrategy()
-    # with strategy.scope():
-
-
-    if model_name in models_dict:
-        if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
-            model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        if model_name in models_dict:
+            if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
+                model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
+            else:
+                raise NameError("Error, model and backbone are not compatible.")
         else:
-            raise NameError("Error, model and backbone are not compatible.")
-    else:
-        raise NameError("Error, the selected model" + model_name +" is not currently supported.")
+            raise NameError("Error, the selected model" + model_name + " is not currently supported.")
 
-    model.compile(optimizer=optimizer_fn,
-                  loss=loss_fn,
-                  metrics=all_metrics)
+        model.compile(optimizer=optimizer_fn,
+                      loss=loss_fn,
+                      metrics='mse')
 
     if weights_to_load:
         model.load_weights(weights_to_load)
