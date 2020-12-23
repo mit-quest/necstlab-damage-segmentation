@@ -9,17 +9,47 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
-from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, Callback
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
+import time
+import csv
 
 metadata_file_name = 'metadata.yaml'
 
 tmp_directory = Path('./tmp')
+
+
+class timecallback(Callback):
+    def __init__(self, plot_dir, name):
+        self.epochs = ['Epoch']
+        self.times = ['Epoch time (s)']
+        self.total_times = ['Total time (s)']
+
+        # use this value as reference to calculate cummulative time taken
+        self.timetaken = time.clock()
+        self.plot_dir = plot_dir
+        self.name = name
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epochs.append(epoch)
+        self.total_times.append(time.clock() - self.timetaken)
+
+    def on_train_end(self, logs={}):
+        self.times.append(self.total_times[1])
+
+        for item in range(2, len(self.epochs), 1):
+            epoch_time = self.total_times[item] - self.total_times[item - 1]
+            self.times.append(epoch_time)
+
+        with Path(self.plot_dir, self.name).open('w') as f:
+            f.write(','.join(map(str, self.epochs)) + '\n')
+            f.write(','.join(map(str, self.times)) + '\n')
+            f.write(','.join(map(str, self.total_times)))
 
 
 def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
@@ -214,7 +244,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, timecallback(model_dir, 'results_epochtime.csv')]
     )
 
     metric_names = [m.name for m in compiled_model.metrics]
