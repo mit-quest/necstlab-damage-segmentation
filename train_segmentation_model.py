@@ -244,7 +244,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, timecallback(model_dir, 'results_epochtime.csv')]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, timecallback(model_dir, 'metrics_epochtime.csv')]
     )
 
     metric_names = [m.name for m in compiled_model.metrics]
