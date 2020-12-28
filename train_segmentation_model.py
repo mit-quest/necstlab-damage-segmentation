@@ -24,20 +24,36 @@ metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
 
+def generate_individual_plot(xvalues, yvalues, plots_dir, save_name, xlabel='x', ylabel='y',):
+    fig2, axes = plt.subplots(nrows=1, ncols=1, squeeze=False)
+    axes[0, 0].plot(xvalues, yvalues, label=ylabel)
+    # set legend
+    axes[0, 0].legend()
+    # set x axis labels
+    axes[0, 0].set_xlabel(xlabel)
+    # set y axis labels
+    axes[0, 0].set_ylabel(ylabel)
+    fig2.tight_layout()
+    fig2.savefig(Path(plots_dir, save_name).as_posix())
+    plt.close()
+
+
 class timecallback(Callback):
-    def __init__(self, plot_dir, name):
+    def __init__(self, main_dir, plots_dir, name):
         self.epochs = ['Epoch']
         self.times = ['Epoch time (s)']
         self.total_times = ['Total time (s)']
 
         # use this value as reference to calculate cummulative time taken
-        self.timetaken = time.clock()
-        self.plot_dir = plot_dir
+        self.timetaken = time.perf_counter()
+
+        self.plots_dir = plots_dir
+        self.main_dir = main_dir
         self.name = name
 
     def on_epoch_end(self, epoch, logs={}):
         self.epochs.append(epoch)
-        self.total_times.append(time.clock() - self.timetaken)
+        self.total_times.append(time.perf_counter() - self.timetaken)
 
     def on_train_end(self, logs={}):
         self.times.append(self.total_times[1])
@@ -46,13 +62,28 @@ class timecallback(Callback):
             epoch_time = self.total_times[item] - self.total_times[item - 1]
             self.times.append(epoch_time)
 
-        with Path(self.plot_dir, self.name).open('w') as f:
+        with Path(self.main_dir, self.name).open('w') as f:
             f.write(','.join(map(str, self.epochs)) + '\n')
             f.write(','.join(map(str, self.times)) + '\n')
             f.write(','.join(map(str, self.total_times)))
 
+        ##plot and save
+        generate_individual_plot(xvalues=self.epochs[1:],
+                                 yvalues=self.times[1:],
+                                 plots_dir=self.plots_dir,
+                                 save_name='epoch_times.png',
+                                 xlabel=self.epochs[0],
+                                 ylabel=self.times[0])
 
-def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
+        generate_individual_plot(xvalues=self.epochs[1:],
+                                 yvalues=self.total_times[1:],
+                                 plots_dir=self.plots_dir,
+                                 save_name='epoch_total_times.png',
+                                 xlabel=self.epochs[0],
+                                 ylabel=self.total_times[0])
+
+
+def generate_plots(metric_names, x_values, results, plots_dir, num_rows=1, num_cols=1):
     if num_rows == 1 and num_cols == 1:
         is_individual_plot = True  # just one plot
     else:
@@ -70,7 +101,7 @@ def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num
             key_name = metric_name
             if split == 'validate':
                 key_name = 'val_' + key_name
-            axes[counter_rows, counter_col].plot(range(epochs), results.history[key_name], label=split)
+            axes[counter_rows, counter_col].plot(x_values, results.history[key_name], label=split)
 
         # set legend
         axes[counter_rows, counter_col].legend()
@@ -237,6 +268,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     validation_image_and_mask_paths = sample_image_and_mask_paths(validation_generator, n_sample_images)
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
+    time_callback = timecallback(model_dir, plots_dir, 'metrics_epochtime.csv')
 
     results = compiled_model.fit(
         train_generator,
@@ -244,7 +276,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, timecallback(model_dir, 'metrics_epochtime.csv')]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, time_callback]
     )
 
     metric_names = [m.name for m in compiled_model.metrics]
@@ -256,11 +288,14 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
 
+    print(results)
+    print(results.history)
+    input('enter')
     # generate individual plots
-    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1)
+    generate_plots(metric_names, range(epochs), results, plots_dir, num_rows=1, num_cols=1)
 
     # generate mosaic plot
-    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=num_rows, num_cols=num_cols)
+    generate_plots(metric_names, range(epochs), results, plots_dir, num_rows=num_rows, num_cols=num_cols)
 
     metadata_sys = {
         'System_info': getSystemInfo(),
