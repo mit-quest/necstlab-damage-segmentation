@@ -53,7 +53,7 @@ def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
         # plot
-        if metric_name in ['epoch_time', 'total_elapsed_time']:  # plot the total time and epoch time separatly
+        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time separatly
             axes[counter_rows, counter_col].plot(x_values, results_history[metric_name], label=metric_name)
 
         else:  # plot the train and validation curves
@@ -239,7 +239,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
-    metric_names = ['epoch_time', 'total_elapsed_time'] + [m.name for m in compiled_model.metrics]
+    metric_names = ['epoch_time_in_sec', 'total_elapsed_time_in_sec'] + [m.name for m in compiled_model.metrics]
 
     # define number of columns and rows for the mosaic plot
     if len(train_generator.mask_filenames) == 1:
