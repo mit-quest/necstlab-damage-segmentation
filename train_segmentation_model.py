@@ -24,77 +24,22 @@ metadata_file_name = 'metadata.yaml'
 tmp_directory = Path('./tmp')
 
 
-def generate_individual_plot(xvalues, yvalues, plots_dir, save_name, xlabel='x', ylabel='y',):
-    fig2, axes = plt.subplots(nrows=1, ncols=1, squeeze=False)
-    axes[0, 0].plot(xvalues, yvalues, label=ylabel)
-    # set legend
-    axes[0, 0].legend()
-    # set x axis labels
-    axes[0, 0].set_xlabel(xlabel)
-    # set y axis labels
-    axes[0, 0].set_ylabel(ylabel)
-    fig2.tight_layout()
-    fig2.savefig(Path(plots_dir, save_name).as_posix())
-    plt.close()
-
-
-class ComputeMetrics(Callback):
-    def on_epoch_end(self, epoch, logs):
-        logs['val_metric'] = epoch ** 2  # replace it with your metrics
-        if (epoch + 1) % 10 == 0:
-            logs['test_metric'] = epoch ** 3  # same
-        else:
-            logs['test_metric'] = np.nan
-
-
 class timecallback(Callback):
     def __init__(self):
-
-        # self.results = {'epoch_time': [],
-        #                'total_time': [] }
-
         # use this value as reference to calculate cummulative time taken
         self.timetaken = time.perf_counter()
-
-        #self.plots_dir = plots_dir
-        #self.main_dir = main_dir
-        #self.name = name
 
     def on_epoch_begin(self, epoch, logs):
         self.epoch_start_time = time.perf_counter()
 
     def on_epoch_end(self, epoch, logs):
         self.epoch_end_time = time.perf_counter()
-        #self.results['epoch_time'].append(self.epoch_end_time - self.epoch_start_time)
-        #self.results['total_time'].append(self.epoch_end_time - self.timetaken)
 
-        logs['epoch_time'] = self.epoch_end_time - self.epoch_start_time
-        logs['total_time'] = self.epoch_end_time - self.timetaken
-
-    # def on_train_end(self, logs={}):
-
-        # with Path(self.main_dir, self.name).open('w') as f:
-        #    f.write(','.join(map(str, self.epochs)) + '\n')
-        #    f.write(','.join(map(str, self.times)) + '\n')
-        #    f.write(','.join(map(str, self.total_times)))
-
-        ##plot and save
-        # generate_individual_plot(xvalues=range(len(self.results['epoch_time'])),
-        #                         yvalues=self.results['epoch_time'],
-        #                         plots_dir=self.plots_dir,
-        #                         save_name='epoch_times.png',
-        #                         xlabel='epoch',
-        #                         ylabel='epoch_time')
-
-        # generate_individual_plot(xvalues=range(len(self.results['total_time'])),
-        #                         yvalues=self.results['total_time'],
-        #                         plots_dir=self.plots_dir,
-        #                         save_name='epoch_total_times.png',
-        #                         xlabel='epoch',
-        #                         ylabel='total_time')
+        logs['epoch_time_in_sec'] = self.epoch_end_time - self.epoch_start_time
+        logs['total_elapsed_time_in_sec'] = self.epoch_end_time - self.timetaken
 
 
-def generate_plots(metric_names, x_values, results, plots_dir, num_rows=1, num_cols=1):
+def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=1, num_cols=1):
     if num_rows == 1 and num_cols == 1:
         is_individual_plot = True  # just one plot
     else:
@@ -107,12 +52,16 @@ def generate_plots(metric_names, x_values, results, plots_dir, num_rows=1, num_c
         if is_individual_plot == True:
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
-        # plot the train and validation curves
-        for split in ['train', 'validate']:
-            key_name = metric_name
-            if split == 'validate':
-                key_name = 'val_' + key_name
-            axes[counter_rows, counter_col].plot(x_values, results.history[key_name], label=split)
+        # plot
+        if metric_name in ['epoch_time', 'total_elapsed_time']:  # plot the total time and epoch time separatly
+            axes[counter_rows, counter_col].plot(x_values, results_history[metric_name], label=metric_name)
+
+        else:  # plot the train and validation curves
+            for split in ['train', 'validate']:
+                key_name = metric_name
+                if split == 'validate':
+                    key_name = 'val_' + key_name
+                axes[counter_rows, counter_col].plot(x_values, results_history[key_name], label=split)
 
         # set legend
         axes[counter_rows, counter_col].legend()
@@ -290,7 +239,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
-    metric_names = [m.name for m in compiled_model.metrics]
+    metric_names = ['epoch_time', 'total_elapsed_time'] + [m.name for m in compiled_model.metrics]
 
     # define number of columns and rows for the mosaic plot
     if len(train_generator.mask_filenames) == 1:
@@ -299,14 +248,11 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         num_rows = len(train_generator.mask_filenames) + 1
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
 
-    print(results)
-    print(results.history)
-    input('enter')
     # generate individual plots
-    generate_plots(metric_names, range(epochs), results, plots_dir, num_rows=1, num_cols=1)
+    generate_plots(metric_names, range(epochs), results.history, plots_dir, num_rows=1, num_cols=1)
 
     # generate mosaic plot
-    generate_plots(metric_names, range(epochs), results, plots_dir, num_rows=num_rows, num_cols=num_cols)
+    generate_plots(metric_names, range(epochs), results.history, plots_dir, num_rows=num_rows, num_cols=num_cols)
 
     metadata_sys = {
         'System_info': getSystemInfo(),
