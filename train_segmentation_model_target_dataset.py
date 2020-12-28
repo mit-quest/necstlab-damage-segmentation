@@ -9,20 +9,37 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
-from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, Callback
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils_target_dataset import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
+import time
+import csv
 
 metadata_file_name = 'metadata.yaml'
 
 tmp_directory = Path('./tmp')
 
 
-def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1):
+class timecallback(Callback):
+    def __init__(self):
+        # use this value as reference to calculate cummulative time taken
+        self.timetaken = time.perf_counter()
+
+    def on_epoch_begin(self, epoch, logs):
+        self.epoch_start_time = time.perf_counter()
+
+    def on_epoch_end(self, epoch, logs):
+        self.epoch_end_time = time.perf_counter()
+
+        logs['epoch_time_in_sec'] = self.epoch_end_time - self.epoch_start_time
+        logs['total_elapsed_time_in_sec'] = self.epoch_end_time - self.timetaken
+
+
+def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=1, num_cols=1):
     if num_rows == 1 and num_cols == 1:
         is_individual_plot = True  # just one plot
     else:
@@ -35,12 +52,16 @@ def generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num
         if is_individual_plot == True:
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
-        # plot the train and validation curves
-        for split in ['train', 'validate']:
-            key_name = metric_name
-            if split == 'validate':
-                key_name = 'val_' + key_name
-            axes[counter_rows, counter_col].plot(range(epochs), results.history[key_name], label=split)
+        # plot
+        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time separatly
+            axes[counter_rows, counter_col].plot(x_values, results_history[metric_name], label=metric_name)
+
+        else:  # plot the train and validation curves
+            for split in ['train', 'validate']:
+                key_name = metric_name
+                if split == 'validate':
+                    key_name = 'val_' + key_name
+                axes[counter_rows, counter_col].plot(x_values, results_history[key_name], label=split)
 
         # set legend
         axes[counter_rows, counter_col].legend()
@@ -125,7 +146,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
     local_folder_has_files(local_dataset_dir, train_config['dataset_id'])
 
-    copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', 'dataset-esrf16_segV1_study1_CropCase6_TrnValCaseA', 'validation'),
+    copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', 'dataset-small-3class', 'validation'),
                                    Path(local_dataset_dir, train_config['dataset_id']))
 
     model_id = "{}_{}".format(train_config['model_id_prefix'], datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'))
@@ -210,6 +231,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     validation_image_and_mask_paths = sample_image_and_mask_paths(validation_generator, n_sample_images)
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
+    time_callback = timecallback()
 
     results = compiled_model.fit(
         train_generator,
@@ -217,10 +239,10 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
-    metric_names = [m.name for m in compiled_model.metrics]
+    metric_names = ['epoch_time_in_sec', 'total_elapsed_time_in_sec'] + [m.name for m in compiled_model.metrics]
 
     # define number of columns and rows for the mosaic plot
     if len(train_generator.mask_filenames) == 1:
@@ -230,10 +252,10 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
 
     # generate individual plots
-    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=1, num_cols=1)
+    generate_plots(metric_names, range(epochs), results.history, plots_dir, num_rows=1, num_cols=1)
 
     # generate mosaic plot
-    generate_plots(metric_names, epochs, compiled_model, results, plots_dir, num_rows=num_rows, num_cols=num_cols)
+    generate_plots(metric_names, range(epochs), results.history, plots_dir, num_rows=num_rows, num_cols=num_cols)
 
     metadata_sys = {
         'System_info': getSystemInfo(),
