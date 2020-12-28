@@ -38,49 +38,60 @@ def generate_individual_plot(xvalues, yvalues, plots_dir, save_name, xlabel='x',
     plt.close()
 
 
+class ComputeMetrics(Callback):
+    def on_epoch_end(self, epoch, logs):
+        logs['val_metric'] = epoch ** 2  # replace it with your metrics
+        if (epoch + 1) % 10 == 0:
+            logs['test_metric'] = epoch ** 3  # same
+        else:
+            logs['test_metric'] = np.nan
+
+
 class timecallback(Callback):
-    def __init__(self, main_dir, plots_dir, name):
-        self.epochs = ['Epoch']
-        self.times = ['Epoch time (s)']
-        self.total_times = ['Total time (s)']
+    def __init__(self):
+
+        # self.results = {'epoch_time': [],
+        #                'total_time': [] }
 
         # use this value as reference to calculate cummulative time taken
         self.timetaken = time.perf_counter()
 
-        self.plots_dir = plots_dir
-        self.main_dir = main_dir
-        self.name = name
+        #self.plots_dir = plots_dir
+        #self.main_dir = main_dir
+        #self.name = name
 
-    def on_epoch_end(self, epoch, logs={}):
-        self.epochs.append(epoch)
-        self.total_times.append(time.perf_counter() - self.timetaken)
+    def on_epoch_begin(self, epoch, logs):
+        self.epoch_start_time = time.perf_counter()
 
-    def on_train_end(self, logs={}):
-        self.times.append(self.total_times[1])
+    def on_epoch_end(self, epoch, logs):
+        self.epoch_end_time = time.perf_counter()
+        #self.results['epoch_time'].append(self.epoch_end_time - self.epoch_start_time)
+        #self.results['total_time'].append(self.epoch_end_time - self.timetaken)
 
-        for item in range(2, len(self.epochs), 1):
-            epoch_time = self.total_times[item] - self.total_times[item - 1]
-            self.times.append(epoch_time)
+        logs['epoch_time'] = self.epoch_end_time - self.epoch_start_time
+        logs['total_time'] = self.epoch_end_time - self.timetaken
 
-        with Path(self.main_dir, self.name).open('w') as f:
-            f.write(','.join(map(str, self.epochs)) + '\n')
-            f.write(','.join(map(str, self.times)) + '\n')
-            f.write(','.join(map(str, self.total_times)))
+    # def on_train_end(self, logs={}):
+
+        # with Path(self.main_dir, self.name).open('w') as f:
+        #    f.write(','.join(map(str, self.epochs)) + '\n')
+        #    f.write(','.join(map(str, self.times)) + '\n')
+        #    f.write(','.join(map(str, self.total_times)))
 
         ##plot and save
-        generate_individual_plot(xvalues=self.epochs[1:],
-                                 yvalues=self.times[1:],
-                                 plots_dir=self.plots_dir,
-                                 save_name='epoch_times.png',
-                                 xlabel=self.epochs[0],
-                                 ylabel=self.times[0])
+        # generate_individual_plot(xvalues=range(len(self.results['epoch_time'])),
+        #                         yvalues=self.results['epoch_time'],
+        #                         plots_dir=self.plots_dir,
+        #                         save_name='epoch_times.png',
+        #                         xlabel='epoch',
+        #                         ylabel='epoch_time')
 
-        generate_individual_plot(xvalues=self.epochs[1:],
-                                 yvalues=self.total_times[1:],
-                                 plots_dir=self.plots_dir,
-                                 save_name='epoch_total_times.png',
-                                 xlabel=self.epochs[0],
-                                 ylabel=self.total_times[0])
+        # generate_individual_plot(xvalues=range(len(self.results['total_time'])),
+        #                         yvalues=self.results['total_time'],
+        #                         plots_dir=self.plots_dir,
+        #                         save_name='epoch_total_times.png',
+        #                         xlabel='epoch',
+        #                         ylabel='total_time')
 
 
 def generate_plots(metric_names, x_values, results, plots_dir, num_rows=1, num_cols=1):
@@ -268,7 +279,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     validation_image_and_mask_paths = sample_image_and_mask_paths(validation_generator, n_sample_images)
 
     csv_logger_callback = CSVLogger(Path(model_dir, 'metrics.csv').as_posix(), append=True)
-    time_callback = timecallback(model_dir, plots_dir, 'metrics_epochtime.csv')
+    time_callback = timecallback()  # model_dir, plots_dir, 'metrics_epochtime.csv')
 
     results = compiled_model.fit(
         train_generator,
@@ -276,7 +287,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, csv_logger_callback, time_callback]
+        callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
     metric_names = [m.name for m in compiled_model.metrics]
