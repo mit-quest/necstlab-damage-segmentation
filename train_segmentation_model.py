@@ -17,7 +17,6 @@ from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 import time
-import csv
 
 metadata_file_name = 'metadata.yaml'
 
@@ -26,7 +25,7 @@ tmp_directory = Path('./tmp')
 
 class timecallback(Callback):
     def __init__(self):
-        # use this value as reference to calculate cummulative time taken
+        # use this value as reference to calculate cumulative time taken
         self.timetaken = time.perf_counter()
 
     def on_epoch_begin(self, epoch, logs):
@@ -53,7 +52,7 @@ def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
         # plot
-        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time separatly
+        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time separately
             axes[counter_rows, counter_col].plot(x_values, results_history[metric_name], label=metric_name)
 
         else:  # plot the train and validation curves
