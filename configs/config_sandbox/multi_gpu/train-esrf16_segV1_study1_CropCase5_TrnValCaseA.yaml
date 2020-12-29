@@ -10,7 +10,7 @@ train_config:
       activation: 'sigmoid' #tf.keras.activations e.g. 'sigmoid', 'softmax', 'linear'
   loss: 'binary_cross_entropy'  #'binary_cross_entropy', 'categorical_cross_entropy', 'mean_squared_error', 'mean_absolute_error'
   optimizer: 'adam'
-  batch_size: 64    # p100
+  batch_size: 16    # p100
   epochs: 5
   training_data_shuffle_seed: 1234
   validation_data_shuffle_seed: 12345
