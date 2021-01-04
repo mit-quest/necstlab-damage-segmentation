@@ -10,6 +10,7 @@ import pytz
 import matplotlib.pyplot as plt
 import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, Callback
+import tensorflow as tf
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -17,16 +18,80 @@ from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 import time
-import csv
+
+# these won't need to be here
+from collections import OrderedDict
+from PIL import Image
+
 
 metadata_file_name = 'metadata.yaml'
 
 tmp_directory = Path('./tmp')
 
 
+def get_step_per_epoch(dataset_directory, batch_size):
+    image_filenames = sorted(Path(dataset_directory, 'images').iterdir())
+    step_per_epoch = int(np.floor(len(image_filenames) / batch_size))
+    return step_per_epoch
+
+
+def get_number_of_classes(dataset_directory):
+    mask_filenames = OrderedDict()
+    for c in sorted(Path(dataset_directory, 'masks').iterdir()):
+        mask_filenames[c.name] = sorted(c.iterdir())
+    length_mask_filenames = len(mask_filenames)
+    return length_mask_filenames
+
+# function
+
+
+def our_generator(dataset_directory, epochs, batch_size, rescale, target_size, shuffle, seed, random_rotation):  # IT CANNOT HAVE INPUT PARAMETERS
+    dataset_directory = Path(dataset_directory.decode("utf-8"))
+
+    # init some variables
+    indexes = None
+    random_rng = random.Random(seed)  # random number generator instance
+    numpy_rng = np.random.default_rng(seed)  # np random number generator instance
+
+    # get all list of files
+    image_filenames = sorted(Path(dataset_directory, 'images').iterdir())
+    mask_filenames = OrderedDict()
+    for c in sorted(Path(dataset_directory, 'masks').iterdir()):
+        mask_filenames[c.name] = sorted(c.iterdir())
+
+    step_per_epoch = get_step_per_epoch(dataset_directory, batch_size)
+    total_images = int(step_per_epoch * batch_size)
+    print(total_images)
+
+    # start the loop
+    for epoch in range(epochs):  # loop over the epochs
+        for i in range(total_images):  # loop over all the images
+
+            # define image_file_name and mask_file_name
+            image_file_name = image_filenames[i]
+            mask_file_name = []
+            for c in mask_filenames:
+                mask_file_name.append(mask_filenames[c][i])
+
+            # initiate image and masks
+            image = np.empty((*target_size, 1))
+            mask = np.empty((*target_size, len(mask_filenames)), dtype=int)
+
+            # rotate the images if needed
+            rotation = 0
+            if random_rotation:
+                rotation = random_rng.sample([0, 90, 180, 270], k=1)[0]
+
+            # load images
+            image[:, :, 0] = np.asarray(Image.open(image_file_name).rotate(rotation))
+            for j, c in enumerate(mask_filenames):
+                mask[:, :, j] = np.asarray(Image.open(mask_file_name[j]).rotate(rotation))
+            yield image, mask
+
+
 class timecallback(Callback):
     def __init__(self):
-        # use this value as reference to calculate cummulative time taken
+        # use this value as reference to calculate cumulative time taken
         self.timetaken = time.perf_counter()
 
     def on_epoch_begin(self, epoch, logs):
@@ -53,7 +118,7 @@ def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=
             fig2, axes = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
 
         # plot
-        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time separatly
+        if metric_name in ['epoch_time_in_sec', 'total_elapsed_time_in_sec']:  # plot the total time and epoch time seperatly
             axes[counter_rows, counter_col].plot(x_values, results_history[metric_name], label=metric_name)
 
         else:  # plot the train and validation curves
@@ -88,7 +153,7 @@ def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=
         plt.close()
 
 
-def check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator):
+def check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, number_of_classes):
     # confirm that the current model and pretrained model configurations are compatible
     assert pretrained_model_config['segmentation_model']['model_name'] == train_config['segmentation_model']['model_name']
     assert pretrained_model_config['segmentation_model']['model_parameters']['backbone_name'] == train_config['segmentation_model']['model_parameters']['backbone_name']
@@ -104,7 +169,7 @@ def check_pretrained_model_compatibility(pretrained_model_config, pretrained_mod
         print('Activation function compatibility was not checked! model_parameters: input_shape does not exist in the pretrained model config file. ')
 
     # confirm that the number of classes in pretrain is the same as train
-    assert pretrained_model_metadata['num_classes'] == len(train_generator.mask_filenames)
+    assert pretrained_model_metadata['num_classes'] == number_of_classes
     # same target size
     assert pretrained_model_metadata['dataset_config']['target_size'] == dataset_config['target_size']
 
@@ -165,6 +230,28 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     target_size = dataset_config['target_size']
     batch_size = train_config['batch_size']
     epochs = train_config['epochs']
+    number_of_classes = get_number_of_classes(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix())
+
+    # custom_train_generator = our_generator(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
+    #                                       rescale=1. / 255,
+    #                                       target_size=target_size,
+    #                                       shuffle=True,
+    #                                       random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
+    #                                       seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
+
+    arg_list = [Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
+                epochs,
+                batch_size,
+                1. / 255,
+                target_size,
+                True,
+                1,  # if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed',
+                train_config['data_augmentation']['random_90-degree_rotations']]
+
+    train_generator_v2 = tf.data.Dataset.from_generator(our_generator, (tf.float32, tf.float32), args=arg_list)
+
+    train_generator_v2 = train_generator_v2.batch(batch_size)
+    train_generator_v2 = train_generator_v2.prefetch(batch_size)
 
     train_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
@@ -174,6 +261,24 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         shuffle=True,
         random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
         seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
+
+    # custom_validation_generator = our_generator(Path(local_dataset_dir, train_config['dataset_id'], 'validation').as_posix(),
+    #                                            rescale=1. / 255,
+    #                                            target_size=target_size,
+    #                                            seed=None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'])
+
+    arg_list = [Path(local_dataset_dir, train_config['dataset_id'], 'validation').as_posix(),
+                epochs,
+                batch_size,
+                1. / 255,
+                target_size,
+                False,
+                1,  # if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed',
+                False]
+
+    validation_generator_v2 = tf.data.Dataset.from_generator(our_generator, (tf.float32, tf.float32), args=arg_list)
+    validation_generator_v2 = validation_generator_v2.batch(batch_size)
+    validation_generator_v2 = validation_generator_v2.prefetch(batch_size)
 
     validation_generator = ImagesAndMasksGenerator(
         Path(local_dataset_dir, train_config['dataset_id'],
@@ -202,7 +307,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
                            'pretrained_config': pretrained_model_config,
                            'pretrained_metadata': pretrained_model_metadata}
 
-        check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, train_generator)
+        check_pretrained_model_compatibility(pretrained_model_config, pretrained_model_metadata, train_config, dataset_config, number_of_classes)
 
     else:
         path_pretrained_model = None
@@ -211,7 +316,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     compiled_model = generate_compiled_segmentation_model(
         train_config['segmentation_model']['model_name'],
         train_config['segmentation_model']['model_parameters'],
-        len(train_generator.mask_filenames),
+        number_of_classes,
         train_config['loss'],
         train_config['optimizer'],
         path_pretrained_model)
@@ -231,21 +336,22 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     time_callback = timecallback()  # model_dir, plots_dir, 'metrics_epochtime.csv')
 
     results = compiled_model.fit(
-        train_generator,
-        steps_per_epoch=len(train_generator),
+        train_generator_v2,
+        steps_per_epoch=get_step_per_epoch(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(), batch_size),
         epochs=epochs,
-        validation_data=validation_generator,
-        validation_steps=len(validation_generator),
+        validation_data=validation_generator_v2,
+        validation_steps=get_step_per_epoch(Path(local_dataset_dir, train_config['dataset_id'], 'validation').as_posix(), batch_size),
         callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
     metric_names = ['epoch_time_in_sec', 'total_elapsed_time_in_sec'] + [m.name for m in compiled_model.metrics]
 
     # define number of columns and rows for the mosaic plot
-    if len(train_generator.mask_filenames) == 1:
+    if number_of_classes == 1:
         num_rows = 2
     else:  # 1 row for all classes, 1 row for each of n classes
-        num_rows = len(train_generator.mask_filenames) + 1
+        num_rows = number_of_classes + 1
+
     num_cols = np.ceil(len(metric_names) / num_rows).astype(int)
 
     # generate individual plots
@@ -263,7 +369,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'message': message,
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
-        'num_classes': len(train_generator.mask_filenames),
+        'num_classes': number_of_classes,
         'target_size': target_size,
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'original_config_filename': config_file,
