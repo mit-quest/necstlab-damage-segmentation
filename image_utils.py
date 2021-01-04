@@ -89,8 +89,9 @@ class TensorBoardImage(keras.callbacks.Callback):
 
         writer.close()
 
-
 # adapted from: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+
+
 class ImagesAndMasksGenerator(Sequence):
     def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=False, seed=None, random_rotation=False):
         self.dataset_directory = dataset_directory
@@ -114,7 +115,7 @@ class ImagesAndMasksGenerator(Sequence):
 
     def __getitem__(self, index):
         # Generate indexes of the batch
-        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
 
         # Find list of IDs
         batch_image_filenames = [self.image_filenames[k] for k in indexes]
@@ -134,14 +135,14 @@ class ImagesAndMasksGenerator(Sequence):
             self.numpy_rng.shuffle(self.indexes)
 
     def __data_generation(self, batch_image_filenames, batch_mask_filenames):
-        images = np.empty((self.batch_size, *self.target_size, 1))
-        masks = np.empty((self.batch_size, *self.target_size, len(self.mask_filenames)), dtype=int)
+        images = np.empty((self.batch_size, *self.target_size, 1))  # numpy.ndarray(16, 512, 512, 1)
+        masks = np.empty((self.batch_size, *self.target_size, len(self.mask_filenames)), dtype=int)  # numpy.ndarray(16, 512, 512, 3)
 
-        for i in range(len(batch_image_filenames)):
+        for i in range(len(batch_image_filenames)):  # loop over the batch
             rotation = 0
             if self.random_rotation:
                 rotation = self.random_rng.sample([0, 90, 180, 270], k=1)[0]
-            images[i, :, :, 0] = np.asarray(Image.open(batch_image_filenames[i]).rotate(rotation))
+            images[i, :, :, 0] = np.asarray(Image.open(batch_image_filenames[i]).rotate(rotation))  # get the image and rotate it
             for j, c in enumerate(self.mask_filenames):
                 masks[i, :, :, j] = np.asarray(Image.open(batch_mask_filenames[c][i]).rotate(rotation))
 
@@ -158,3 +159,70 @@ def str2bool(str2bool_flag):
     else:
         raise AssertionError('`str2bool_flag` is not one of following strings: "true", "True", "false", or "False".')
     return str2bool_flag
+
+
+def get_steps_per_epoch(dataset_directory, batch_size):
+    image_filenames = get_image_filenames(dataset_directory)
+    step_per_epoch = int(np.floor(len(image_filenames) / batch_size))
+    return step_per_epoch
+
+
+def get_number_of_classes(dataset_directory):
+    mask_filenames = get_mask_filenames(dataset_directory)
+
+    length_mask_filenames = len(mask_filenames)
+    return length_mask_filenames
+
+
+def get_image_filenames(dataset_directory):
+    image_filenames = sorted(Path(dataset_directory, 'images').iterdir())
+    return image_filenames
+
+
+def get_mask_filenames(dataset_directory):
+    mask_filenames = OrderedDict()
+    for c in sorted(Path(dataset_directory, 'masks').iterdir()):
+        mask_filenames[c.name] = sorted(c.iterdir())
+    return mask_filenames
+
+
+# tf data ImagesAndMasksGenerator generator
+def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, rescale, target_size, shuffle, seed, random_rotation):  # IT CANNOT HAVE INPUT PARAMETERS
+    dataset_directory = Path(dataset_directory.decode("utf-8"))
+
+    # init some variables
+    indexes = None
+    random_rng = random.Random(seed)  # random number generator instance
+    numpy_rng = np.random.default_rng(seed)  # np random number generator instance
+
+    # get all list of files
+    image_filenames = get_image_filenames(dataset_directory)
+    mask_filenames = get_mask_filenames(dataset_directory)
+
+    step_per_epoch = get_steps_per_epoch(dataset_directory, batch_size)
+    total_images = int(step_per_epoch * batch_size)
+
+    # start the loop
+    for epoch in range(epochs):  # loop over the epochs
+        for i in range(total_images):  # loop over all the images
+
+            # define image_file_name and mask_file_name
+            image_file_name = image_filenames[i]
+            mask_file_name = []
+            for c in mask_filenames:
+                mask_file_name.append(mask_filenames[c][i])
+
+            # initiate image and masks
+            image = np.empty((*target_size, 1))
+            mask = np.empty((*target_size, len(mask_filenames)), dtype=int)
+
+            # rotate the images if needed
+            rotation = 0
+            if random_rotation:
+                rotation = random_rng.sample([0, 90, 180, 270], k=1)[0]
+
+            # load images
+            image[:, :, 0] = np.asarray(Image.open(image_file_name).rotate(rotation))
+            for j, c in enumerate(mask_filenames):
+                mask[:, :, j] = np.asarray(Image.open(mask_file_name[j]).rotate(rotation))
+            yield image, mask
