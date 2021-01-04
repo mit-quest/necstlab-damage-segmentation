@@ -204,7 +204,13 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
 
     # start the loop
     for epoch in range(epochs):  # loop over the epochs
-        for i in range(total_images):  # loop over all the images
+        # shuffle
+        indexes = np.arange(total_images)
+        if shuffle:
+            numpy_rng.shuffle(indexes)
+
+        for i in indexes:
+            # for i in range(total_images):  # loop over all the images
 
             # define image_file_name and mask_file_name
             image_file_name = image_filenames[i]
