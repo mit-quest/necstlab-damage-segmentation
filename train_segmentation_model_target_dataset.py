@@ -24,6 +24,9 @@ import time
 from collections import OrderedDict
 from PIL import Image
 
+options = tf.data.Options()
+options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+
 
 metadata_file_name = 'metadata.yaml'
 
@@ -175,7 +178,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     target_size = dataset_config['target_size']
     batch_size = train_config['batch_size']
     epochs = train_config['epochs']
-
+    rescale = 1. / 255
     number_of_classes = get_number_of_classes(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix())
 
     train_dataset_path = Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix()
@@ -183,8 +186,10 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
     train_steps_per_epoch = get_steps_per_epoch(train_dataset_path, batch_size)
     validation_steps_per_epoch = get_steps_per_epoch(validation_dataset_path, batch_size)
+
     train_image_filenames = get_image_filenames(train_dataset_path)
     train_mask_filenames = get_mask_filenames(train_dataset_path)
+
     validation_image_filenames = get_image_filenames(validation_dataset_path)
     validation_mask_filenames = get_mask_filenames(validation_dataset_path)
 
@@ -213,18 +218,14 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         path_pretrained_model = None
         pretrained_info = None
 
-    arg_list = [train_dataset_path,
-                epochs,
-                batch_size,
-                1. / 255,
-                target_size,
-                True,
-                1,  # if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed',
+    arg_list = [train_dataset_path, epochs, batch_size, rescale, target_size, True,
+                False if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'],
                 train_config['data_augmentation']['random_90-degree_rotations']]
 
     train_generator = tf.data.Dataset.from_generator(ImagesAndMasksGenerator_function, (tf.float32, tf.float32), args=arg_list)
     train_generator = train_generator.batch(batch_size)
     train_generator = train_generator.prefetch(batch_size)
+    train_generator = train_generator.with_options(options)
 
     # train_generator = ImagesAndMasksGenerator(
     #    Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix(),
@@ -235,18 +236,14 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     #    random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
     #    seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
 
-    arg_list = [validation_dataset_path,
-                epochs,
-                batch_size,
-                1. / 255,
-                target_size,
-                False,
-                1,  # if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed',
+    arg_list = [validation_dataset_path, epochs, batch_size, rescale, target_size, False,
+                False if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed'],
                 False]
 
     validation_generator = tf.data.Dataset.from_generator(ImagesAndMasksGenerator_function, (tf.float32, tf.float32), args=arg_list)
     validation_generator = validation_generator.batch(batch_size)
     validation_generator = validation_generator.prefetch(batch_size)
+    validation_generator = validation_generator.with_options(options)
 
     # validation_generator = ImagesAndMasksGenerator(
     #    Path(local_dataset_dir, train_config['dataset_id'],
