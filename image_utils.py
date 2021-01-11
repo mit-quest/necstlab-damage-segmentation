@@ -126,6 +126,9 @@ class ImagesAndMasksGenerator(Sequence):
         # Generate data
         images, masks = self.__data_generation(batch_image_filenames, batch_mask_filenames)
 
+        #for i in range(len(indexes)):
+        #    print(i, indexes[i], batch_image_filenames[i])
+
         return images, masks
 
     def on_epoch_end(self):
@@ -186,12 +189,28 @@ def get_mask_filenames(dataset_directory):
     return mask_filenames
 
 
+def get_total_number_of_images(dataset_directory, batch_size):
+    step_per_epoch = get_steps_per_epoch(dataset_directory, batch_size)
+    total_images = int(step_per_epoch * batch_size)
+    return total_images
+
 # tf data ImagesAndMasksGenerator generator
+
+
 def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, rescale, target_size, shuffle, seed, random_rotation):  # IT CANNOT HAVE INPUT PARAMETERS
+    # data convertion
+    # strings are converted to bytes and need to be converted
     dataset_directory = Path(dataset_directory.decode("utf-8"))
 
+    # None is not accepted, so 'None' was used instead. that needs to be converted back to None is non-number
+    try:
+        seed = seed.decode("utf-8")
+        if seed == 'None':
+            seed = None
+    except (UnicodeDecodeError, AttributeError):
+        pass
+
     # init some variables
-    indexes = None
     random_rng = random.Random(seed)  # random number generator instance
     numpy_rng = np.random.default_rng(seed)  # np random number generator instance
 
@@ -199,17 +218,23 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
     image_filenames = get_image_filenames(dataset_directory)
     mask_filenames = get_mask_filenames(dataset_directory)
 
-    step_per_epoch = get_steps_per_epoch(dataset_directory, batch_size)
-    total_images = int(step_per_epoch * batch_size)
+    total_images = get_total_number_of_images(dataset_directory, batch_size)
+
+    # print(dataset_directory)
+    #print('total images ', total_images)
+    #print('epoch', epochs)
 
     # start the loop
     for epoch in range(epochs):  # loop over the epochs
+        #input('enter')
         # shuffle
         indexes = np.arange(total_images)
         if shuffle:
             numpy_rng.shuffle(indexes)
-
+        #print(indexes)
+        #print(len(indexes))
         for i in indexes:
+            #print(i, image_filenames[i])
             # for i in range(total_images):  # loop over all the images
 
             # define image_file_name and mask_file_name
