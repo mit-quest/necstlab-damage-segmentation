@@ -59,107 +59,109 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
                                          optimizing_class_id=None, optimizing_input_threshold=None,
                                          optimized_class_thresholds=None):
 
-    # alter input_shape due to inability of yaml to accept tuples!
-    if 'input_shape' in model_parameters:
-        model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
-    else:  # to guarantee the V1 config files still work
-        model_parameters['input_shape'] = (None, None, 1)
+    strategy = tf.distribute.MirroredStrategy()
 
-    # Select the optimizer as a function of the name in the config file
-    if optimizer.lower() in optimizer_dict:
-        optimizer_fn = optimizer_dict[optimizer.lower()]
-    else:
-        raise NameError("Error, the optimizer selected" + optimizer + " is currently not supported.")
+    with strategy.scope():
+        # alter input_shape due to inability of yaml to accept tuples!
+        if 'input_shape' in model_parameters:
+            model_parameters['input_shape'] = tuple(model_parameters['input_shape'])
+        else:  # to guarantee the V1 config files still work
+            model_parameters['input_shape'] = (None, None, 1)
 
-    # Select the loss function  as a function of the name in the config file
-    if loss.lower() in loss_dict:
-        loss_fn = loss_dict[loss.lower()]
-    else:
-        raise NameError("Error, the loss function selected" + loss + " is currently not supported.")
+        # Select the optimizer as a function of the name in the config file
+        if optimizer.lower() in optimizer_dict:
+            optimizer_fn = optimizer_dict[optimizer.lower()]
+        else:
+            raise NameError("Error, the optimizer selected" + optimizer + " is currently not supported.")
 
-    if 'activation' in model_parameters:
-        if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
-            assert model_parameters['activation'] == 'sigmoid'
-        elif loss == 'categorical_cross_entropy':
-            assert model_parameters['activation'] == 'softmax'
-    else:
-        print('Activation function and loss compatibility was not checked because model_parameters: activation does not exist in the model config file. ')
+        # Select the loss function  as a function of the name in the config file
+        if loss.lower() in loss_dict:
+            loss_fn = loss_dict[loss.lower()]
+        else:
+            raise NameError("Error, the loss function selected" + loss + " is currently not supported.")
 
-    all_metrics = []    # one-hot versions are generally preferred for given metric
-    # make first metric a copy of loss, to continually verify `val_loss` is correct
-    if isinstance(loss_fn, BinaryCrossentropyL):
-        all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
-    else:
-        all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
+        if 'activation' in model_parameters:
+            if loss == 'binary_cross_entropy' or loss == 'cross_entropy':
+                assert model_parameters['activation'] == 'sigmoid'
+            elif loss == 'categorical_cross_entropy':
+                assert model_parameters['activation'] == 'softmax'
+        else:
+            print('Activation function and loss compatibility was not checked because model_parameters: activation does not exist in the model config file. ')
 
-    # standard thresholded version (default threshold is 0.5) also kept below, in case it's desired in certain scenario
-    for class_num in range(num_classes + 1):
-        if class_num == 0 and optimizing_threshold_class_metric is None:    # all class metrics
-            # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
-            if not isinstance(loss_fn, BinaryCrossentropyL):
-                all_metrics.extend([CategoricalCELoss()])
-                all_metrics[1].name = str('categ_cross_entropy_sm')
-            all_metrics.extend([
-                AccuracyTfKeras(),
-                # OneHotAccuracyTfKeras(),  # `global_threshold` built-in
-                ClassBinaryAccuracyTfKeras(thresholds=global_threshold),
-                # OneHotClassBinaryAccuracyTfKeras(thresholds=global_threshold),
-                ClassBinaryAccuracySM(threshold=global_threshold),
-                # OneHotClassBinaryAccuracySM(threshold=global_threshold),
-                BinaryAccuracy(threshold=global_threshold),
-                CategoricalAccuracy(),
-                FalseNegatives(name='false_neg', thresholds=global_threshold),
-                # OneHotFalseNegatives(name='false_neg_1H', thresholds=global_threshold),
-                TrueNegatives(name='true_neg', thresholds=global_threshold),
-                # OneHotTrueNegatives(name='true_neg_1H', thresholds=global_threshold),
-                FalsePositives(name='false_pos', thresholds=global_threshold),
-                # OneHotFalsePositives(name='false_pos_1H', thresholds=global_threshold),
-                TruePositives(name='true_pos', thresholds=global_threshold),
-                # OneHotTruePositives(name='true_pos_1H', thresholds=global_threshold),
-                Recall(name='recall', thresholds=global_threshold),
-                # OneHotRecall(name='recall_1H', thresholds=global_threshold),
-                Precision(name='precision', thresholds=global_threshold),
-                # OneHotPrecision(name='precision_1H', thresholds=global_threshold),
-                FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
-                # OneHotFBetaScore(name='f1_score_1H', beta=1, thresholds=global_threshold),
-                IoUScore(name='iou_score', thresholds=global_threshold),
-                # OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
-            ])
-        elif class_num == 0 and optimizing_threshold_class_metric is not None:  # all class metrics
-            continue
-        else:    # per class metrics
-            if optimizing_threshold_class_metric is not None:
-                class_threshold = optimizing_input_threshold
-                class_num = optimizing_class_id + 1
-            elif optimized_class_thresholds is None:
-                class_threshold = global_threshold
-            else:
-                class_threshold = optimized_class_thresholds[str('class' + str(class_num - 1))]
+        all_metrics = []    # one-hot versions are generally preferred for given metric
+        # with strategy.scope():
+        # make first metric a copy of loss, to continually verify `val_loss` is correct
+        if isinstance(loss_fn, BinaryCrossentropyL):
+            all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
+        else:
+            all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
 
-            all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
-            all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
-            all_metrics.append(ClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm'),
-                                                     class_indexes=class_num - 1, threshold=class_threshold))
-            all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras'),
-                                                          class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(IoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
-                                        class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(FBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
-                                          class_id=class_num - 1,
-                                          beta=1, thresholds=class_threshold))
-            all_metrics.append(Precision(name=str('class' + str(class_num - 1) + '_precision'),
-                                         class_id=class_num - 1, thresholds=class_threshold))
-            all_metrics.append(Recall(name=str('class' + str(class_num - 1) + '_recall'),
-                                      class_id=class_num - 1, thresholds=class_threshold))
+        # standard thresholded version (default threshold is 0.5) also kept below, in case it's desired in certain scenario
+        for class_num in range(num_classes + 1):
+            if class_num == 0 and optimizing_threshold_class_metric is None:    # all class metrics
+                # note, `loss_fn` for all classes placed before `all_metrics` in lineup of command window metrics and plots
+                if not isinstance(loss_fn, BinaryCrossentropyL):
+                    all_metrics.extend([CategoricalCELoss()])
+                    all_metrics[1].name = str('categ_cross_entropy_sm')
+                all_metrics.extend([
+                    AccuracyTfKeras(),
+                    # OneHotAccuracyTfKeras(),  # `global_threshold` built-in
+                    ClassBinaryAccuracyTfKeras(thresholds=global_threshold),
+                    # OneHotClassBinaryAccuracyTfKeras(thresholds=global_threshold),
+                    ClassBinaryAccuracySM(threshold=global_threshold),
+                    # OneHotClassBinaryAccuracySM(threshold=global_threshold),
+                    BinaryAccuracy(threshold=global_threshold),
+                    CategoricalAccuracy(),
+                    FalseNegatives(name='false_neg', thresholds=global_threshold),
+                    # OneHotFalseNegatives(name='false_neg_1H', thresholds=global_threshold),
+                    TrueNegatives(name='true_neg', thresholds=global_threshold),
+                    # OneHotTrueNegatives(name='true_neg_1H', thresholds=global_threshold),
+                    FalsePositives(name='false_pos', thresholds=global_threshold),
+                    # OneHotFalsePositives(name='false_pos_1H', thresholds=global_threshold),
+                    TruePositives(name='true_pos', thresholds=global_threshold),
+                    # OneHotTruePositives(name='true_pos_1H', thresholds=global_threshold),
+                    Recall(name='recall', thresholds=global_threshold),
+                    # OneHotRecall(name='recall_1H', thresholds=global_threshold),
+                    Precision(name='precision', thresholds=global_threshold),
+                    # OneHotPrecision(name='precision_1H', thresholds=global_threshold),
+                    FBetaScore(name='f1_score', beta=1, thresholds=global_threshold),
+                    # OneHotFBetaScore(name='f1_score_1H', beta=1, thresholds=global_threshold),
+                    IoUScore(name='iou_score', thresholds=global_threshold),
+                    # OneHotIoUScore(name='iou_score_1H', thresholds=global_threshold)
+                ])
+            elif class_num == 0 and optimizing_threshold_class_metric is not None:  # all class metrics
+                continue
+            else:    # per class metrics
+                if optimizing_threshold_class_metric is not None:
+                    class_threshold = optimizing_input_threshold
+                    class_num = optimizing_class_id + 1
+                elif optimized_class_thresholds is None:
+                    class_threshold = global_threshold
+                else:
+                    class_threshold = optimized_class_thresholds[str('class' + str(class_num - 1))]
 
-            if optimizing_threshold_class_metric is not None:
+                all_metrics.append(CategoricalCELoss(class_indexes=class_num - 1))
+                all_metrics[-1].name = str('class' + str(class_num - 1) + '_binary_cross_entropy')
+                all_metrics.append(ClassBinaryAccuracySM(name=str('class' + str(class_num - 1) + '_binary_accuracy_sm'),
+                                                         class_indexes=class_num - 1, threshold=class_threshold))
+                all_metrics.append(ClassBinaryAccuracyTfKeras(name=str('class' + str(class_num - 1) + '_binary_accuracy_tfkeras'),
+                                                              class_id=class_num - 1, thresholds=class_threshold))
+                all_metrics.append(IoUScore(name=str('class' + str(class_num - 1) + '_iou_score'),
+                                            class_id=class_num - 1, thresholds=class_threshold))
+                all_metrics.append(FBetaScore(name=str('class' + str(class_num - 1) + '_f1_score'),
+                                              class_id=class_num - 1,
+                                              beta=1, thresholds=class_threshold))
+                all_metrics.append(Precision(name=str('class' + str(class_num - 1) + '_precision'),
+                                             class_id=class_num - 1, thresholds=class_threshold))
+                all_metrics.append(Recall(name=str('class' + str(class_num - 1) + '_recall'),
+                                          class_id=class_num - 1, thresholds=class_threshold))
+
+                if optimizing_threshold_class_metric is not None:
+                    break
+
+            if num_classes == 1:
                 break
 
-        if num_classes == 1:
-            break
-
-    strategy = tf.distribute.MirroredStrategy()
-    with strategy.scope():
         if model_name in models_dict:
             if model_parameters['backbone_name'] in models_dict[model_name]['compatible_backbones']:
                 model = models_dict[model_name]['model_class'](classes=num_classes, **model_parameters)
@@ -170,7 +172,7 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
 
         model.compile(optimizer=optimizer_fn,
                       loss=loss_fn,
-                      metrics='mse')
+                      metrics=all_metrics)
 
     if weights_to_load:
         model.load_weights(weights_to_load)
