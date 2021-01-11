@@ -16,7 +16,7 @@ from image_utils import get_steps_per_epoch, get_number_of_classes, get_image_fi
 import git
 from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
-from metrics_utils import global_threshold
+from metrics_utils import global_threshold, timecallback
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 import time
 
@@ -30,21 +30,6 @@ options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoSha
 metadata_file_name = 'metadata.yaml'
 
 tmp_directory = Path('./tmp')
-
-
-class timecallback(Callback):
-    def __init__(self):
-        # use this value as reference to calculate cumulative time taken
-        self.timetaken = time.perf_counter()
-
-    def on_epoch_begin(self, epoch, logs):
-        self.epoch_start_time = time.perf_counter()
-
-    def on_epoch_end(self, epoch, logs):
-        self.epoch_end_time = time.perf_counter()
-
-        logs['epoch_time_in_sec'] = self.epoch_end_time - self.epoch_start_time
-        logs['total_elapsed_time_in_sec'] = self.epoch_end_time - self.timetaken
 
 
 def generate_plots(metric_names, x_values, results_history, plots_dir, num_rows=1, num_cols=1):

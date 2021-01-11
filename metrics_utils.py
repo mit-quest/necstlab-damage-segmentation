@@ -16,21 +16,21 @@ assert SMOOTH <= 1e-5
 
 # 0.5 is default prediction threshold for most metrics which use a threshold value
 # and the threshold value is also effectively ignored for one hot metrics
-global_threshold = 0.5  
-assert 0.0 <= global_threshold <= 1.0 
+global_threshold = 0.5
+assert 0.0 <= global_threshold <= 1.0
 
 # In summary, to achieve one hot metrics:
 # 1. For a metric class who via definition inherits tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper, for
 #    one hot conversion in which this metric class is inherited by a sub-class one hot version:
-#    -	in tf2, place 1H at __ call __ method or update_state method (or both), followed by corresponding super().
-#    -	in tf1, place 1H at update_state method, followed by corresponding super().
+#    -  in tf2, place 1H at __ call __ method or update_state method (or both), followed by corresponding super().
+#    -  in tf1, place 1H at update_state method, followed by corresponding super().
 # 2. For a metric class who via definition does NOT inherit tf.keras.metrics.Metric or tf.keras.metric.MeanMetricWrapper
 #    (e.g., instead, inherits segmentation_models.metrics.Metric), for one hot conversion in which this metric class is
 #    inherited by a sub-class one hot version (note, the class instance will be treated as a function and automatically
 #    wrapped with tf.keras.metrics.MeanMetricWrapper during model.compile) :
-#    -	in tf2, place 1H at __ call __ method, followed by corresponding super(). Interestingly in tf2, the result is
+#    -  in tf2, place 1H at __ call __ method, followed by corresponding super(). Interestingly in tf2, the result is
 #   independent of whether or not the update_state method result has a return statement.
-#    -	in tf1, place 1H at __ call __ method, followed by corresponding super().
+#    -  in tf1, place 1H at __ call __ method, followed by corresponding super().
 
 
 # one hot classes are intended to act as pass-throughs. 1H (argmax) proceeds after thresholding, as done in infer.
@@ -196,9 +196,9 @@ class FBetaScore(MetricTfKeras):
 
     '''
     Arguments
-        beta: The F-measure was derived so that F_β "measures the effectiveness of 
+        beta: The F-measure was derived so that F_β "measures the effectiveness of
             retrieval with respect to a user who attaches β times as much importance to recall as precision".
-            beta=1 gives F_1 score, and is also known as the Sørensen–Dice coefficient or Dice similarity 
+            beta=1 gives F_1 score, and is also known as the Sørensen–Dice coefficient or Dice similarity
             coefficient (DSC).
         thresholds: (Optional) A float value or a python list/tuple of float
             threshold values in [0, 1]. A threshold is compared with prediction
@@ -214,6 +214,7 @@ class FBetaScore(MetricTfKeras):
         name: (Optional) string name of the metric instance.
         dtype: (Optional) data type of the metric result.
     '''
+
     def __init__(self,
                  beta=1,
                  thresholds=None,
@@ -456,6 +457,7 @@ class ClassBinaryAccuracyTfKeras(MetricTfKeras):
         name: (Optional) string name of the metric instance.
         dtype: (Optional) data type of the metric result.
     """
+
     def __init__(self,
                  thresholds=None,
                  top_k=None,
@@ -567,6 +569,7 @@ class ClassBinaryAccuracySM(MetricSM):
         metric = ClassBinaryAccuracy()
         model.compile('SGD', loss=loss, metrics=[metric])
     """
+
     def __init__(
             self,
             class_weights=None,
@@ -629,3 +632,18 @@ class OneHotClassBinaryAccuracySM(ClassBinaryAccuracySM):
         prediction_onehot_indices = K.argmax(prediction, axis=-1)  # based on keras.metrics.categorical_accuracy to determine max pred index (1 of channels) at each HW location
         prediction_onehot = K.one_hot(prediction_onehot_indices, K.int_shape(prediction)[-1])  # assume 4D tensor is BHWC
         return super().__call__(groundtruth, prediction_onehot)
+
+
+class timecallback(Callback):
+    def __init__(self):
+        # use this value as reference to calculate cumulative time taken
+        self.timetaken = time.perf_counter()
+
+    def on_epoch_begin(self, epoch, logs):
+        self.epoch_start_time = time.perf_counter()
+
+    def on_epoch_end(self, epoch, logs):
+        self.epoch_end_time = time.perf_counter()
+
+        logs['epoch_time_in_sec'] = self.epoch_end_time - self.epoch_start_time
+        logs['total_elapsed_time_in_sec'] = self.epoch_end_time - self.timetaken
