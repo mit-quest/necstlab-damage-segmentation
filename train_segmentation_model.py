@@ -9,7 +9,7 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
-from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, Callback
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 import tensorflow as tf
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator, ImagesAndMasksGenerator_function
 from image_utils import get_steps_per_epoch, get_number_of_classes, get_image_filenames, get_mask_filenames
@@ -18,11 +18,6 @@ from gcp_utils import copy_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold, timecallback
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
-import time
-
-# these won't need to be here
-from collections import OrderedDict
-from PIL import Image
 
 options = tf.data.Options()
 options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
