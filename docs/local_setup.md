@@ -33,7 +33,7 @@ All commands will assume to be run from the `necstlab-damage-segmentation` direc
 
 All of the workflows use Google Cloud Platform (GCP) for storage (buckets) and compute (virtual machines). To allow the code to programmatically interact with GCP, we will set up a Software Development Kit (SDK) on your local machine. To install the GCP SDK follow the instructions [here](https://cloud.google.com/sdk/docs/downloads-interactive).
 
-To set up and destroy virtual machines, Terraform requires access to GCP. To access these credentials, open the service accounts section through IAM & Admin of your bucket. Create a new service account with your account name, "'username'terraform". Create a key for the new account and add that json file to the "Keys" subfolder of the repository.
+To set up and destroy virtual machines, Terraform requires access to GCP. To access these credentials, open the service accounts section through IAM & Admin of your bucket. Create a new service account with your account name, "'username'-terraform". Create a key for the new account and add that json file to the "Keys" subfolder of the repository.
 
 Edit the `terraform.tfvars` file with your `username`, `gcp_key_file_location`, `public_ssh_key_location`, `private_ssh_key_location`. For more information on how to generate a public and private SSH key pair, see [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
