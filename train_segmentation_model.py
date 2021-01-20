@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import ipykernel    # needed when using many metrics, to avoid automatic verbose=2 output
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
 import tensorflow as tf
-from image_utils import TensorBoardImage, ImagesAndMasksGenerator, ImagesAndMasksGenerator_function
+from image_utils import TensorBoardImage, ImagesAndMasksGenerator_function
 from image_utils import get_steps_per_epoch, get_number_of_classes, get_image_filenames, get_mask_filenames
 import git
 from gcp_utils import copy_folder_locally_if_missing
@@ -155,10 +155,11 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     batch_size = train_config['batch_size']
     epochs = train_config['epochs']
     rescale = 1. / 255
-    number_of_classes = get_number_of_classes(Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix())
 
     train_dataset_path = Path(local_dataset_dir, train_config['dataset_id'], 'train').as_posix()
     validation_dataset_path = Path(local_dataset_dir, train_config['dataset_id'], 'validation').as_posix()
+
+    number_of_classes = get_number_of_classes(train_dataset_path)
 
     train_steps_per_epoch = get_steps_per_epoch(train_dataset_path, batch_size)
     validation_steps_per_epoch = get_steps_per_epoch(validation_dataset_path, batch_size)

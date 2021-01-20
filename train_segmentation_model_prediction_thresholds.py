@@ -3,16 +3,20 @@ import os
 import random
 import numpy as np
 from tensorflow import random as tf_random
+import tensorflow as tf
 import yaml
 from pathlib import Path
 from datetime import datetime
 import pytz
 import git
 from gcp_utils import copy_folder_locally_if_missing, copy_file_locally_if_missing
-from image_utils import ImagesAndMasksGenerator
+from image_utils import ImagesAndMasksGenerator_function
+from image_utils import get_steps_per_epoch, get_number_of_classes, get_image_filenames, get_mask_filenames
 from models import train_prediction_thresholds, thresholds_training_history
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
 
+options = tf.data.Options()
+options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
 # can train same model repeatedly with different optimization configurations
 output_file_name = 'model_thresholds_' + datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ') + '.yaml'
@@ -71,6 +75,8 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         train_config = yaml.safe_load(f)['train_config']
 
     target_size = dataset_config['target_size']
+    epochs = 1
+    rescale = 1. / 255
 
     if 'validation' in dataset_type:
         gen_seed = None if 'validation_data_shuffle_seed' not in train_config else train_config['validation_data_shuffle_seed']
@@ -79,21 +85,47 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
     else:
         gen_seed = 1234
 
-    train_threshold_dataset_generator = ImagesAndMasksGenerator(
-        Path(local_dataset_dir, dataset_directory).as_posix(),
-        rescale=1. / 255,
-        target_size=target_size,
-        batch_size=batch_size,
-        shuffle=True,
-        seed=gen_seed)
+    train_threshold_dataset_path = Path(local_dataset_dir, dataset_directory).as_posix()
+
+    number_of_classes = get_number_of_classes(train_threshold_dataset_path)
+
+    train_threshold_steps_per_epoch = get_steps_per_epoch(train_threshold_dataset_path, batch_size)
+
+    train_threshold_image_filenames = get_image_filenames(train_threshold_dataset_path)
+    train_threshold_mask_filenames = get_mask_filenames(train_threshold_dataset_path)
+
+    arg_list = [train_threshold_dataset_path,  # 'dataset_directory'
+                epochs,  # epochs'
+                batch_size,  # 'batch_size'
+                rescale,  # 'rescale'
+                target_size,  # 'target_size'
+                True,  # 'shuffle'
+                gen_seed,  # 'seed'
+                False]  # 'random_rotation'
+
+    train_threshold_dataset_generator = tf.data.Dataset.from_generator(ImagesAndMasksGenerator_function, (tf.float32, tf.float32), args=arg_list)
+    train_threshold_dataset_generator = train_threshold_dataset_generator.batch(batch_size, drop_remainder=False)
+    train_threshold_dataset_generator = train_threshold_dataset_generator.prefetch(batch_size)
+    train_threshold_dataset_generator = train_threshold_dataset_generator.with_options(options)
+
+    # train_threshold_dataset_generator = ImagesAndMasksGenerator(
+    #    train_threshold_dataset_path,
+    #    rescale=1. / 255,
+    #    target_size=target_size,
+    #    batch_size=batch_size,
+    #    shuffle=True,
+    #    seed=gen_seed)
 
     trained_prediction_thresholds = {}
     training_thresholds_output = {}
     opt_config = []
-    for i in range(len(train_threshold_dataset_generator.mask_filenames)):
+    for i in range(number_of_classes):
         print('\n' + str('Training class' + str(i) + ' prediction threshold...'))
         training_threshold_output, opt_config = train_prediction_thresholds(i, optimizing_class_metric, train_config,
                                                                             train_threshold_dataset_generator,
+                                                                            train_threshold_dataset_path,
+                                                                            number_of_classes,
+                                                                            train_threshold_steps_per_epoch,
                                                                             dataset_downsample_factor,
                                                                             Path(local_model_dir, model_id,
                                                                                  "model.hdf5").as_posix())
@@ -112,7 +144,7 @@ def train_segmentation_model_prediction_thresholds(gcp_bucket, dataset_directory
         'message': message,
         'gcp_bucket': gcp_bucket,
         'created_datetime': datetime.now(pytz.UTC).strftime('%Y%m%dT%H%M%SZ'),
-        'num_classes': len(train_threshold_dataset_generator.mask_filenames),
+        'num_classes': number_of_classes,
         'target_size': target_size,
         'git_hash': git.Repo(search_parent_directories=True).head.object.hexsha,
         'elapsed_minutes': round((datetime.now() - start_dt).total_seconds() / 60, 1),
