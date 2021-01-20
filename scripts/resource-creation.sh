@@ -21,51 +21,23 @@ sudo dpkg -i libcudnn8_8.0.2.39-1+cuda11.0_amd64.deb
 wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn8-dev_8.0.2.39-1+cuda11.0_amd64.deb
 sudo dpkg -i libcudnn8-dev_8.0.2.39-1+cuda11.0_amd64.deb
 
-# Install requirements
-sudo apt-get install -y \
-    checkinstall\
-    libreadline-gplv2-dev\
-    liblzma-dev\
-    libncursesw5-dev\
-    libssl-dev\
-    libsqlite3-dev\
-    tk-dev\
-    libgdbm-dev\
-    libc6-dev\
-    libbz2-dev\
-    zlib1g-dev\
-    openssl\
-    libffi-dev\
-    python3-dev\
-    python3-setuptools\
-    wget\
-    zlib1g-dev
 
 # install needed packages
 sudo apt-get install -y cmake \
-	git \
-	libopencv-dev \
-	htop \
-	tmux \
-	tree \
-	p7zip-full
-
-cd ~
-mkdir tmp
-cd tmp
-wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-tar zxvf Python-3.7.9.tgz
-cd Python-3.7.9
-./configure --prefix=$HOME/opt/python-3.7.9
-make
-make install
-cd ~
-echo 'export PATH=$HOME/opt/python-3.7.9/bin:$PATH' >> .bash_profile
-. ~/.bash_profile
-cd ~
+    git \
+    python3-setuptools \
+    python3-dev \
+    python3-pip \
+    libopencv-dev \
+    htop \
+    tmux \
+    tree \
+    p7zip-full
 
 pip3 install -U pip
 pip3 install --upgrade setuptools
+pip3 uninstall crcmod -y
 pip3 install --no-cache-dir crcmod
 pip3 install --upgrade pyasn1
 cd necstlab-damage-segmentation && pip3 install -r requirements.txt
+
