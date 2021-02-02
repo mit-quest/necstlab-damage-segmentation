@@ -114,7 +114,7 @@ def sample_image_and_mask_paths(generator, n_paths):
     mask_paths = [{c: list(np.asarray(generator.mask_filenames[c]))[i] for c in generator.mask_filenames} for i in rand_inds]
     return list(zip(image_paths, mask_paths))
 
-def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id, message):
+def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_global_seed, tf_random_global_seed, pretrained_model_id, message, metric_checkpoint):
 
     # seed global random generators if specified; global random seeds here must be int or default None (no seed given)
     if random_module_global_seed is not None:
@@ -216,7 +216,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         path_pretrained_model)
 
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
-                                                monitor='loss', verbose=1, save_best_only=True)
+                                                monitor=metric_checkpoint, verbose=1, save_best_only=True)
     # profile_batch = 0 is needed until insufficinet privileges issue resolved with CUPTI
     #   (_https://github.com/tensorflow/tensorflow/issues/35860)
     tensorboard_callback = TensorBoard(log_dir=logs_dir.as_posix(), write_graph=True,
@@ -326,4 +326,9 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='A str message the used wants to leave, the default is None.')
+    argparser.add_argument(
+        '--metric-checkpoint',
+        type=str,
+        default='loss',
+        help='Metric name (string) based on which the trained model is saved (see ModelCheckpoint). Default is loss. ')
     train(**argparser.parse_args().__dict__)
