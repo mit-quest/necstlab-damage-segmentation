@@ -15,6 +15,8 @@ from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFa
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
                            OneHotClassBinaryAccuracySM, FBetaScore, OneHotFBetaScore, IoUScore, OneHotIoUScore,
                            global_threshold)
+from image_utils import get_steps_per_epoch, get_number_of_classes, get_image_filenames, get_mask_filenames
+
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet, FPN, Linknet
 from segmentation_models.losses import CategoricalCELoss
@@ -190,6 +192,8 @@ class EvaluateModelForInputThreshold:
             optimizing_threshold_class_metric=None,
             train_config=None,
             dataset_generator=None,
+            number_of_classes=None,
+            steps_per_epoch=None,
             dataset_downsample_factor=1.0,
             model_path=False,
             name=None
@@ -202,6 +206,8 @@ class EvaluateModelForInputThreshold:
         self.dataset_downsample_factor = dataset_downsample_factor
         assert 0 < self.dataset_downsample_factor <= 1.0
         self.model_path = model_path
+        self.number_of_classes = number_of_classes
+        self.steps_per_epoch = steps_per_epoch
 
     # evaluate model performance on specified dataset for specified prediction threshold
     def __call__(self, input_threshold):
@@ -209,7 +215,7 @@ class EvaluateModelForInputThreshold:
         optimizing_model = generate_compiled_segmentation_model(
             self.train_config['segmentation_model']['model_name'],
             self.train_config['segmentation_model']['model_parameters'],
-            len(self.dataset_generator.mask_filenames),
+            self.number_of_classes,
             self.train_config['loss'],
             self.train_config['optimizer'],
             weights_to_load=self.model_path,
@@ -218,7 +224,7 @@ class EvaluateModelForInputThreshold:
             optimizing_input_threshold=input_threshold)
         all_results = optimizing_model.evaluate(self.dataset_generator,
                                                 steps=np.ceil(self.dataset_downsample_factor *
-                                                              len(self.dataset_generator)).astype(int))
+                                                              self.steps_per_epoch))
 
         metric_names = [m.name for m in optimizing_model.metrics]
 
@@ -246,10 +252,10 @@ class EvaluateModelForInputThreshold:
 
 # framework to train prediction threshold
 def train_prediction_thresholds(optimizing_class_id, optimizing_threshold_class_metric, train_config,
-                                dataset_generator, dataset_downsample_factor, model_path):
+                                dataset_generator, dataset_path, number_of_classes, steps_per_epoch, dataset_downsample_factor, model_path):
 
     optimizing_compiled_model = EvaluateModelForInputThreshold(optimizing_class_id, optimizing_threshold_class_metric,
-                                                               train_config, dataset_generator,
+                                                               train_config, dataset_generator, number_of_classes, steps_per_epoch,
                                                                dataset_downsample_factor, model_path)
     global train_thresholds_counter
     train_thresholds_counter = 0
@@ -260,7 +266,7 @@ def train_prediction_thresholds(optimizing_class_id, optimizing_threshold_class_
     opt_options = {'maxiter': 500, 'disp': 3}
     optimization_configuration = {'opt_bounds': opt_bounds, 'opt_method': opt_method, 'opt_tol': opt_tol,
                                   'opt_options': opt_options, 'opt_class_metric': optimizing_threshold_class_metric,
-                                  'opt_dataset_generator': dataset_generator.dataset_directory,
+                                  'opt_dataset_generator': dataset_path,
                                   'opt_dataset_downsample_factor': dataset_downsample_factor}
     training_threshold_output = minimize_scalar(optimizing_compiled_model, bounds=(opt_bounds[0], opt_bounds[1]),
                                                 method=opt_method, tol=opt_tol, options=opt_options)
