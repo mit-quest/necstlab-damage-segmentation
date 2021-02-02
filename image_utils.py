@@ -126,7 +126,7 @@ class ImagesAndMasksGenerator(Sequence):
         # Generate data
         images, masks = self.__data_generation(batch_image_filenames, batch_mask_filenames)
 
-        #for i in range(len(indexes)):
+        # for i in range(len(indexes)):
         #    print(i, indexes[i], batch_image_filenames[i])
 
         return images, masks
@@ -226,13 +226,13 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
 
     # start the loop
     for epoch in range(epochs):  # loop over the epochs
-        #input('enter')
+        # input('enter')
         # shuffle
         indexes = np.arange(total_images)
         if shuffle:
             numpy_rng.shuffle(indexes)
-        #print(indexes)
-        #print(len(indexes))
+        # print(indexes)
+        # print(len(indexes))
         for i in indexes:
             #print(i, image_filenames[i])
             # for i in range(total_images):  # loop over all the images
@@ -256,4 +256,6 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
             image[:, :, 0] = np.asarray(Image.open(image_file_name).rotate(rotation))
             for j, c in enumerate(mask_filenames):
                 mask[:, :, j] = np.asarray(Image.open(mask_file_name[j]).rotate(rotation))
+
+            image = image * rescale
             yield image, mask
