@@ -126,9 +126,9 @@ class ImagesAndMasksGenerator(Sequence):
         # Generate data
         images, masks = self.__data_generation(batch_image_filenames, batch_mask_filenames)
 
-        # for i in range(len(indexes)):
-        #    print(i, indexes[i], batch_image_filenames[i])
-
+#        for i in range(len(indexes)):
+#            print(i, indexes[i], batch_image_filenames[i])
+#        input('enter')
         return images, masks
 
     def on_epoch_end(self):
@@ -189,9 +189,15 @@ def get_mask_filenames(dataset_directory):
     return mask_filenames
 
 
-def get_total_number_of_images(dataset_directory, batch_size):
+def get_total_number_of_images_truncated(dataset_directory, batch_size):
     step_per_epoch = get_steps_per_epoch(dataset_directory, batch_size)
-    total_images = int(step_per_epoch * batch_size)
+    total_images_truncated = int(step_per_epoch * batch_size)
+    return total_images_truncated
+
+
+def get_total_number_of_images(dataset_directory):
+    image_filenames = get_image_filenames(dataset_directory)
+    total_images = len(image_filenames)
     return total_images
 
 # tf data ImagesAndMasksGenerator generator
@@ -218,8 +224,8 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
     image_filenames = get_image_filenames(dataset_directory)
     mask_filenames = get_mask_filenames(dataset_directory)
 
-    total_images = get_total_number_of_images(dataset_directory, batch_size)
-
+    total_images_truncated = get_total_number_of_images_truncated(dataset_directory, batch_size)
+    total_images = get_total_number_of_images(dataset_directory)
     # print(dataset_directory)
     #print('total images ', total_images)
     #print('epoch', epochs)
@@ -231,10 +237,10 @@ def ImagesAndMasksGenerator_function(dataset_directory, epochs, batch_size, resc
         indexes = np.arange(total_images)
         if shuffle:
             numpy_rng.shuffle(indexes)
-        # print(indexes)
-        # print(len(indexes))
-        for i in indexes:
-            #print(i, image_filenames[i])
+#        print(indexes)
+#        input('enter')
+        for i in indexes[0:total_images_truncated]:
+            #            print(i, image_filenames[i])
             # for i in range(total_images):  # loop over all the images
 
             # define image_file_name and mask_file_name

@@ -204,7 +204,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
                 batch_size,  # 'batch_size'
                 rescale,  # 'rescale'
                 target_size,  # 'target_size'
-                True,  # 'shuffle'
+                False,  # 'shuffle'
                 'None' if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'],  # 'seed'
                 train_config['data_augmentation']['random_90-degree_rotations']]  # 'random_rotation'
 
@@ -268,6 +268,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
 
     results = compiled_model.fit(
         train_generator,
+        shuffle=False,
         steps_per_epoch=train_steps_per_epoch,
         epochs=epochs,
         validation_data=validation_generator,
