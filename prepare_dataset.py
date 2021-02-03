@@ -338,7 +338,7 @@ def prepare_dataset(gcp_bucket, config_file, random_module_global_seed, numpy_ra
         all_scans += scans
     all_scans = sorted(set(all_scans))
 
-    assert not remote_folder_exists(prepared_dataset_remote_dest, dataset_id, sample_file_name='config.yaml'), "dataset already exists in the gcp_bucket; change name of dataset in config directory"
+    assert not remote_folder_exists(prepared_dataset_remote_dest, dataset_id, sample_file_name='config.yaml'), "Dataset already exists in the GCP bucket. Choose new name in dataset config used here. Do NOT modify or delete the existing dataset in the GCP bucket."
 
     copy_processed_data_locally_if_missing(all_scans, processed_data_remote_source, processed_data_local_dir)
 
