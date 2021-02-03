@@ -272,6 +272,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         'random-module-global-seed': random_module_global_seed,
         'numpy_random_global_seed': numpy_random_global_seed,
         'tf_random_global_seed': tf_random_global_seed,
+        'metric_modelcheckpoint': metric_modelcheckpoint,
         'pretrained_model_info': pretrained_info,
         'metadata_system': metadata_sys
     }
