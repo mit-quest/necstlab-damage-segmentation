@@ -54,6 +54,22 @@ Infrastructure that will be used:
         type=str,
         default=None,
         help='The specified trained thresholds file id.'
+* `--random-module-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+* `--numpy-random-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
+* `--tf-random-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
+* `--message`:
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
 
 ### Example command line inputs:
 
