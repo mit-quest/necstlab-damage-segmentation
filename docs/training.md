@@ -26,6 +26,30 @@ Infrastructure that will be used:
 * `--config-file`:
         type=str,
         help='The location of the train configuration file.'
+* `--random-module-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of random.seed(global seed), where global seed is int or default None (no seed given).')
+* `--numpy-random-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of np.random.seed(global seed), where global seed is int or default None (no seed given).')
+* `--tf-random-global-seed`:
+        type=int,
+        default=None,
+        help='The setting of tf.random.set_seed(global seed), where global seed is int or default None (no seed given).')
+* `--pretrained-model-id`:
+        type=str,
+        default=None,
+        help='The model ID with previously trained weights.')
+* `--message`:
+        type=str,
+        default=None,
+        help='A str message the used wants to leave, the default is None.')
+* `--metric-modelcheckpoint`:
+        type=str,
+        default='loss',
+        help='Metric name (string) based on which the trained model is saved (see ModelCheckpoint). Default is loss. ')
         
 ### Example command line inputs:
 
