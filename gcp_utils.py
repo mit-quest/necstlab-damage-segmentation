@@ -7,7 +7,7 @@ import segmentation_models
 
 
 def list_files(gcp_bucket_name, prefix):
-    gcp_key_file_location = next(Path('./keys').iterdir())
+    gcp_key_file_location = list(Path(r'./keys').glob(r'*.json'))[0]
     storage_client = storage.Client.from_service_account_json(gcp_key_file_location.as_posix())
     bucket_name = gcp_bucket_name
     bucket = storage_client.get_bucket(bucket_name)
