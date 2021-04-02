@@ -15,6 +15,35 @@ def list_files(gcp_bucket_name, prefix):
     return [f.name for f in blobs]
 
 
+# <self.as_posix()> returns a pure path, self, as a str with forward slashes
+# <cp> is copy
+# <-r> 
+
+def copy_select_folder_locally_if_missing(folder_remote_source, local_folder_dir, subfolders=None):
+    if not os.path.exists(local_folder_dir.as_posix()):  # brings up issue of what this <-- command should be: have in notes to check "if not subfolders:", then "else"
+        if subfolders:
+            local_folder_dir.mkdir(parents=True, exist_ok=True)
+
+            for folder in subfolders:
+                local_subfolder_dir = os.path.join(local_folder_dir, folder)    #think this should be nested in for loop to iterate through alternate paths
+                local_subfolder_dir.mkdir(parents=True, exist_ok=True)
+                subfolder_remote_source = os.path.join(folder_remote_source, folder)
+                
+                print("folder remote source", type(folder_remote_source))
+                print("local subfolder directory: ", local_subfolder_dir, type(local_folder_dir))
+                print("subfolder remote source: ", subfolder_remote_source, type(subfolder_remote_source))
+                print("current folder iteration: ", folder, type(folder))
+                print('local folder directory', local_folder_dir, type(local_folder_dir))
+                input()
+
+                os.system("gsutil -m cp -r '{}' '{}'".format(subfolder_remote_source, local_subfolder_dir))
+
+
+        else:
+            local_folder_dir.mkdir(parents=True, exist_ok=True)
+            os.system("gsutil -m cp -r '{}' '{}'".format(folder_remote_source, local_folder_dir.as_posix()))
+    
+
 def copy_folder_locally_if_missing(folder_remote_source, local_folder_dir):
     if not os.path.exists(local_folder_dir.as_posix()):
         local_folder_dir.mkdir(parents=True, exist_ok=True)

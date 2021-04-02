@@ -13,6 +13,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger, 
 from image_utils import TensorBoardImage, ImagesAndMasksGenerator
 import git
 from gcp_utils import copy_folder_locally_if_missing
+from gcp_utils import copy_select_folder_locally_if_missing
 from models import generate_compiled_segmentation_model
 from metrics_utils import global_threshold
 from local_utils import local_folder_has_files, getSystemInfo, getLibVersions
@@ -139,6 +140,9 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     tmp_directory.mkdir()
 
     local_dataset_dir = Path(tmp_directory, 'datasets')
+
+    copy_select_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', train_config['dataset_id']),
+                                   local_dataset_dir, subfolders = ['train', 'validation'])
 
     copy_folder_locally_if_missing(os.path.join(gcp_bucket, 'datasets', train_config['dataset_id']),
                                    local_dataset_dir)
@@ -286,7 +290,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
     print(metadata)
     print('\n')
 
-    shutil.rmtree(tmp_directory.as_posix())
+    #shutil.rmtree(tmp_directory.as_posix())
 
 
 if __name__ == "__main__":
