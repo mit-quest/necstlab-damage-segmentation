@@ -39,7 +39,7 @@ def process_zip(gcp_bucket, zipped_stack):
     is_annotation = 'dmg' in zipped_stack
 
     stack_id = Path(zipped_stack).name.split('.')[0]
-    split_strings = ['_8bit', '-', '_dmg']
+    split_strings = ['_8bit', '-mtrxdmg', '_dmg', '-dmg']
     for s in split_strings:
         stack_id = stack_id.split(s)[0]
 
@@ -64,14 +64,20 @@ def process_zip(gcp_bucket, zipped_stack):
         unzipped_dir = next(stack_dir.iterdir())
 
         original_number_of_files_in_zip = len(list(unzipped_dir.iterdir()))
-
+        temp_file_name = r'./temp.tif'
         for f in Path(unzipped_dir).iterdir():
             if f.name[-4:] != '.tif':
                 # remove any non-image files
                 os.remove(f.as_posix())
             else:
                 # convert all images to greyscale (some are already and some aren't)
-                Image.open(f).convert("L").save(f)
+                # Image.open(f).convert("L").save(f)
+                # This code was giving an error due to some compression setting of the images
+                # So it was replaced with this one:
+                shutil.copyfile(f, temp_file_name)
+                os.remove(f)
+                im1 = Image.open(temp_file_name).convert("L").save(temp_file_name)
+                os.rename(temp_file_name, f)
 
         shutil.move(unzipped_dir.as_posix(),
                     Path(unzipped_dir.parent, 'annotations' if is_annotation else 'images').as_posix())
@@ -100,7 +106,7 @@ def process_zip(gcp_bucket, zipped_stack):
             yaml.safe_dump(metadata, f)
 
         os.system("gsutil -m cp -n -r '{}' '{}'".format(unzipped_dir.parent.as_posix(),
-                                                     os.path.join(gcp_bucket, 'processed-data/')))
+                                                        os.path.join(gcp_bucket, 'processed-data/')))
 
         print('\n Ingest Raw Data Metadata:')
         print(metadata)
