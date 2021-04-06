@@ -70,10 +70,13 @@ def process_zip(gcp_bucket, zipped_stack):
                 # remove any non-image files
                 os.remove(f.as_posix())
             else:
-                # convert all images to greyscale (some are already and some aren't)
+                # Old code to convert all images to greyscale (some are already and some aren't)
                 # Image.open(f).convert("L").save(f)
-                # This code was giving an error due to some compression setting of the images
-                # So it was replaced with this one:
+                # The commented code was giving an error due to some compression setting of the SOME images:
+                #     return encoder(mode, *args + extra)
+                #     TypeError: argument 5 should be a str, not PosixPath
+                # The error seems to be related to the image metadata or to a compression setting of the image.
+                # A workaround was to copy and rename the image and delete the old one..
                 shutil.copyfile(f, temp_file_name)
                 os.remove(f)
                 im1 = Image.open(temp_file_name).convert("L").save(temp_file_name)
