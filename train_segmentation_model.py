@@ -215,6 +215,12 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         train_config['optimizer'],
         path_pretrained_model)
 
+    filepath = Path(model_dir, "model_epoch_{epoch:04d}.hdf5")
+    model_checkpoint_callback_frequency = ModelCheckpoint(filepath,
+                                                          monitor=metric_modelcheckpoint, verbose=1,
+                                                          save_best_only=False, save_weights_only=False,
+                                                          mode='auto', period=5)
+
     model_checkpoint_callback = ModelCheckpoint(Path(model_dir, 'model.hdf5').as_posix(),
                                                 monitor=metric_modelcheckpoint, verbose=1, save_best_only=True)
     # profile_batch = 0 is needed until insufficinet privileges issue resolved with CUPTI
@@ -235,7 +241,7 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        callbacks=[model_checkpoint_callback, tensorboard_callback, time_callback, csv_logger_callback]
+        callbacks=[model_checkpoint_callback, model_checkpoint_callback_frequency, tensorboard_callback, time_callback, csv_logger_callback]
     )
 
     metric_names = ['epoch_time_in_sec', 'total_elapsed_time_in_sec'] + [m.name for m in compiled_model.metrics]
