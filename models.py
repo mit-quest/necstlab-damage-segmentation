@@ -10,6 +10,7 @@ from tensorflow.keras.metrics import (Accuracy as AccuracyTfKeras, BinaryAccurac
 from tensorflow.keras.losses import (BinaryCrossentropy as BinaryCrossentropyL,
                                      CategoricalCrossentropy as CategoricalCrossentropyL)
 from tensorflow.keras.losses import (MeanSquaredError, MeanAbsoluteError)
+from tensorflow_addons.losses import SigmoidFocalCrossEntropy, GIoULoss #note GIOULoss does not work for seg, only bound box obj detection
 from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFalsePositives,
                            OneHotTrueNegatives, OneHotTruePositives, OneHotPrecision, OneHotRecall,
                            ClassBinaryAccuracyTfKeras, OneHotClassBinaryAccuracyTfKeras, ClassBinaryAccuracySM,
@@ -17,7 +18,7 @@ from metrics_utils import (OneHotAccuracyTfKeras, OneHotFalseNegatives, OneHotFa
                            global_threshold)
 os.environ['SM_FRAMEWORK'] = 'tf.keras'  # will tell segmentation models to use tensorflow's keras
 from segmentation_models import Unet, FPN, Linknet
-from segmentation_models.losses import CategoricalCELoss
+from segmentation_models.losses import CategoricalCELoss, JaccardLoss, DiceLoss, BinaryFocalLoss # could not get JaccardLoss, DiceLoss, BinaryFocalLoss to work
 
 
 thresholds_training_history = {}
@@ -25,7 +26,7 @@ train_thresholds_counter = 0
 
 # These are the only optimizer currently supported
 optimizer_dict = {'adam': Adam(),
-                  'sdg': SGD(),
+                  'sgd': SGD(),
                   'adagrad': Adagrad(),
                   'adamax': Adamax(),
                   'ftrl': Ftrl(),
@@ -38,7 +39,12 @@ loss_dict = {'binary_cross_entropy': BinaryCrossentropyL(),
              'cross_entropy': BinaryCrossentropyL(),
              'categorical_cross_entropy': CategoricalCrossentropyL(),
              'mean_squared_error': MeanSquaredError(),
-             'mean_absolute_error': MeanAbsoluteError()
+             'mean_absolute_error': MeanAbsoluteError(),
+             'jaccard_loss': JaccardLoss(),
+             'dice_loss': DiceLoss(),
+             'binary_focal_loss': BinaryFocalLoss(),
+             'sigmoid_focal_cross_entropy': SigmoidFocalCrossEntropy(),
+             'giou_loss': GIoULoss(mode='iou')
              }
 
 # this one has to be inside because of the arguments inside the class: num_classes=num_classes, **model_parameters
@@ -90,7 +96,8 @@ def generate_compiled_segmentation_model(model_name, model_parameters, num_class
     if isinstance(loss_fn, BinaryCrossentropyL):
         all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
     else:
-        all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
+        all_metrics.append(BinaryCrossentropyM(name='binary_ce_metric'))
+        # all_metrics.append(CategoricalCrossentropyM(name='categ_ce_metric'))
 
     # standard thresholded version (default threshold is 0.5) also kept below, in case it's desired in certain scenario
     for class_num in range(num_classes + 1):
