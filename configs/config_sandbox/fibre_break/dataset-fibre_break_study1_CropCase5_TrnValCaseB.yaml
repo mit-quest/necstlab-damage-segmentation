@@ -1,0 +1,108 @@
+dataset_config:
+  dataset_split:
+    train: [
+"UoS_SR_A1_0987N_1080_730_1400",
+"UoS_SR_A1_1031N_1080_730_1400",
+"UoS_SR_A1_1053N_1080_730_1400",
+"UoS_SR_A1_1075N_1080_730_1400",
+"UoS_SR_A1_1097N_1080_730_1400",
+"UoS_SR_A1_1119N_1080_730_1400",
+"UoS_SR_A1_1141N_1080_730_1400",
+"UoS_SR_A1_1163N_1080_730_1400",
+"UoS_SR_A1_1185N_1080_730_1400",
+"UoS_SR_A1_1207N_1080_730_1400",
+"UoS_SR_A1_1229N_1080_730_1400",
+"UoS_SR_A1_1251N_1080_730_1400",
+"UoS_SR_A1_1273N_1080_730_1400",
+"UoS_SR_A1_1339N_1080_730_1400",
+"UoS_SR_B1_060pctUTS_700_1450_1556",
+"UoS_SR_B1_080pctUTS_700_1450_1556",
+"UoS_SR_B1_090pctUTS_700_1450_1556",
+"UoS_SR_B1_092pctUTS_700_1450_1556",
+"UoS_SR_B1_094pctUTS_700_1450_1556",
+"UoS_SR_B1_096pctUTS_700_1450_1556",
+"UoS_SR_B1_098pctUTS_700_1450_1556",
+"UoS_SR_B1_100pctUTS_700_1450_1556",
+"UoS_SR_B1_102pctUTS_700_1450_1556",
+"UoS_SR_B1_104pctUTS_700_1450_1556",
+"UoS_SR_B1_106pctUTS_700_1450_1556",
+"UoS_SR_B1_108pctUTS_700_1450_1556",
+"UoS_SR_C1_0800N_660_1360_1712",
+"UoS_SR_C1_1260N_660_1360_1712",
+"UoS_SR_C1_1330N_660_1360_1712",
+"UoS_SR_C1_1375N_660_1360_1712",
+"UoS_SR_C1_1400N_660_1360_1712",
+"UoS_SR_C1_1425N_660_1360_1712",
+"UoS_SR_C1_1450N_660_1360_1712",
+"UoS_SR_C1_1475N_660_1360_1712",
+"UoS_SR_C1_1500N_660_1360_1712",
+"UoS_SR_C1_1525N_660_1360_1712",
+"UoS_SR_C1_1550N_660_1360_1712",
+"UoS_SR_C1_1575N_660_1360_1712"
+
+    ]
+#     validation: [
+
+# "UoS_SR_D1Centre_060pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_080pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_090pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_094pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_096pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_098pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_100pctUTS_710_952_1735",
+# "UoS_SR_D1Centre_102pctUTS_710_952_1735",
+# "UoS_SR_D1Down_102pctUTS_710_920_1857",
+# "UoS_SR_D1Down_104pctUTS_710_920_1857",
+# "UoS_SR_D1Down_111pctUTS_710_920_1857",
+# "UoS_SR_D1Down_115pctUTS_710_920_1857",
+# "UoS_SR_D1Up_102pctUTS_710_920_1862",
+# "UoS_SR_D1Up_104pctUTS_710_920_1862",
+# "UoS_SR_D1Up_111pctUTS_710_920_1862",
+# "UoS_SR_D1Up_115pctUTS_710_920_1862"
+
+#     ]
+#     test: [
+# "UoS_SR_E1_080pctUTS_1100_700_1699",
+# "UoS_SR_E1_090pctUTS_1100_700_1699",
+# "UoS_SR_E1_092pctUTS_1100_700_1699",
+# "UoS_SR_E1_094pctUTS_1100_700_1699",
+# "UoS_SR_E1_096pctUTS_1100_700_1699",
+# "UoS_SR_E1_098pctUTS_1100_700_1699",
+# "UoS_SR_E1_100pctUTS_1100_700_1699",
+# "UoS_SR_F1_060pctUTS_700_1300_1442",
+# "UoS_SR_F1_080pctUTS_700_1300_1442",
+# "UoS_SR_F1_090pctUTS_700_1300_1442",
+# "UoS_SR_F1_092pctUTS_700_1300_1442",
+# "UoS_SR_F1_094pctUTS_700_1300_1442",
+# "UoS_SR_F1_096pctUTS_700_1300_1442",
+# "UoS_SR_F1_098pctUTS_700_1300_1442",
+# "UoS_SR_F1_100pctUTS_700_1300_1442",
+# "UoS_SR_F1_102pctUTS_700_1300_1442",
+# "UoS_SR_F1_104pctUTS_700_1300_1442",
+# "UoS_SR_F1_106pctUTS_700_1300_1442",
+# "UoS_SR_F1_108pctUTS_700_1300_1442",
+# "UoS_SR_F1_110pctUTS_700_1300_1442"
+
+#     ]
+  stack_downsampling:
+    type: 'linear' # 'None', 'random', 'linear', 'from_start', 'from_end'
+#    frac: 1.0  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
+    number_of_images: 500  # if 'random', 'linear', 'from_start', or 'from_end' selected; ignored if `None` selected
+    num_skip_beg_slices: 0 # trims n slices off of beginning of stack with N total slices. Slice n+1 becomes new Slice 1
+    num_skip_end_slices: 0 # trims m slices off of end of stack with N total slices. Slice N-(m+1) becomes new last slice
+  target_size: [512, 512]  # width, height
+  image_cropping:
+    type: 'class' # 'None' (downscale to target), 'linear' (def # crops), 'random' (def # crops), 'class' (def # crops), 'all' (all crops)
+    num_per_image: 1 # if type 'linear' (translation) or 'random' selected, then is num of crops (of target size) per image
+    num_pos_per_class: 1 # if type 'class', then is num of random class-positive crops (of target sz) per img, >0
+    num_neg_per_class: 1 # if type 'class', then is num of random class-negative crops (of target sz) per img, >=0
+    min_num_class_pos_px: # if type 'class', then is min num of class-pos pixels required in given class-pos crop, >0
+#      class_0_pos_px: 10 # '0-degree_damage', '45-degree_damage', '90-degree_damage'
+      class_0_pos_px: 5 # '0-degree_damage'
+#      class_1_pos_px: 5 # '45-degree_damage'
+#      class_2_pos_px: 5  # '90-degree_damage'
+  class_annotation_mapping:
+#    class_0_annotation_GVs: [100, 175, 250]  # '0-degree_damage', '45-degree_damage', '90-degree_damage'
+    class_0_annotation_GVs: [255]  # '0-degree_damage'
+#    class_1_annotation_GVs: [175]  # '45-degree_damage'
+#    class_2_annotation_GVs: [250]  # '90-degree_damage'

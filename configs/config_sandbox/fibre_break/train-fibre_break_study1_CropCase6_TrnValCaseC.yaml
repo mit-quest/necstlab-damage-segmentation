@@ -1,0 +1,22 @@
+train_config:
+  model_id_prefix: 'segmentation-model-fibre_break_study1_CropCase6_TrnValCaseC'
+  dataset_id: 'dataset-fibre_break_study1_CropCase6_TrnValCaseC'
+  segmentation_model:
+    model_name: 'Unet' # see models.py for supported versions: 'Unet', 'FPN', 'Linknet'
+    model_parameters:
+      backbone_name: 'vgg16' #see models.py for supported versions:  'vgg16', 'vgg19', 'resnet18', 'seresnet18', 'resnext50', 'seresnext50', 'inceptionv3', 'mobilenet', 'efficientnetb0'
+      encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
+      input_shape: [Null, Null, 1] # [Null, Null, 1] for GV and [Null, Null, 3] for RGB
+      activation: 'sigmoid' #tf.keras.activations e.g. 'sigmoid', 'softmax', 'linear'
+  loss: 'binary_cross_entropy' #'binary_cross_entropy', 'categorical_cross_entropy', 'mean_squared_error', 'mean_absolute_error'
+  optimizer: 'adam' # 'adam', 'sdg', 'adagrad', 'adamax', 'ftrl', 'nadam', 'rmsprop'
+  batch_size: 16    # for 1x p100 GPU: FPN max batch size is 8; Unet and Linknet max batch size is 16
+  epochs: 50
+  training_data_shuffle_seed: 1234
+  validation_data_shuffle_seed: 12345
+  test_data_shuffle_seed: 123456
+  data_augmentation:
+    random_90-degree_rotations: True
+    random_brightness: True
+    random_contrast: True
+

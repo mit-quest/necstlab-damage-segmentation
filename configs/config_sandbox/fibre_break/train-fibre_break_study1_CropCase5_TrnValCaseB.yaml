@@ -1,0 +1,17 @@
+train_config:
+  model_id_prefix: 'segmentation-model-fibre_break_study1_CropCase5_TrnValCaseB'
+  dataset_id: 'dataset-fibre_break_study1_CropCase5_TrnValCaseB'
+  segmentation_model:
+    model_name: 'Unet'
+    model_parameters:
+      backbone_name: 'vgg16'
+      encoder_weights: Null   # Null (random initialization) or 'imagenet' (pre-training on ImageNet, only RGB images)
+  loss: 'cross_entropy'
+  optimizer: 'adam'
+  batch_size: 16    # p100
+  epochs: 50
+  training_data_shuffle_seed: 1234
+  validation_data_shuffle_seed: 12345
+  test_data_shuffle_seed: 123456
+  data_augmentation:
+    random_90-degree_rotations: True
