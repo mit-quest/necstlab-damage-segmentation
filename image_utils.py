@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
 import tensorflow.keras as keras
-from PIL import Image
+from PIL import Image, ImageEnhance
 import io
 
 
@@ -92,7 +92,7 @@ class TensorBoardImage(keras.callbacks.Callback):
 
 # adapted from: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class ImagesAndMasksGenerator(Sequence):
-    def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=False, seed=None, random_rotation=False):
+    def __init__(self, dataset_directory, rescale, target_size, batch_size, shuffle=False, seed=None, random_rotation=False, random_brightness=False, random_contrast=False):
         self.dataset_directory = dataset_directory
         self.image_filenames = sorted(Path(self.dataset_directory, 'images').iterdir())
         self.mask_filenames = OrderedDict()
@@ -104,6 +104,8 @@ class ImagesAndMasksGenerator(Sequence):
         self.shuffle = shuffle
         self.seed = seed
         self.random_rotation = random_rotation
+        self.random_brightness = random_brightness
+        self.random_contrast = random_contrast
         self.indexes = None
         self.random_rng = random.Random(self.seed)  # random number generator instance
         self.numpy_rng = np.random.default_rng(self.seed)  # np random number generator instance
@@ -114,7 +116,7 @@ class ImagesAndMasksGenerator(Sequence):
 
     def __getitem__(self, index):
         # Generate indexes of the batch
-        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
 
         # Find list of IDs
         batch_image_filenames = [self.image_filenames[k] for k in indexes]
@@ -141,7 +143,15 @@ class ImagesAndMasksGenerator(Sequence):
             rotation = 0
             if self.random_rotation:
                 rotation = self.random_rng.sample([0, 90, 180, 270], k=1)[0]
-            images[i, :, :, 0] = np.asarray(Image.open(batch_image_filenames[i]).rotate(rotation))
+            contrast = 1.0
+            if self.random_contrast:
+                contrast = self.random_rng.uniform(0.8, 1.2)
+            brightness = 1.0
+            if self.random_brightness:
+                brightness = self.random_rng.uniform(0.8, 1.2)
+
+            images[i, :, :, 0] = np.asarray(ImageEnhance.Contrast(ImageEnhance.Brightness(Image.open(batch_image_filenames[i]).rotate(rotation)).enhance(brightness)).enhance(contrast))
+
             for j, c in enumerate(self.mask_filenames):
                 masks[i, :, :, j] = np.asarray(Image.open(batch_mask_filenames[c][i]).rotate(rotation))
 

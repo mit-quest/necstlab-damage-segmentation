@@ -172,6 +172,8 @@ def train(gcp_bucket, config_file, random_module_global_seed, numpy_random_globa
         batch_size=batch_size,
         shuffle=True,
         random_rotation=train_config['data_augmentation']['random_90-degree_rotations'],
+        random_brightness=train_config['data_augmentation']['random_brightness'],
+        random_contrast=train_config['data_augmentation']['random_contrast'],
         seed=None if 'training_data_shuffle_seed' not in train_config else train_config['training_data_shuffle_seed'])
 
     validation_generator = ImagesAndMasksGenerator(
