@@ -1,5 +1,5 @@
 numpy
-tensorflow-gpu == 2.4.0
+tensorflow-gpu == 2.9.3
 opencv-python
 scikit-image
 sklearn
